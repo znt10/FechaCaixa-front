@@ -1,0 +1,200 @@
+
+
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 1. Ensinamos ao Tailwind v4 quais são as nossas classes personalizadas */
+@theme {
+  --color-theme-base: var(--base);
+  --color-theme-card: var(--card);
+  --color-theme-header: var(--header);
+  --color-theme-border: var(--border);
+  --color-theme-hover: var(--hover);
+  --color-theme-text-title: var(--text-title);
+  --color-theme-text-sub: var(--text-sub);
+  /* A cor de acao das telas de login: botao, link, foco do campo.
+     Era o azul do Unistock, fixo. Segue o tema porque o verde da marca
+     (#14624a) e escuro — bonito sobre o claro, apagado sobre o #070c18 do
+     tema escuro, que e o padrao do painel. */
+  --color-theme-acao: var(--acao);
+  --color-theme-acao-hover: var(--acao-hover);
+}
+
+
+/* Tokens do fechamento de caixa (Figma "Fechamento de Caixa Digital").
+   A tela do funcionario e publica: sem sidebar, sem login e sem troca de tema,
+   entao ela nao usa os tokens theme-* (que mudam com o tema do painel). */
+@theme {
+  --color-caixa-bg: #e6ece7;
+  --color-caixa-surface: #ffffff;
+  --color-caixa-border: #e2ded5;
+  --color-caixa-ink: #1a1a17;
+  --color-caixa-muted: #6e6a62;
+  --color-caixa-accent: #14624a;
+  --color-caixa-accent-soft: #e8f0ec;
+  /* Estados dos lancamentos no painel: revisar (mais de um lancamento na mesma
+     loja/dia) e nao lancado. */
+  --color-caixa-warn: #8a6414;
+  --color-caixa-warn-soft: #f7efdc;
+  --color-caixa-danger: #9a3b30;
+  --color-caixa-danger-soft: #f7e7e3;
+  /* O alerta de loja que nao lancou pede mais peso que o pill da tabela:
+     vermelho mais claro e vivo, para chamar sem parecer erro de sistema. */
+  --color-caixa-alerta: #c8382b;
+  --color-caixa-alerta-soft: #fbdedb;
+  /* Tres niveis dentro do cartao branco, do mais claro ao mais escuro:
+     faixa (cabecalho e rodape da tabela) e detalhe (a area que abre ao clicar
+     numa loja). Nenhum deles pode ser igual ao fundo da pagina, senao o
+     cartao parece recortado e o detalhe parece estar fora dele. */
+  --color-caixa-faixa: #f2f7f3;
+  --color-caixa-detalhe: #dbe8e0;
+  /* O card do total nao pode ser o mesmo verde claro dos pills: sobre o fundo
+     verde da pagina ele desaparecia. */
+  --color-caixa-total: #cbdfd3;
+}
+
+
+/* 2. Definimos as cores do Tema Claro (usando HEX, que o v4 aceita nativamente) */
+:root,
+[data-theme="light"] {
+  --base: #e8edf5;
+  --card: #ffffff;
+  --header: #dde5f0;
+  --border: #c8d3e3;
+  --hover: #eaf0f8;
+  --text-title: #0f1a2e;
+  --text-sub: #526070;
+  /* O verde da marca, tal e qual. */
+  --acao: #14624a;
+  --acao-hover: #0f4c39;
+}
+
+/* 3. Definimos as cores do Tema Dark Blue */
+[data-theme="dark-blue"] {
+  --base: #070c18;
+  --card: #0e1628;
+  --header: #0b1220;
+  --border: #1e304f;
+  --hover: #152038;
+  --text-title: #e8edf8;
+  --text-sub: #8a97b0;
+  /* O mesmo verde, clareado para sobreviver ao fundo quase preto: o #14624a
+     sobre o #070c18 fica com contraste de 2.5:1, e o botao principal some. */
+  --acao: #1e8a68;
+  --acao-hover: #23a37b;
+}
+
+/* ========================================= */
+/* BÔNUS: CORREÇÃO DA IMAGEM 1 (Auto-preenchimento) */
+/* ========================================= */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px var(--card) inset !important;
+    -webkit-text-fill-color: var(--text-title) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Os cartoes do painel flutuam sobre o bege do fundo. A sombra e quente
+   (base no #1a1a17 da paleta, nao preto puro) para nao acinzentar o creme. */
+.cartao-caixa {
+  box-shadow:
+    0 1px 2px rgba(26, 26, 23, 0.06),
+    0 8px 20px -12px rgba(26, 26, 23, 0.18);
+}
+
+/* A lista de lojas e o maior objeto da tela; a mesma sombra dos tiles some
+   numa superficie desse tamanho. */
+.cartao-caixa-grande {
+  box-shadow:
+    0 1px 2px rgba(26, 26, 23, 0.07),
+    0 18px 36px -20px rgba(26, 26, 23, 0.28);
+}
+
+/* A barra de "alteracoes nao salvas" nasce entre o formulario e o total do
+   turno. Ela entra deslizando de baixo para que o rodape verde pareca ser
+   empurrado, e nao piscar um bloco novo no meio do cartao. */
+.barra-alteracoes {
+  animation: barra-alteracoes-entrar 180ms ease-out;
+}
+
+@keyframes barra-alteracoes-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra-alteracoes {
+    animation: none;
+  }
+}
+
+/* Toda acao sem volta desta empresa abre a mesma coisa: um bloco com uma
+   barra colorida na borda esquerda. Ele entra deslizando DA ESQUERDA, do lado
+   da barra, para parecer que a barra empurrou o aviso para dentro da tela —
+   e nao que um retangulo piscou no meio do cartao.
+
+   A cor da barra diz o tipo de estrago, e nao a intensidade do susto:
+   ocre volta atras (trocar o codigo, mudar o regime, desativar alguem),
+   tijolo perde informacao para sempre (apagar alguem apaga o nome dele das
+   conferencias que ele fez). */
+.consequencia {
+  animation: consequencia-entrar 160ms ease-out;
+}
+
+@keyframes consequencia-entrar {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consequencia {
+    animation: none;
+  }
+}
+
+/* O painel da planilha desce da topbar, longe do conteudo que a pessoa estava
+   lendo. O deslize curto de cima diz de onde ele veio — sem isso, um retangulo
+   de 336px simplesmente aparecia no meio da tela. */
+.painel-exportar {
+  animation: painel-exportar-entrar 140ms ease-out;
+}
+
+@keyframes painel-exportar-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-exportar {
+    animation: none;
+  }
+}

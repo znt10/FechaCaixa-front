@@ -1,0 +1,50 @@
+# Nome do projeto fixo. Sem isto o Compose deriva do nome da pasta ("frontend")
+# — que e o mesmo de qualquer outro front na maquina, e os dois passariam a
+# se enxergar como containers orfaos um do outro: um `docker compose down`
+# aqui derrubaria o de la.
+name: fechacaixa_front
+
+services:
+  front:
+    build:
+      context: .
+      # Alvo "dev": o codigo vem por bind mount e o Next recompila sozinho.
+      # Para servir o build de producao, troque para "prod" — ai o codigo
+      # entra na imagem e cada mudanca exige `docker compose build front`.
+      target: dev
+    container_name: fechacaixa_front
+    restart: unless-stopped
+    ports:
+      # Sem prefixo de IP de proposito: escuta em todas as interfaces, que e
+      # o que faz o celular da loja alcancar o formulario pelo IP da maquina.
+      - "3000:3000"
+    volumes:
+      # Codigo do host dentro do container -> hot reload.
+      - .:/app
+      # Volumes anonimos: preservam o node_modules instalado na imagem
+      # (binarios Linux da imagem, nao os do host) e o cache do .next.
+      # Depois de mexer no package.json: `docker compose up -d --build front`.
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env.local
+    environment:
+      # O Django roda no compose do FechaCaixa_Back. Dentro da rede dele o
+      # servico se chama "api" e escuta na 8000 — nao usar localhost, que
+      # dentro do container aponta pro proprio front.
+      # "api" ja esta no ALLOWED_HOSTS do backend, entao o Host header passa.
+      API_PROXY_URL: http://api:8000
+      # NEXT_DEV_ORIGINS (o IP da maquina, para o celular da loja carregar os
+      # assets) vem do .env.local — nao repetir aqui, porque o bloco
+      # `environment` ganha do `env_file` e apagaria o valor de la.
+    networks:
+      - backend
+    stdin_open: true
+    tty: true
+
+networks:
+  # Rede criada pelo compose do FechaCaixa_Back (projeto "fechacaixa_back").
+  # Externa de proposito: o backend precisa estar de pe antes do front.
+  backend:
+    name: fechacaixa_back_default
+    external: true
