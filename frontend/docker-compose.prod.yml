@@ -24,10 +24,24 @@ services:
       target: prod
       args:
         API_PROXY_URL: ${API_PROXY_URL:?defina API_PROXY_URL}
-        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
+        # Sem valor de proposito: assim o Compose pega o que ja existe no
+        # ambiente do build, que e onde o Coolify poe o commit. Escrito como
+        # ${SOURCE_COMMIT:-} ele viraria string vazia e apagaria justamente o
+        # valor que o Coolify injeta.
+        SOURCE_COMMIT:
     restart: unless-stopped
     expose:
       - "3000"
+    healthcheck:
+      # /login e uma pagina publica: responde 200 sem cookie nenhum. O wget e o
+      # do busybox (a imagem e node:22-alpine), e --spider evita baixar o HTML
+      # a toa. Serve para o "unhealthy" aparecer aqui, e nao so no navegador de
+      # quem abriu o site.
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:3000/login"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     environment:
       API_PROXY_URL: ${API_PROXY_URL:?defina API_PROXY_URL}
       NODE_ENV: production

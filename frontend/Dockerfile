@@ -55,6 +55,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY package.json next.config.ts ./
+# O next.config.ts nao e so um arquivo de build: o `next start` le e transpila
+# ele de novo ao subir, e junto vai o que ele importa. Sem shared/config aqui,
+# o container sobe, imprime "Ready" e morre em seguida com
+# "Cannot find module './shared/config/api'" — e a URL da API mora ali porque
+# o proxy.ts precisa responder a mesma coisa que o rewrite.
+COPY --from=builder /app/shared/config ./shared/config
 USER node
 EXPOSE 3000
 CMD ["npm", "run", "start", "--", "--hostname", "0.0.0.0"]
