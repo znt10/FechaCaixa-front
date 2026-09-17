@@ -22,12 +22,12 @@ const WATCH_POLL_MS = Number(process.env.NEXT_WATCH_POLL_MS) || 0;
 // para /api/versao e o MESMO literal — este arquivo ser reavaliado quando o
 // `next start` sobe nao muda o que ja foi compilado.
 //
-// O commit vem primeiro por ser legivel num log; o Railway so o entrega ao
-// build se o Dockerfile pedir (ARG). Sem ele, a hora do build ja resolve: o
-// que importa e mudar a cada deploy.
+// O commit vem primeiro por ser legivel num log; o Coolify o entrega ao build
+// em SOURCE_COMMIT, e o Dockerfile precisa pedir por ele (ARG). Sem ele, a
+// hora do build ja resolve: o que importa e mudar a cada deploy.
 const VERSAO_DO_BUILD =
   process.env.NODE_ENV === "production"
-    ? process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) || String(Date.now())
+    ? process.env.SOURCE_COMMIT?.slice(0, 7) || String(Date.now())
     : "dev";
 
 // Celular da loja abrindo o formulario pelo IP da maquina: em dev o Next
