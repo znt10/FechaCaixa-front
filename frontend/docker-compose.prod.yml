@@ -1,0 +1,33 @@
+# Compose de PRODUCAO (Coolify / VPS). O docker-compose.yml ao lado e o de
+# desenvolvimento: alvo "dev", codigo por bind mount e a rede externa do
+# compose do backend, que so existe na maquina de quem desenvolve.
+#
+# No Coolify, no recurso do tipo "Docker Compose":
+#   Base Directory = /frontend
+#   Docker Compose Location = /frontend/docker-compose.prod.yml
+#   Dominio no servico "front", porta 3000
+#
+# API_PROXY_URL = URL da API, sem barra no fim. Vai no build E no container: o
+# rewrite /backend (next.config.ts) e gravado no build, e o proxy.ts le a mesma
+# variavel em tempo de execucao para renovar o token.
+#
+# Se a API estiver no mesmo servidor, prefira o dominio publico dela
+# (https://api.fechacaixa.io): este compose e o do backend sao dois recursos
+# do Coolify, e cada um tem a sua propria rede — o nome "api" nao resolve aqui.
+# Para falar por dentro, ligue os dois na mesma rede pelo painel (Connect to
+# Predefined Network) e ai sim use http://api:8000.
+
+services:
+  front:
+    build:
+      context: .
+      target: prod
+      args:
+        API_PROXY_URL: ${API_PROXY_URL:?defina API_PROXY_URL}
+        SOURCE_COMMIT: ${SOURCE_COMMIT:-}
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      API_PROXY_URL: ${API_PROXY_URL:?defina API_PROXY_URL}
+      NODE_ENV: production

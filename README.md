@@ -25,6 +25,7 @@ README rodam **de dentro dessa pasta**.
 - [Arquitetura](#arquitetura)
 - [Rotas](#rotas)
 - [Testes](#testes)
+- [Deploy](#deploy)
 
 ## Tecnologias
 
@@ -186,3 +187,25 @@ Ou, pelo container:
 ```bash
 docker compose exec front npm test
 ```
+
+## Deploy
+
+Coolify, pelo `frontend/docker-compose.prod.yml` — o mesmo `Dockerfile` do
+desenvolvimento, no alvo `prod`.
+
+| Campo no Coolify | Valor |
+|---|---|
+| Base Directory | `/frontend` |
+| Docker Compose Location | `/frontend/docker-compose.prod.yml` |
+| Domínio | serviço `front`, porta `3000` |
+| `API_PROXY_URL` | URL da API, sem barra no fim |
+
+`API_PROXY_URL` entra no build **e** no container: o destino do rewrite
+`/backend/*` é gravado durante o `npm run build`, e o `proxy.ts` lê a mesma
+variável em execução para renovar o token. Front e backend são dois recursos
+do Coolify, cada um com a sua rede — então aqui vale o domínio público da API,
+a não ser que os dois estejam ligados na mesma rede pelo painel.
+
+O passo a passo completo, com o lado do backend, está em
+[`docs/DEPLOY-COOLIFY.md`](https://github.com/znt10/FechaCaixa-back/blob/main/docs/DEPLOY-COOLIFY.md)
+no repositório da API.
