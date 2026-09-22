@@ -15,6 +15,7 @@ import {
 } from "@/features/fechamento/areas-do-painel";
 import { useUsuarioAtual } from "@/shared/hooks/useUsuarioAtual";
 import { logout } from "@/shared/services/auth";
+import { esquecerSessaoAnterior } from "@/shared/services/cache-da-sessao";
 import { useAuthStore } from "@/shared/stores/authStore";
 
 const semAcento = (texto?: string) =>
@@ -273,11 +274,13 @@ function Conta({
     setSaindo(true);
 
     // `logout` apaga o cookie no servidor e o usuario do localStorage. O que
-    // ele NAO faz sozinho e esvaziar o cache do React Query: sem esta linha,
-    // quem entrasse em seguida veria as lojas e os fechamentos da empresa
-    // anterior ate cada consulta revalidar — dado de outro cliente na tela.
+    // ele NAO faz sozinho e esvaziar o cache do React Query — nem a memoria,
+    // nem a copia salva na aba, que o `clear()` sozinho deixava para tras
+    // (ver esquecerSessaoAnterior). O login tambem esquece, porque nem toda
+    // troca de conta passa por aqui; este e o caminho em que da para sair
+    // limpo antes mesmo de chegar na tela de login.
     await logout();
-    cliente.clear();
+    esquecerSessaoAnterior(cliente);
 
     // Navegacao dura, e nao router.push: e a unica forma de garantir que nao
     // sobrou estado em memoria de quem estava aqui. Sair e raro; um

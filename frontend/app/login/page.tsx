@@ -3,7 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { login } from "@/shared/services/auth";
+import { esquecerSessaoAnterior } from "@/shared/services/cache-da-sessao";
 
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
@@ -17,6 +19,7 @@ const HOME = "/fechamentos";
 
 export default function LoginPage() {
   const router = useRouter();
+  const cliente = useQueryClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,6 +48,14 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
+
+      // Todo login pode ser uma troca de conta, e e por aqui que TODA troca
+      // passa — inclusive a de quem nunca clicou em Sair (sessao expirada, o
+      // 401 manda para ca). Sem isto o painel abria com o cache de quem
+      // entrou antes: o nome no topo, as lojas e as notas de outra empresa,
+      // frescos por ate 5 minutos. Depois do login dar certo, e nao antes:
+      // senha errada nao troca de conta nenhuma.
+      esquecerSessaoAnterior(cliente);
 
       router.push(HOME);
     } catch (err: unknown) {
