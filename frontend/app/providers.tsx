@@ -7,6 +7,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Toaster } from "sonner";
 
 import { AvisoDeNovaVersao } from "@/shared/components/AvisoDeNovaVersao";
+import { CHAVE_DO_CACHE } from "@/shared/services/cache-da-sessao";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -24,6 +25,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [persister] = useState(() =>
     createSyncStoragePersister({
       storage: typeof window !== "undefined" ? window.sessionStorage : undefined,
+      // A mesma chave que `esquecerSessaoAnterior` apaga na troca de login.
+      key: CHAVE_DO_CACHE,
     }),
   );
 
