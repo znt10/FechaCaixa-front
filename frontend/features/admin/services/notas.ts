@@ -57,11 +57,30 @@ export type FiltroDeNotas = {
   page?: number;
 };
 
+/**
+ * Quanto a empresa gastou — no filtro inteiro, nao na pagina.
+ *
+ * Vem somado do servidor porque a listagem pagina em 50: somar o que chegou
+ * daria um terco do gasto de um mes de 300 notas com cara de total, e e por
+ * esse numero que a gerencia fecha o mes.
+ *
+ * Dinheiro em string decimal, como `valor_total` de cada nota: em float,
+ * 84320.10 chega como 84320.099999 e a faixa arredonda o mes.
+ */
+export type TotaisDeNotas = {
+  valor: string;
+  /** O que ainda falta classificar dentro do mesmo filtro. */
+  pendentes: { quantidade: number; valor: string };
+};
+
 export type PaginaDeNotas = {
   count: number;
   next: string | null;
   previous: string | null;
   results: NotaFiscal[];
+  /** Opcional porque o front pode subir antes do backend que soma: sem o
+   *  campo a faixa some, em vez de a tela quebrar. */
+  totais?: TotaisDeNotas;
 };
 
 /** Uma pagina por vez, com os filtros: a listagem pode passar de 50 notas
