@@ -101,3 +101,38 @@ export const usaCatalogo = (resposta: {
   // Ausente conta como ligado: é o backend antigo, que não manda o campo.
   return resposta.usuario?.modulos?.catalogo !== false;
 };
+
+/** As quatro perguntas que a tela Empresa liga e desliga. A perda fica fora:
+ *  ela acompanha o catálogo, que o resumo conta à parte. */
+const PERGUNTAS_CONFIGURAVEIS = [
+  "pergunta_retirada",
+  "pergunta_despesa",
+  "pergunta_devolucao",
+  "pergunta_consumo",
+] as const;
+
+/**
+ * O que o cartão do formulário mostra quando está recolhido.
+ *
+ * Quem recolhe precisa continuar sabendo o que está valendo, senão abrir de
+ * novo vira o único jeito de conferir — e aí recolher não serviu para nada.
+ *
+ * "todas" e "nenhuma" por extenso: "4 de 4" faz procurar o que falta, e
+ * "0 de 4" esconde num número o fato de o formulário estar sem pergunta
+ * nenhuma.
+ */
+export const resumoDoFormulario = (config: ConfiguracaoDoFormulario): string => {
+  const ligadas = PERGUNTAS_CONFIGURAVEIS.filter((campo) => config[campo] !== false).length;
+
+  const quantas =
+    ligadas === PERGUNTAS_CONFIGURAVEIS.length
+      ? "todas as perguntas"
+      : ligadas === 0
+        ? "nenhuma pergunta"
+        : `${ligadas} de ${PERGUNTAS_CONFIGURAVEIS.length} perguntas`;
+
+  const catalogo =
+    config.catalogo_ativo === false ? "sem catálogo" : `catálogo de ${nomeDosItens(config)}`;
+
+  return `${quantas} · ${catalogo}`;
+};

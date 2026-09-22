@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   avisoDeCatalogoVazio,
+  resumoDoFormulario,
   usaCatalogo,
   nomeDosItens,
   perguntaDePerda,
@@ -122,5 +123,51 @@ describe("usaCatalogo", () => {
 
   it("backend antigo, sem o campo, continua com catálogo", () => {
     expect(usaCatalogo({ usuario: {}, carregando: false, falhou: false })).toBe(true);
+  });
+});
+
+describe("resumoDoFormulario", () => {
+  it("diz quantas perguntas estão ligadas e como está o catálogo", () => {
+    // É o que o cartão recolhido mostra: quem recolheu precisa saber o que
+    // está valendo sem abrir de novo.
+    expect(
+      resumoDoFormulario({
+        pergunta_retirada: true,
+        pergunta_despesa: true,
+        pergunta_devolucao: false,
+        pergunta_consumo: false,
+        catalogo_ativo: true,
+        nome_dos_itens: "pães",
+      }),
+    ).toBe("2 de 4 perguntas · catálogo de pães");
+  });
+
+  it("uma pergunta só não vira 'perguntas'", () => {
+    expect(
+      resumoDoFormulario({
+        pergunta_retirada: true,
+        pergunta_despesa: false,
+        pergunta_devolucao: false,
+        pergunta_consumo: false,
+        catalogo_ativo: false,
+      }),
+    ).toBe("1 de 4 perguntas · sem catálogo");
+  });
+
+  it("com tudo ligado, diz que são todas", () => {
+    // "4 de 4" faz procurar o que falta. Não falta nada.
+    expect(resumoDoFormulario({})).toBe("todas as perguntas · catálogo de salgados");
+  });
+
+  it("com tudo desligado, não esconde isso atrás de um número", () => {
+    expect(
+      resumoDoFormulario({
+        pergunta_retirada: false,
+        pergunta_despesa: false,
+        pergunta_devolucao: false,
+        pergunta_consumo: false,
+        catalogo_ativo: false,
+      }),
+    ).toBe("nenhuma pergunta · sem catálogo");
   });
 });

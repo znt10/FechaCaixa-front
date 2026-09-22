@@ -33,7 +33,10 @@ import {
   useMinhaEmpresa,
   useResponsaveis,
 } from "@/features/admin/hooks/useEmpresa";
-import { nomeDosItens } from "@/features/fechamento/formulario-da-empresa";
+import {
+  nomeDosItens,
+  resumoDoFormulario,
+} from "@/features/fechamento/formulario-da-empresa";
 
 /**
  * A tela da empresa — do gerente.
@@ -813,6 +816,7 @@ function OFormularioDaLoja() {
   const empresa = useMinhaEmpresa();
   const editar = useEditarEmpresa();
   const [nome, setNome] = useState<string | null>(null);
+  const [recolhido, alternarRecolhido] = useRecolhido("formulario-da-loja");
 
   if (!empresa.data) return null;
 
@@ -825,6 +829,11 @@ function OFormularioDaLoja() {
     <Secao
       titulo="O formulário da loja"
       descricao="Quais perguntas a loja responde ao fechar o caixa."
+      resumo={resumoDoFormulario(config)}
+      // Recolhido com o nome pela metade guardaria uma edição que ninguém vê:
+      // o cartão fica aberto enquanto houver algo a salvar.
+      recolhido={recolhido && !nomeMudou}
+      aoAlternarRecolhido={alternarRecolhido}
     >
       <div className="flex flex-col gap-[14px]">
         {PERGUNTAS_DO_FORMULARIO.map(({ campo, rotulo, explicacao }) => (
