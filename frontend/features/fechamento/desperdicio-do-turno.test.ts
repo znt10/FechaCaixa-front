@@ -192,3 +192,16 @@ describe("linhaEditavelDoDesperdicio", () => {
     });
   });
 });
+
+describe("o aviso de catálogo vazio fala do que a empresa vende", () => {
+  it("usa o nome dado pela empresa", () => {
+    const r = montarDesperdiciosDoTurno([linha(1, "id-coxinha", "2")], [], {
+      nome_dos_itens: "pães",
+    });
+
+    expect(r.ok).toBe(false);
+    expect(r.ok === false && r.erro).toBe(
+      "O catálogo de pães está vazio. Cadastre os itens na tela Catálogo.",
+    );
+  });
+});

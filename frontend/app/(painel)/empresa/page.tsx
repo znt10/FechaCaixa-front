@@ -33,6 +33,7 @@ import {
   useMinhaEmpresa,
   useResponsaveis,
 } from "@/features/admin/hooks/useEmpresa";
+import { nomeDosItens } from "@/features/fechamento/formulario-da-empresa";
 
 /**
  * A tela da empresa — do gerente.
@@ -83,6 +84,7 @@ export default function EmpresaPage() {
           aoAbrir={() => setPergunta("regime")}
           aoFechar={() => setPergunta(null)}
         />
+        <OFormularioDaLoja />
         <LancarFechamento />
         <Gerentes />
         <Funcionarios />
@@ -767,6 +769,149 @@ function FechamentosPorDia({
           Mudar para {REGIMES[outro].rotulo.toLowerCase()}
         </button>
       )}
+    </Secao>
+  );
+}
+
+/** As perguntas opcionais, como a tela Empresa as mostra. A ordem e a mesma
+ *  em que aparecem no formulario da loja. */
+const PERGUNTAS_DO_FORMULARIO = [
+  {
+    campo: "pergunta_retirada",
+    rotulo: "Houve retirada de dinheiro?",
+    explicacao: "Quem tirou dinheiro do caixa, e quanto.",
+  },
+  {
+    campo: "pergunta_despesa",
+    rotulo: "Houve alguma despesa?",
+    explicacao: "O que o turno comprou: gás, água, remédio.",
+  },
+  {
+    campo: "pergunta_devolucao",
+    rotulo: "Houve devolução?",
+    explicacao: "Venda desfeita, que já sai do total do dia.",
+  },
+  {
+    campo: "pergunta_consumo",
+    rotulo: "Alguém consumiu?",
+    explicacao: "O que a equipe consumiu e será descontado depois.",
+  },
+] as const;
+
+/**
+ * O formulario que a loja preenche, sob medida para esta empresa.
+ *
+ * O FechaCaixa nasceu numa rede de salgados e perguntava de salgado para todo
+ * mundo. Quem vende outra coisa — ou nao tem retirada, ou nao da lanche para
+ * a equipe — respondia "nao" toda noite a uma pergunta que nunca foi dele.
+ *
+ * Desligar so ESCONDE a pergunta: o que ja foi lancado continua no painel, e
+ * um turno antigo que tenha o dado ainda mostra a pergunta na hora de
+ * corrigir — senao a correcao iria sem ela e apagaria o que a loja mandou.
+ */
+function OFormularioDaLoja() {
+  const empresa = useMinhaEmpresa();
+  const editar = useEditarEmpresa();
+  const [nome, setNome] = useState<string | null>(null);
+
+  if (!empresa.data) return null;
+
+  const config = empresa.data;
+  const nomeSalvo = nomeDosItens(config);
+  const nomeEditado = nome ?? nomeSalvo;
+  const nomeMudou = nomeEditado.trim() !== "" && nomeEditado.trim() !== nomeSalvo;
+
+  return (
+    <Secao
+      titulo="O formulário da loja"
+      descricao="Quais perguntas a loja responde ao fechar o caixa."
+    >
+      <div className="flex flex-col gap-[14px]">
+        {PERGUNTAS_DO_FORMULARIO.map(({ campo, rotulo, explicacao }) => (
+          <label key={campo} className="flex items-start gap-[10px]">
+            <input
+              type="checkbox"
+              checked={config[campo] !== false}
+              disabled={editar.isPending}
+              onChange={(evento) => editar.mutate({ [campo]: evento.target.checked })}
+              className="mt-[3px] h-[16px] w-[16px] accent-caixa-accent"
+            />
+            <span className="flex flex-col gap-[1px]">
+              <span className="text-[15px] leading-[1.35]">{rotulo}</span>
+              <span className="text-[13px] leading-[1.4] text-caixa-muted">
+                {explicacao}
+              </span>
+            </span>
+          </label>
+        ))}
+
+        {/* O catalogo num bloco proprio: ele nao e uma pergunta, e a tela
+            inteira de cadastro que some junto. */}
+        <label className="flex items-start gap-[10px] border-t border-caixa-border pt-[14px]">
+          <input
+            type="checkbox"
+            checked={config.catalogo_ativo !== false}
+            disabled={editar.isPending}
+            onChange={(evento) => editar.mutate({ catalogo_ativo: evento.target.checked })}
+            className="mt-[3px] h-[16px] w-[16px] accent-caixa-accent"
+          />
+          <span className="flex flex-col gap-[1px]">
+            <span className="text-[15px] leading-[1.35]">
+              Usar catálogo de {nomeSalvo}
+            </span>
+            <span className="text-[13px] leading-[1.4] text-caixa-muted">
+              Liga a aba Catálogo, a pergunta de perda no formulário e o
+              Desperdício em Saídas. Desligar não apaga o que já foi cadastrado
+              nem o que já foi lançado.
+            </span>
+          </span>
+        </label>
+
+        <div className="flex flex-col gap-[6px] border-t border-caixa-border pt-[14px]">
+          <label
+            htmlFor="nome-dos-itens"
+            className="text-[13px] font-medium uppercase tracking-[1px] text-caixa-muted"
+          >
+            Como a empresa chama o que vende
+          </label>
+          <div className="flex flex-wrap items-center gap-[10px]">
+            <input
+              id="nome-dos-itens"
+              value={nomeEditado}
+              maxLength={40}
+              onChange={(evento) => setNome(evento.target.value)}
+              placeholder="salgados"
+              className="min-w-[180px] flex-1 rounded-[10px] border border-caixa-border bg-caixa-surface px-[12px] py-[9px] text-[15px] leading-[1.4] text-caixa-ink outline-none transition focus:border-caixa-accent focus:ring-2 focus:ring-caixa-accent/15"
+            />
+            {nomeMudou && (
+              <button
+                type="button"
+                disabled={editar.isPending}
+                onClick={() =>
+                  editar.mutate(
+                    { nome_dos_itens: nomeEditado.trim() },
+                    { onSuccess: () => setNome(null) },
+                  )
+                }
+                className="rounded-[10px] bg-caixa-accent px-[16px] py-[9px] text-[14px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              >
+                {editar.isPending ? "Salvando..." : "Salvar"}
+              </button>
+            )}
+          </div>
+          <p className="text-[13px] leading-[1.4] text-caixa-muted">
+            No plural, como entra na frase: &quot;Houve perda de {nomeSalvo}?&quot;.
+          </p>
+        </div>
+
+        {editar.error && (
+          <p className="text-[14px] font-medium text-caixa-alerta">
+            {editar.error instanceof Error
+              ? editar.error.message
+              : "Não foi possível salvar."}
+          </p>
+        )}
+      </div>
     </Secao>
   );
 }

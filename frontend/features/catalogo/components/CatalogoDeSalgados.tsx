@@ -13,6 +13,8 @@ import {
   getSalgadosDoPainel,
   type CategoriaDeSalgado,
 } from "@/features/catalogo/services/catalogo";
+import { useMinhaEmpresa } from "@/features/admin/hooks/useEmpresa";
+import { tituloDoCatalogo } from "@/features/fechamento/formulario-da-empresa";
 
 const CHAVE_CATALOGO = ["catalogo"] as const;
 
@@ -114,6 +116,9 @@ function resumoDaLista(
 export function CatalogoDeSalgados() {
   const categorias = useCategorias();
   const salgados = useSalgados();
+  // Só pelo título: a empresa diz como chama o que vende, e "Catálogo de
+  // salgados" numa padaria é o sistema falando do ramo de outro cliente.
+  const empresa = useMinhaEmpresa();
   const [criandoCategoria, setCriandoCategoria] = useState(false);
 
   const categoriasOrdenadas = useMemo(
@@ -165,7 +170,9 @@ export function CatalogoDeSalgados() {
   return (
     <main className="mx-auto flex max-w-[1440px] flex-col gap-[20px] px-[16px] md:px-[40px] pb-[60px] pt-[28px]">
       <div className="flex flex-col gap-[2px]">
-        <h1 className="text-[22px] font-bold leading-[1.2]">Catálogo de salgados</h1>
+        <h1 className="text-[22px] font-bold leading-[1.2]">
+          {tituloDoCatalogo(empresa.data ?? {})}
+        </h1>
         <p className="max-w-[70ch] text-[14px] leading-[1.4] text-caixa-muted">
           As categorias e os itens que aparecem no formulário da loja, para
           consumo e desperdício.

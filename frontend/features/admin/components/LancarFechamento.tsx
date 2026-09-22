@@ -50,6 +50,10 @@ import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio"
 import { montarRevisao, rotuloDoTurno } from "@/features/fechamento/revisao-do-envio";
 import type { Periodo, Salgado } from "@/features/fechamento/services/fechamentos";
 import type { ReposicaoPayload } from "@/features/admin/services/reposicao";
+import {
+  perguntaDePerda,
+  perguntasVisiveis,
+} from "@/features/fechamento/formulario-da-empresa";
 
 /**
  * Repor um dia que a loja esqueceu de fechar.
@@ -174,6 +178,21 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
   // correcao para reidratar item desativado: o lancamento e sempre novo.
   const catalogoAtivo = catalogo.filter((item) => item.ativo && item.categoria_ativo);
 
+  // As mesmas perguntas que a loja responde: o que a gerencia repoe tem que
+  // ser o mesmo dado que a loja teria mandado. Enquanto a empresa carrega,
+  // `{}` conta como tudo ligado — melhor uma pergunta a mais por um instante
+  // do que a gerencia sem onde lancar a retirada.
+  const configuracao = empresa.data ?? {};
+  const visiveis = perguntasVisiveis(configuracao, {
+    retirada: houveRetirada,
+    despesa: houveDespesa,
+    devolucao: houveDevolucao,
+    consumo: houveConsumo,
+    perda: houveDesperdicio,
+  });
+  const algumaPergunta =
+    visiveis.retirada || visiveis.despesa || visiveis.devolucao || visiveis.consumo || visiveis.perda;
+
   // Um turno so na resposta (domingo, feriado, ou empresa que fecha uma vez
   // por dia) nao e escolha: fica marcado sozinho. Perguntar seria oferecer uma
   // opcao que o servidor recusaria no envio.
@@ -248,6 +267,7 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
     const perdas = montarDesperdiciosDoTurno(
       houveDesperdicio ? desperdicios : [],
       catalogo,
+      configuracao,
     );
     if (!perdas.ok) {
       setErro(perdas.erro);
@@ -482,160 +502,170 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
         </Campo>
       </div>
 
-      <TituloSecao>O QUE SAIU</TituloSecao>
+      {algumaPergunta && <TituloSecao>O QUE SAIU</TituloSecao>}
 
-      <Pergunta rotulo="Houve retirada?" valor={houveRetirada} onChange={setHouveRetirada}>
-        <Campo rotulo="Quem retirou" htmlFor={`${id}-responsavel`}>
-          <CampoSelecao
-            id={`${id}-responsavel`}
-            valor={responsavelRetirada}
-            onChange={setResponsavelRetirada}
-          >
-            <option value="">Escolha a pessoa</option>
-            {responsaveisAtivos.map((pessoa) => (
-              <option key={pessoa.id} value={pessoa.id}>
-                {pessoa.nome}
-              </option>
-            ))}
-          </CampoSelecao>
-        </Campo>
-        <Campo rotulo="Valor retirado" htmlFor={`${id}-valor-retirado`}>
-          <CampoMoeda
-            id={`${id}-valor-retirado`}
-            digitos={valorRetirado}
-            onChange={setValorRetirado}
+      {visiveis.retirada && (
+        <Pergunta rotulo="Houve retirada?" valor={houveRetirada} onChange={setHouveRetirada}>
+          <Campo rotulo="Quem retirou" htmlFor={`${id}-responsavel`}>
+            <CampoSelecao
+              id={`${id}-responsavel`}
+              valor={responsavelRetirada}
+              onChange={setResponsavelRetirada}
+            >
+              <option value="">Escolha a pessoa</option>
+              {responsaveisAtivos.map((pessoa) => (
+                <option key={pessoa.id} value={pessoa.id}>
+                  {pessoa.nome}
+                </option>
+              ))}
+            </CampoSelecao>
+          </Campo>
+          <Campo rotulo="Valor retirado" htmlFor={`${id}-valor-retirado`}>
+            <CampoMoeda
+              id={`${id}-valor-retirado`}
+              digitos={valorRetirado}
+              onChange={setValorRetirado}
+            />
+          </Campo>
+        </Pergunta>
+      )}
+
+      {visiveis.despesa && (
+        <Pergunta rotulo="Houve despesa?" valor={houveDespesa} onChange={setHouveDespesa}>
+          <Linhas
+            linhas={despesas}
+            aoMudar={setDespesas}
+            nova={(chave) => ({ chave, descricao: "", valor: "" })}
+            rotuloDoBotao="Adicionar despesa"
+            renderizar={(linha, atualizar) => (
+              <>
+                <Campo rotulo="No que gastou" htmlFor={`${id}-despesa-${linha.chave}`}>
+                  <CampoTexto
+                    id={`${id}-despesa-${linha.chave}`}
+                    valor={linha.descricao}
+                    onChange={(descricao) => atualizar({ ...linha, descricao })}
+                    placeholder="Gás, água, remédio..."
+                  />
+                </Campo>
+                <Campo rotulo="Quanto" htmlFor={`${id}-despesa-valor-${linha.chave}`}>
+                  <CampoMoeda
+                    id={`${id}-despesa-valor-${linha.chave}`}
+                    digitos={linha.valor}
+                    onChange={(valor) => atualizar({ ...linha, valor })}
+                  />
+                </Campo>
+              </>
+            )}
           />
-        </Campo>
-      </Pergunta>
+        </Pergunta>
+      )}
 
-      <Pergunta rotulo="Houve despesa?" valor={houveDespesa} onChange={setHouveDespesa}>
-        <Linhas
-          linhas={despesas}
-          aoMudar={setDespesas}
-          nova={(chave) => ({ chave, descricao: "", valor: "" })}
-          rotuloDoBotao="Adicionar despesa"
-          renderizar={(linha, atualizar) => (
-            <>
-              <Campo rotulo="No que gastou" htmlFor={`${id}-despesa-${linha.chave}`}>
-                <CampoTexto
-                  id={`${id}-despesa-${linha.chave}`}
-                  valor={linha.descricao}
-                  onChange={(descricao) => atualizar({ ...linha, descricao })}
-                  placeholder="Gás, água, remédio..."
-                />
-              </Campo>
-              <Campo rotulo="Quanto" htmlFor={`${id}-despesa-valor-${linha.chave}`}>
-                <CampoMoeda
-                  id={`${id}-despesa-valor-${linha.chave}`}
-                  digitos={linha.valor}
-                  onChange={(valor) => atualizar({ ...linha, valor })}
-                />
-              </Campo>
-            </>
-          )}
-        />
-      </Pergunta>
+      {visiveis.devolucao && (
+        <Pergunta
+          rotulo="Houve devolução?"
+          valor={houveDevolucao}
+          onChange={setHouveDevolucao}
+        >
+          <Campo rotulo="Valor devolvido" htmlFor={`${id}-devolucao`}>
+            <CampoMoeda
+              id={`${id}-devolucao`}
+              digitos={devolucaoValor}
+              onChange={setDevolucaoValor}
+            />
+          </Campo>
+        </Pergunta>
+      )}
 
-      <Pergunta
-        rotulo="Houve devolução?"
-        valor={houveDevolucao}
-        onChange={setHouveDevolucao}
-      >
-        <Campo rotulo="Valor devolvido" htmlFor={`${id}-devolucao`}>
-          <CampoMoeda
-            id={`${id}-devolucao`}
-            digitos={devolucaoValor}
-            onChange={setDevolucaoValor}
-          />
-        </Campo>
-      </Pergunta>
-
-      <Pergunta
-        rotulo="Perdeu algum salgado?"
-        valor={houveDesperdicio}
-        onChange={setHouveDesperdicio}
-      >
-        <Linhas
-          linhas={desperdicios}
-          aoMudar={setDesperdicios}
-          nova={(chave) => ({ chave, salgadoId: "", quantidade: "" })}
-          rotuloDoBotao="Adicionar item"
-          renderizar={(linha, atualizar) => (
-            <>
-              {/* Select por categoria, e o valor e o id: "Coxinha" existe em
-                  Salgados grande e em Salgados mini. */}
-              <Campo rotulo="Item" htmlFor={`${id}-desperdicio-${linha.chave}`}>
-                <CampoSelecao
-                  id={`${id}-desperdicio-${linha.chave}`}
-                  valor={linha.salgadoId}
-                  onChange={(salgadoId) => atualizar({ ...linha, salgadoId })}
-                >
-                  <option value="">
-                    {salgados.isPending ? "Carregando..." : "Escolha o item"}
-                  </option>
-                  {porCategoria(catalogoAtivo).map((grupo) => (
-                    <optgroup key={grupo.categoria} label={grupo.categoria}>
-                      {grupo.itens.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.nome}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </CampoSelecao>
-              </Campo>
-              <Campo
-                rotulo="Quantidade (unidades)"
-                htmlFor={`${id}-desperdicio-quantidade-${linha.chave}`}
-              >
-                <CampoTexto
-                  id={`${id}-desperdicio-quantidade-${linha.chave}`}
-                  inputMode="numeric"
-                  valor={linha.quantidade}
-                  onChange={(quantidade) =>
-                    atualizar({ ...linha, quantidade: quantidade.replace(/\D/g, "") })
-                  }
-                  placeholder="Ex.: 8"
-                />
-              </Campo>
-            </>
-          )}
-        />
-      </Pergunta>
-
-      <Pergunta rotulo="Alguém consumiu?" valor={houveConsumo} onChange={setHouveConsumo}>
-        <Linhas
-          linhas={consumos}
-          aoMudar={setConsumos}
-          nova={(chave) => ({ chave, nome: "", valor: "" })}
-          rotuloDoBotao="Adicionar pessoa"
-          renderizar={(linha, atualizar) => (
-            <>
-              <Campo rotulo="Quem" htmlFor={`${id}-consumo-${linha.chave}`}>
-                <CampoSelecao
-                  id={`${id}-consumo-${linha.chave}`}
-                  valor={linha.nome}
-                  onChange={(nome) => atualizar({ ...linha, nome })}
-                >
-                  <option value="">Escolha a pessoa</option>
-                  {quemConsome.map((pessoa) => (
-                    <option key={pessoa.id} value={pessoa.nome}>
-                      {pessoa.nome}
+      {visiveis.perda && (
+        <Pergunta
+          rotulo={perguntaDePerda(configuracao)}
+          valor={houveDesperdicio}
+          onChange={setHouveDesperdicio}
+        >
+          <Linhas
+            linhas={desperdicios}
+            aoMudar={setDesperdicios}
+            nova={(chave) => ({ chave, salgadoId: "", quantidade: "" })}
+            rotuloDoBotao="Adicionar item"
+            renderizar={(linha, atualizar) => (
+              <>
+                {/* Select por categoria, e o valor e o id: "Coxinha" existe em
+                    Salgados grande e em Salgados mini. */}
+                <Campo rotulo="Item" htmlFor={`${id}-desperdicio-${linha.chave}`}>
+                  <CampoSelecao
+                    id={`${id}-desperdicio-${linha.chave}`}
+                    valor={linha.salgadoId}
+                    onChange={(salgadoId) => atualizar({ ...linha, salgadoId })}
+                  >
+                    <option value="">
+                      {salgados.isPending ? "Carregando..." : "Escolha o item"}
                     </option>
-                  ))}
-                </CampoSelecao>
-              </Campo>
-              <Campo rotulo="Quanto" htmlFor={`${id}-consumo-valor-${linha.chave}`}>
-                <CampoMoeda
-                  id={`${id}-consumo-valor-${linha.chave}`}
-                  digitos={linha.valor}
-                  onChange={(valor) => atualizar({ ...linha, valor })}
-                />
-              </Campo>
-            </>
-          )}
-        />
-      </Pergunta>
+                    {porCategoria(catalogoAtivo).map((grupo) => (
+                      <optgroup key={grupo.categoria} label={grupo.categoria}>
+                        {grupo.itens.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.nome}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </CampoSelecao>
+                </Campo>
+                <Campo
+                  rotulo="Quantidade (unidades)"
+                  htmlFor={`${id}-desperdicio-quantidade-${linha.chave}`}
+                >
+                  <CampoTexto
+                    id={`${id}-desperdicio-quantidade-${linha.chave}`}
+                    inputMode="numeric"
+                    valor={linha.quantidade}
+                    onChange={(quantidade) =>
+                      atualizar({ ...linha, quantidade: quantidade.replace(/\D/g, "") })
+                    }
+                    placeholder="Ex.: 8"
+                  />
+                </Campo>
+              </>
+            )}
+          />
+        </Pergunta>
+      )}
+
+      {visiveis.consumo && (
+        <Pergunta rotulo="Alguém consumiu?" valor={houveConsumo} onChange={setHouveConsumo}>
+          <Linhas
+            linhas={consumos}
+            aoMudar={setConsumos}
+            nova={(chave) => ({ chave, nome: "", valor: "" })}
+            rotuloDoBotao="Adicionar pessoa"
+            renderizar={(linha, atualizar) => (
+              <>
+                <Campo rotulo="Quem" htmlFor={`${id}-consumo-${linha.chave}`}>
+                  <CampoSelecao
+                    id={`${id}-consumo-${linha.chave}`}
+                    valor={linha.nome}
+                    onChange={(nome) => atualizar({ ...linha, nome })}
+                  >
+                    <option value="">Escolha a pessoa</option>
+                    {quemConsome.map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.nome}>
+                        {pessoa.nome}
+                      </option>
+                    ))}
+                  </CampoSelecao>
+                </Campo>
+                <Campo rotulo="Quanto" htmlFor={`${id}-consumo-valor-${linha.chave}`}>
+                  <CampoMoeda
+                    id={`${id}-consumo-valor-${linha.chave}`}
+                    digitos={linha.valor}
+                    onChange={(valor) => atualizar({ ...linha, valor })}
+                  />
+                </Campo>
+              </>
+            )}
+          />
+        </Pergunta>
+      )}
 
       <div className="flex items-center justify-between gap-3 rounded-[12px] bg-caixa-accent-soft px-[18px] py-[14px] text-caixa-accent">
         <span className="text-[15px] font-medium">Total do caixa</span>

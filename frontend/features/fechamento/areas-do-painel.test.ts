@@ -110,3 +110,22 @@ describe("AREAS", () => {
     ]);
   });
 });
+
+describe("a aba Catálogo acompanha o que a empresa vende", () => {
+  it("some quando a empresa não usa catálogo de itens", () => {
+    // Quem não vende nada de catálogo (um bar, uma loja de roupa) não tem o
+    // que cadastrar ali, e a aba só ocupava espaço na fila.
+    const abas = paginasDaArea("CAIXA", { gerente: true, notas: false, catalogo: false });
+
+    expect(abas.map((pagina) => pagina.href)).not.toContain("/catalogo");
+    // As outras não vão junto: catálogo é o que a empresa vende, não o resto
+    // da administração dela.
+    expect(abas.map((pagina) => pagina.href)).toContain("/empresa");
+  });
+
+  it("fica quando a empresa usa catálogo", () => {
+    const abas = paginasDaArea("CAIXA", { gerente: true, notas: false, catalogo: true });
+
+    expect(abas.map((pagina) => pagina.href)).toContain("/catalogo");
+  });
+});

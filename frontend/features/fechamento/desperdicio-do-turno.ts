@@ -1,3 +1,7 @@
+import {
+  avisoDeCatalogoVazio,
+  type ConfiguracaoDoFormulario,
+} from "@/features/fechamento/formulario-da-empresa";
 import type {
   DesperdicioDoTurno,
   DesperdicioLancado,
@@ -39,6 +43,10 @@ type Resultado =
 export const montarDesperdiciosDoTurno = (
   linhas: LinhaDeDesperdicio[],
   catalogo: Salgado[],
+  // Como a empresa chama o que vende, para o aviso de catálogo vazio não
+  // falar de salgado para quem vende pão. Vazio conta como "salgados", que é
+  // o texto de antes.
+  configuracao: ConfiguracaoDoFormulario = {},
 ): Resultado => {
   const desperdicios: DesperdicioDoTurno[] = [];
 
@@ -53,7 +61,7 @@ export const montarDesperdiciosDoTurno = (
         ok: false,
         erro:
           catalogo.length === 0
-            ? "O catálogo de salgados está vazio. Cadastre os itens na tela Catálogo."
+            ? avisoDeCatalogoVazio(configuracao)
             : "Selecione um item do catálogo.",
       };
     }

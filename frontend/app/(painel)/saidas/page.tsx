@@ -33,6 +33,7 @@ import {
   useLojasDoPainel,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
+import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 
 type Granularidade = "DIA" | "SEMANA" | "MES";
 
@@ -69,6 +70,9 @@ export default function SaidasPage() {
   // tamanho da barra nao ajuda a achar ninguem.
   const [ordem, setOrdem] = useState<OrdemDaLista>("VALOR");
   const [abertas, setAbertas] = useState<string[]>([]);
+  // Sem catalogo nao ha desperdicio para filtrar: o desperdicio se lanca POR
+  // item do catalogo.
+  const catalogoAtivo = useCatalogoAtivo();
 
   const { de, ate } =
     granularidade === "DIA"
@@ -273,17 +277,21 @@ export default function SaidasPage() {
                 do de cima: o desperdicio nao e R$ nenhum, e sim unidades — o
                 catalogo nao tem preco. Ele nunca passa pelo formatador de
                 moeda. */}
-            <ItemDaComposicao
-              tipo="DESPERDICIO"
-              rotulo="Desperdício"
-              valor={resumo.totais.desperdicio}
-              formato="UNIDADES"
-              filtro={filtro}
-              aoFiltrar={setFiltro}
-            />
-            <p className="mt-[-4px] pl-[19px] text-[12px] leading-[1.4] text-caixa-muted">
-              Em unidades, não em reais — o catálogo não tem preço.
-            </p>
+            {catalogoAtivo && (
+              <>
+                <ItemDaComposicao
+                  tipo="DESPERDICIO"
+                  rotulo="Desperdício"
+                  valor={resumo.totais.desperdicio}
+                  formato="UNIDADES"
+                  filtro={filtro}
+                  aoFiltrar={setFiltro}
+                />
+                <p className="mt-[-4px] pl-[19px] text-[12px] leading-[1.4] text-caixa-muted">
+                  Em unidades, não em reais — o catálogo não tem preço.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -318,8 +326,8 @@ export default function SaidasPage() {
                   : `${pessoas.length} pessoas consumiram`
                 : porSalgado
                   ? salgados.length === 1
-                    ? "1 salgado desperdiçado"
-                    : `${salgados.length} salgados desperdiçados`
+                    ? "1 item desperdiçado"
+                    : `${salgados.length} itens desperdiçados`
                 : resumo.linhas.length === 1
                   ? "1 loja com saída"
                   : `${resumo.linhas.length} lojas com saída`}
