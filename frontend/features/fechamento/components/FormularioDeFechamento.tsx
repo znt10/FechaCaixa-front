@@ -61,6 +61,10 @@ import type {
   Salgado,
 } from "@/features/fechamento/services/fechamentos";
 import type { Empresa } from "@/features/fechamento/services/acesso";
+import {
+  perguntaDePerda,
+  perguntasVisiveis,
+} from "@/features/fechamento/formulario-da-empresa";
 
 const PERIODOS: { valor: Periodo; rotulo: string }[] = [
   { valor: "MANHA", rotulo: "Manhã" },
@@ -297,6 +301,21 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const removerDesperdicio = (chave: number) =>
     setDesperdicios((linhas) => linhas.filter((linha) => linha.chave !== chave));
 
+  // Quais perguntas opcionais esta empresa responde. O "houve" de cada uma
+  // entra junto porque a correcao de um turno antigo reidrata o "sim": uma
+  // pergunta desligada depois do envio continua na tela, senao o envio da
+  // correcao iria sem ela e apagaria o que a loja lancou.
+  const visiveis = perguntasVisiveis(empresa, {
+    retirada: houveRetirada,
+    despesa: houveDespesa,
+    devolucao: houveDevolucao,
+    consumo: houveConsumo,
+    perda: houveDesperdicioDeItem,
+  });
+  const mostraPerda = visiveis.perda && catalogo.length > 0;
+  const algumaPergunta =
+    visiveis.retirada || visiveis.despesa || visiveis.devolucao || visiveis.consumo || mostraPerda;
+
   const [erro, setErro] = useState<string | null>(null);
 
   // O lancamento que acabou de sair daqui, enquanto a janela de correcao
@@ -525,6 +544,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     const perdas = montarDesperdiciosDoTurno(
       houveDesperdicioDeItem ? desperdicios : [],
       catalogo,
+      empresa,
     );
     if (!perdas.ok) {
       setErro(perdas.erro);
@@ -840,114 +860,120 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
             {/* Tambem fora do mockup: sao as perguntas que a gerencia pediu e
                 que o backend valida (retirada, despesa, devolucao,
                 desperdicio). As tres de dinheiro vem juntas. */}
-            <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>
+            {algumaPergunta && <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>}
 
-            <Pergunta
-              rotulo="Houve retirada de dinheiro?"
-              valor={houveRetirada}
-              onChange={setHouveRetirada}
-            >
-              <Campo rotulo="QUEM RETIROU" htmlFor="responsavel-retirada">
-                <CampoSelecao
-                  id="responsavel-retirada"
-                  valor={responsavelRetirada}
-                  onChange={setResponsavelRetirada}
-                >
-                  <option value="" disabled>
-                    {responsaveis.isPending ? "Carregando..." : "Selecione"}
-                  </option>
-                  {(responsaveis.data ?? []).map((pessoa) => (
-                    <option key={pessoa.id} value={pessoa.id}>
-                      {pessoa.nome}
+            {visiveis.retirada && (
+              <Pergunta
+                rotulo="Houve retirada de dinheiro?"
+                valor={houveRetirada}
+                onChange={setHouveRetirada}
+              >
+                <Campo rotulo="QUEM RETIROU" htmlFor="responsavel-retirada">
+                  <CampoSelecao
+                    id="responsavel-retirada"
+                    valor={responsavelRetirada}
+                    onChange={setResponsavelRetirada}
+                  >
+                    <option value="" disabled>
+                      {responsaveis.isPending ? "Carregando..." : "Selecione"}
                     </option>
-                  ))}
-                </CampoSelecao>
-              </Campo>
-              <Campo rotulo="VALOR RETIRADO" htmlFor="valor-retirado">
-                <CampoMoeda
-                  id="valor-retirado"
-                  digitos={valorRetirado}
-                  onChange={setValorRetirado}
-                />
-              </Campo>
-            </Pergunta>
+                    {(responsaveis.data ?? []).map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.id}>
+                        {pessoa.nome}
+                      </option>
+                    ))}
+                  </CampoSelecao>
+                </Campo>
+                <Campo rotulo="VALOR RETIRADO" htmlFor="valor-retirado">
+                  <CampoMoeda
+                    id="valor-retirado"
+                    digitos={valorRetirado}
+                    onChange={setValorRetirado}
+                  />
+                </Campo>
+              </Pergunta>
+            )}
 
             {/* Uma linha por gasto: o expediente compra gas, agua e remedio no
                 mesmo dia. Antes cabia uma so, e o resto ia empilhado na
                 descricao — onde nao soma e a contabilidade nao lanca. */}
-            <Pergunta
-              rotulo="Houve alguma despesa?"
-              valor={houveDespesa}
-              onChange={alternarDespesa}
-            >
-              {despesas.map((linha, indice) => (
-                <div
-                  key={linha.chave}
-                  className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
-                >
-                  <div className="flex w-full items-center justify-between gap-3">
-                    <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
-                      Despesa {indice + 1}
-                    </span>
-                    {/* A primeira linha nao some: sem nenhuma, a resposta
-                        "sim" ficaria sem o que preencher. */}
-                    {despesas.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removerDespesa(linha.chave)}
-                        className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-
-                  <CampoTexto
-                    id={`despesa-descricao-${linha.chave}`}
-                    valor={linha.descricao}
-                    onChange={(descricao) => mudarDespesa(linha.chave, { descricao })}
-                    placeholder="Ex.: gás, água, manutenção"
-                  />
-
-                  <Campo
-                    rotulo="VALOR"
-                    htmlFor={`despesa-valor-${linha.chave}`}
+            {visiveis.despesa && (
+              <Pergunta
+                rotulo="Houve alguma despesa?"
+                valor={houveDespesa}
+                onChange={alternarDespesa}
+              >
+                {despesas.map((linha, indice) => (
+                  <div
+                    key={linha.chave}
+                    className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
                   >
-                    <CampoMoeda
-                      id={`despesa-valor-${linha.chave}`}
-                      digitos={linha.valor}
-                      onChange={(valor) => mudarDespesa(linha.chave, { valor })}
-                    />
-                  </Campo>
-                </div>
-              ))}
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
+                        Despesa {indice + 1}
+                      </span>
+                      {/* A primeira linha nao some: sem nenhuma, a resposta
+                          "sim" ficaria sem o que preencher. */}
+                      {despesas.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removerDespesa(linha.chave)}
+                          className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
 
-              {despesas.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setDespesas([...despesas, novaLinhaDeDespesa()])}
-                  className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
-                >
-                  + Adicionar despesa
-                </button>
-              )}
-            </Pergunta>
+                    <CampoTexto
+                      id={`despesa-descricao-${linha.chave}`}
+                      valor={linha.descricao}
+                      onChange={(descricao) => mudarDespesa(linha.chave, { descricao })}
+                      placeholder="Ex.: gás, água, manutenção"
+                    />
+
+                    <Campo
+                      rotulo="VALOR"
+                      htmlFor={`despesa-valor-${linha.chave}`}
+                    >
+                      <CampoMoeda
+                        id={`despesa-valor-${linha.chave}`}
+                        digitos={linha.valor}
+                        onChange={(valor) => mudarDespesa(linha.chave, { valor })}
+                      />
+                    </Campo>
+                  </div>
+                ))}
+
+                {despesas.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setDespesas([...despesas, novaLinhaDeDespesa()])}
+                    className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
+                  >
+                    + Adicionar despesa
+                  </button>
+                )}
+              </Pergunta>
+            )}
 
             {/* A unica pergunta cujo dinheiro saiu da gaveta E cancelou uma
                 venda. Por isso ela nao entra no total la embaixo. */}
-            <Pergunta
-              rotulo="Houve devolução?"
-              valor={houveDevolucao}
-              onChange={setHouveDevolucao}
-            >
-              <Campo rotulo="VALOR DEVOLVIDO" htmlFor="devolucao-valor">
-                <CampoMoeda
-                  id="devolucao-valor"
-                  digitos={devolucaoValor}
-                  onChange={setDevolucaoValor}
-                />
-              </Campo>
-            </Pergunta>
+            {visiveis.devolucao && (
+              <Pergunta
+                rotulo="Houve devolução?"
+                valor={houveDevolucao}
+                onChange={setHouveDevolucao}
+              >
+                <Campo rotulo="VALOR DEVOLVIDO" htmlFor="devolucao-valor">
+                  <CampoMoeda
+                    id="devolucao-valor"
+                    digitos={devolucaoValor}
+                    onChange={setDevolucaoValor}
+                  />
+                </Campo>
+              </Pergunta>
+            )}
 
             {/* A pergunta de desperdicio em texto livre saiu daqui: virou a
                 lista por item do catalogo, mais abaixo ("Perdeu algum
@@ -965,79 +991,81 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
 
                 Uma linha por pessoa: quem preenche e o gerente, e ele diz o
                 que cada um comeu no turno. */}
-            <Pergunta
-              rotulo="Alguém consumiu?"
-              valor={houveConsumo}
-              onChange={alternarConsumo}
-            >
-              {consumos.map((linha, indice) => (
-                <div
-                  key={linha.chave}
-                  className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
-                >
-                  <div className="flex w-full items-center justify-between gap-3">
-                    <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
-                      Pessoa {indice + 1}
-                    </span>
-                    {/* A primeira linha nao some: sem nenhuma, a resposta
-                        "sim" ficaria sem o que preencher. */}
-                    {consumos.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removerConsumo(linha.chave)}
-                        className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
-                      >
-                        Remover
-                      </button>
-                    )}
-                  </div>
-
-                  <CampoComLista
-                    id={`consumo-nome-${linha.chave}`}
-                    valor={linha.nome}
-                    onChange={(nome) => mudarConsumo(linha.chave, { nome })}
-                    opcoes={nomesDeQuemConsome}
-                    placeholder={
-                      encarregados.isPending ? "Carregando..." : "Quem consumiu"
-                    }
-                  />
-
-                  <Campo
-                    rotulo="VALOR CONSUMIDO"
-                    htmlFor={`consumo-valor-${linha.chave}`}
+            {visiveis.consumo && (
+              <Pergunta
+                rotulo="Alguém consumiu?"
+                valor={houveConsumo}
+                onChange={alternarConsumo}
+              >
+                {consumos.map((linha, indice) => (
+                  <div
+                    key={linha.chave}
+                    className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
                   >
-                    <CampoMoeda
-                      id={`consumo-valor-${linha.chave}`}
-                      digitos={linha.valor}
-                      onChange={(valor) => mudarConsumo(linha.chave, { valor })}
-                    />
-                  </Campo>
-                </div>
-              ))}
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
+                        Pessoa {indice + 1}
+                      </span>
+                      {/* A primeira linha nao some: sem nenhuma, a resposta
+                          "sim" ficaria sem o que preencher. */}
+                      {consumos.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removerConsumo(linha.chave)}
+                          className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
 
-              {!encarregados.isPending && quemConsome.length === 0 ? (
-                <p className="text-[13px] leading-[1.45] text-caixa-muted">
-                  Ninguém marcado para consumo. Peça para marcar na tela Empresa
-                  quem pode consumir.
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConsumos([...consumos, novaLinhaDeConsumo()])}
-                  className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
-                >
-                  + Adicionar pessoa
-                </button>
-              )}
-            </Pergunta>
+                    <CampoComLista
+                      id={`consumo-nome-${linha.chave}`}
+                      valor={linha.nome}
+                      onChange={(nome) => mudarConsumo(linha.chave, { nome })}
+                      opcoes={nomesDeQuemConsome}
+                      placeholder={
+                        encarregados.isPending ? "Carregando..." : "Quem consumiu"
+                      }
+                    />
+
+                    <Campo
+                      rotulo="VALOR CONSUMIDO"
+                      htmlFor={`consumo-valor-${linha.chave}`}
+                    >
+                      <CampoMoeda
+                        id={`consumo-valor-${linha.chave}`}
+                        digitos={linha.valor}
+                        onChange={(valor) => mudarConsumo(linha.chave, { valor })}
+                      />
+                    </Campo>
+                  </div>
+                ))}
+
+                {!encarregados.isPending && quemConsome.length === 0 ? (
+                  <p className="text-[13px] leading-[1.45] text-caixa-muted">
+                    Ninguém marcado para consumo. Peça para marcar na tela Empresa
+                    quem pode consumir.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConsumos([...consumos, novaLinhaDeConsumo()])}
+                    className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
+                  >
+                    + Adicionar pessoa
+                  </button>
+                )}
+              </Pergunta>
+            )}
 
             {/* So aparece com catalogo cadastrado: desperdicio e opcional, e a
                 loja esta com o caixa aberto e gente esperando — nao pode virar
                 parede no meio do turno so porque ninguem cadastrou salgados
                 ainda. */}
-            {catalogo.length > 0 && (
+            {mostraPerda && (
               <Pergunta
-                rotulo="Perdeu algum salgado?"
+                rotulo={perguntaDePerda(empresa)}
                 valor={houveDesperdicioDeItem}
                 onChange={alternarDesperdicioDeItem}
               >

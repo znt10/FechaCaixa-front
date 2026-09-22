@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useModuloDeNotas } from "@/features/admin/hooks/useModuloDeNotas";
+import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 import { BotaoDeExportar } from "@/features/fechamento/components/BotaoDeExportar";
 import {
   AREAS,
@@ -48,6 +49,7 @@ export function TopbarPainel() {
   const usuarioDaSessao = useUsuarioAtual();
   const usuario = usuarioSalvo ?? usuarioDaSessao.data;
   const moduloDeNotas = useModuloDeNotas();
+  const catalogoAtivo = useCatalogoAtivo();
 
   // Derivada da rota aberta, e nao guardada: a URL nao tem como discordar de
   // si mesma. Estado velho sobrevivendo a uma troca ja fez este painel mostrar
@@ -109,6 +111,7 @@ export function TopbarPainel() {
             {paginasDaArea(area, {
               gerente: ehGerente(usuario?.group),
               notas: moduloDeNotas.ativo,
+              catalogo: catalogoAtivo,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
               return (

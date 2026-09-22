@@ -21,7 +21,7 @@ export type UsuarioAtual = {
   first_name?: string;
   email?: string;
   group?: string;
-  modulos?: { notas_fiscais?: boolean };
+  modulos?: { notas_fiscais?: boolean; catalogo?: boolean };
 };
 
 export const getMe = async (): Promise<UsuarioAtual> => {

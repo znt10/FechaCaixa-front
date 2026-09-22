@@ -1,3 +1,5 @@
+import type { ConfiguracaoDoFormulario } from "@/features/fechamento/formulario-da-empresa";
+
 import { apiV1 } from "@/shared/services/api";
 
 // A empresa administrando a si mesma. Ate agora isso so existia no /admin/ do
@@ -6,7 +8,7 @@ import { apiV1 } from "@/shared/services/api";
 // login — nenhuma destas chamadas aceita "de qual empresa", justamente para
 // administrar a propria nao virar caminho para administrar a do vizinho.
 
-export type MinhaEmpresa = {
+export type MinhaEmpresa = ConfiguracaoDoFormulario & {
   id: string;
   nome: string;
   slug: string;
@@ -26,7 +28,18 @@ export const getMinhaEmpresa = async (): Promise<MinhaEmpresa> => {
 };
 
 export const patchMinhaEmpresa = async (
-  campos: Partial<Pick<MinhaEmpresa, "fechamentos_por_dia">>,
+  campos: Partial<
+    Pick<
+      MinhaEmpresa,
+      | "fechamentos_por_dia"
+      | "pergunta_retirada"
+      | "pergunta_despesa"
+      | "pergunta_devolucao"
+      | "pergunta_consumo"
+      | "catalogo_ativo"
+      | "nome_dos_itens"
+    >
+  >,
 ): Promise<MinhaEmpresa> => {
   const res = await apiV1("/minha-empresa/", {
     method: "PATCH",

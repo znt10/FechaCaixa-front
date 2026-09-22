@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { atualizarAposEditarEmpresa } from "../cache-da-empresa";
 import {
   apagarFuncionario,
   apagarLoja,
@@ -34,12 +35,7 @@ export const useEditarEmpresa = () => {
 
   return useMutation({
     mutationFn: patchMinhaEmpresa,
-    // Quantos fechamentos por dia muda o que o painel cobra de cada loja: o
-    // ramo inteiro do painel fica velho junto.
-    onSuccess: () => {
-      cliente.invalidateQueries({ queryKey: ["admin"] });
-      cliente.invalidateQueries({ queryKey: ["painel-caixa"] });
-    },
+    onSuccess: () => atualizarAposEditarEmpresa(cliente),
   });
 };
 

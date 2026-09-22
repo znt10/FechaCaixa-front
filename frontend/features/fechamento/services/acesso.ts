@@ -1,3 +1,5 @@
+import type { ConfiguracaoDoFormulario } from "@/features/fechamento/formulario-da-empresa";
+
 import { apiV1Publico } from "@/shared/services/api";
 
 // O formulario deixou de ser aberto. Quem da o direito de lancar e o aparelho:
@@ -5,7 +7,7 @@ import { apiV1Publico } from "@/shared/services/api";
 // de 180 dias, e a empresa passa a sair desse cookie — nunca mais da URL.
 
 /** O que o formulario precisa saber da empresa dona deste aparelho. */
-export type Empresa = {
+export type Empresa = ConfiguracaoDoFormulario & {
   nome: string;
   /** O endereco publico da empresa: /primavera. E para la que o aparelho vai
    *  depois de digitar o codigo. */
