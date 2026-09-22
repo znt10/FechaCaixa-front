@@ -329,6 +329,43 @@ export const resumoDaPagina = (
   };
 };
 
+/** A faixa de dinheiro no topo da lista. `pendencia` e null quando nao falta
+ *  classificar nada. */
+export type FaixaDeTotais = { total: string; pendencia: string | null };
+
+/**
+ * Quanto a empresa gastou no filtro que esta na tela.
+ *
+ * O numero vem somado do servidor, e nao das notas recebidas: a lista pagina
+ * em 50, e somar a pagina mostraria um terco do gasto de um mes de 300 notas
+ * como se fosse o total. E o numero pelo qual se fecha o mes — errado, ele e
+ * pior do que numero nenhum, e por isso a faixa some quando a soma nao veio.
+ */
+export const faixaDeTotais = (pagina: PaginaDeNotas): FaixaDeTotais | null => {
+  const totais = pagina.totais;
+
+  // Sem faixa quando o filtro nao achou nota: a tabela acima ja diz isso, e
+  // um "0 notas · R$ 0,00" embaixo e o mesmo recado duas vezes — mesma regra
+  // do resumo da pagina.
+  if (!totais || pagina.count === 0) return null;
+
+  const pendentes = totais.pendentes.quantidade;
+
+  return {
+    total: `${pagina.count} ${pagina.count === 1 ? "nota" : "notas"} · R$ ${emReais(
+      Number(totais.valor),
+    )}`,
+    // Nada a avisar quando esta tudo classificado: o aviso mandaria procurar
+    // uma pendencia que nao existe.
+    pendencia:
+      pendentes === 0
+        ? null
+        : `${pendentes} ainda sem classificar · R$ ${emReais(
+            Number(totais.pendentes.valor),
+          )}`,
+  };
+};
+
 /** Um grupo do plano de contas como o seletor da linha o mostra. */
 export type OpcaoDeGrupo = {
   id: string;

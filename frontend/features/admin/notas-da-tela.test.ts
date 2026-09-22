@@ -5,6 +5,7 @@ import {
   agruparRecusas,
   andarDePagina,
   contratouNotasFiscais,
+  faixaDeTotais,
   linhasDaTabela,
   mensagemDeErroDoEnvio,
   montarFiltroDeNotas,
@@ -632,5 +633,78 @@ describe("mostrarAbaDeNotas", () => {
     // sessão). Sumir com a aba aí é dizer ao cliente pagante que ele perdeu o
     // que comprou; quem barra de verdade é o servidor.
     expect(mostrarAbaDeNotas({ carregando: false, falhou: true })).toBe(true);
+  });
+});
+
+describe("faixaDeTotais", () => {
+  it("diz quanto a empresa gastou no filtro, e não na página", () => {
+    // 50 notas na tela, 128 no filtro: o total é o do filtro inteiro, que é o
+    // único número pelo qual se fecha o mês.
+    const faixa = faixaDeTotais(
+      pagina({
+        count: 128,
+        results: [nota()],
+        totais: { valor: "84320.10", pendentes: { quantidade: 0, valor: "0.00" } },
+      }),
+    );
+
+    expect(faixa?.total).toBe("128 notas · R$ 84.320,10");
+  });
+
+  it("uma nota só não vira 'notas'", () => {
+    const faixa = faixaDeTotais(
+      pagina({
+        count: 1,
+        results: [nota()],
+        totais: { valor: "1234.50", pendentes: { quantidade: 0, valor: "0.00" } },
+      }),
+    );
+
+    expect(faixa?.total).toBe("1 nota · R$ 1.234,50");
+  });
+
+  it("avisa quanto ainda está sem classificação", () => {
+    const faixa = faixaDeTotais(
+      pagina({
+        count: 128,
+        results: [nota()],
+        totais: { valor: "84320.10", pendentes: { quantidade: 7, valor: "3410.00" } },
+      }),
+    );
+
+    expect(faixa?.pendencia).toBe("7 ainda sem classificar · R$ 3.410,00");
+  });
+
+  it("sem pendência não sobra aviso nenhum", () => {
+    // A faixa não pode avisar de um problema que não existe: com tudo
+    // classificado o mês está fechado, e o aviso mandaria procurar nada.
+    const faixa = faixaDeTotais(
+      pagina({
+        count: 3,
+        results: [nota()],
+        totais: { valor: "10.00", pendentes: { quantidade: 0, valor: "0.00" } },
+      }),
+    );
+
+    expect(faixa?.pendencia).toBeNull();
+  });
+
+  it("nenhuma nota no filtro não gera faixa", () => {
+    // A tabela já diz que não há nota nenhuma; um "0 notas · R$ 0,00" embaixo
+    // seria o mesmo recado duas vezes, como no resumo da página.
+    expect(
+      faixaDeTotais(
+        pagina({
+          count: 0,
+          totais: { valor: "0.00", pendentes: { quantidade: 0, valor: "0.00" } },
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("sem os totais na resposta a faixa some em vez de mentir", () => {
+    // O front novo pode subir antes do backend que soma. Sem o campo, a tela
+    // fica como era — o que ela NÃO pode é somar a página e chamar de total.
+    expect(faixaDeTotais(pagina({ count: 128, results: [nota()] }))).toBeNull();
   });
 });

@@ -8,6 +8,7 @@ import { useEscolhasDeNotas } from "@/features/admin/hooks/useEscolhasDeNotas";
 import { useNotas } from "@/features/admin/hooks/useNotas";
 import {
   andarDePagina,
+  faixaDeTotais,
   montarFiltroDeNotas,
   resumoDaPagina,
   trocarDeFiltro,
@@ -43,6 +44,11 @@ export default function NotasFiscaisPage() {
   const andar = (direcao: 1 | -1) => setEscolhas((atual) => andarDePagina(atual, direcao));
 
   const resumo = notas.data ? resumoDaPagina(notas.data, escolhas.pagina) : null;
+
+  // Nada de faixa enquanto a listagem falhou: `notas.data` ainda guarda a
+  // resposta anterior, e o dinheiro de um filtro em cima da tabela de outro e
+  // pior do que numero nenhum.
+  const faixa = notas.data && !notas.error ? faixaDeTotais(notas.data) : null;
 
   return (
     <main className="mx-auto max-w-[1440px] px-[16px] md:px-[40px] pb-[60px]">
@@ -123,6 +129,27 @@ export default function NotasFiscaisPage() {
               >
                 Voltar para a primeira página
               </button>
+            )}
+          </div>
+        )}
+
+        {/* Quanto a empresa gastou no filtro inteiro, somado pelo servidor.
+            A soma nao sai das notas recebidas de proposito: a lista pagina em
+            50, e um mes de 300 notas mostraria um terco do gasto com cara de
+            total — justo o numero pelo qual a gerencia fecha o mes. */}
+        {faixa && (
+          <div className="flex flex-wrap items-baseline justify-between gap-[10px] rounded-[12px] border border-caixa-border bg-caixa-surface px-[20px] py-[14px]">
+            <span className="text-[16px] font-semibold tabular-nums">
+              {faixa.total}
+            </span>
+
+            {/* O que falta classificar fica ao lado do total, e nao escondido
+                num contador: nota sem elemento nao entra em relatorio nenhum,
+                e o mes fecharia sem ela sem ninguem notar. */}
+            {faixa.pendencia && (
+              <span className="text-[14px] font-medium tabular-nums text-caixa-warn">
+                {faixa.pendencia}
+              </span>
             )}
           </div>
         )}
