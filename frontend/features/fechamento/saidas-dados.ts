@@ -161,13 +161,32 @@ const saidasDoTurno = (fechamento: FechamentoLido): Saida[] => {
     });
   }
 
-  if (fechamento.houve_retirada && numero(fechamento.valor_retirado) > 0) {
+  // Uma linha por pessoa: o dono e a socia que retiraram no mesmo turno sao
+  // cobrados separados. Sem linhas, cai no resumo do fechamento — e o que
+  // sobra de um lancamento gravado por fora do formulario.
+  const retiradas = fechamento.retiradas?.length
+    ? fechamento.retiradas.map((retirada) => ({
+        id: retirada.id,
+        nome: retirada.nome,
+        valor: retirada.valor,
+      }))
+    : fechamento.houve_retirada
+      ? [
+          {
+            id: `${fechamento.id}-RETIRADA`,
+            nome: fechamento.responsavel_retirada_nome,
+            valor: fechamento.valor_retirado,
+          },
+        ]
+      : [];
+  for (const retirada of retiradas) {
+    if (numero(retirada.valor) <= 0) continue;
     saidas.push({
       ...comum,
-      id: `${fechamento.id}-RETIRADA`,
+      id: retirada.id,
       tipo: "RETIRADA",
-      descricao: fechamento.responsavel_retirada_nome ?? "Retirada",
-      valor: numero(fechamento.valor_retirado),
+      descricao: retirada.nome ?? "Retirada",
+      valor: numero(retirada.valor),
     });
   }
 

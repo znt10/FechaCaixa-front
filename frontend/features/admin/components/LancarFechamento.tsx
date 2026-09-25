@@ -45,6 +45,11 @@ import {
   montarDespesasDoTurno,
   type LinhaDeDespesa,
 } from "@/features/fechamento/despesas-do-turno";
+import {
+  montarRetiradasDoTurno,
+  somaDasRetiradas,
+  type LinhaDeRetirada,
+} from "@/features/fechamento/retiradas-do-turno";
 import { hojeISO, mesDe, rotuloDoDia } from "@/features/fechamento/painel-dados";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
 import { montarRevisao, rotuloDoTurno } from "@/features/fechamento/revisao-do-envio";
@@ -134,9 +139,11 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
   const [dinheiro, setDinheiro] = useState("");
   const [linkPagamento, setLinkPagamento] = useState("");
 
+  // Uma linha por pessoa, como no formulario da loja.
   const [houveRetirada, setHouveRetirada] = useState(false);
-  const [responsavelRetirada, setResponsavelRetirada] = useState("");
-  const [valorRetirado, setValorRetirado] = useState("");
+  const [retiradas, setRetiradas] = useState<LinhaDeRetirada[]>([
+    { chave: 1, responsavel: "", valor: "" },
+  ]);
 
   const [houveDespesa, setHouveDespesa] = useState(false);
   const [despesas, setDespesas] = useState<LinhaDeDespesa[]>([
@@ -228,7 +235,7 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
   const despesasEmCentavos = houveDespesa
     ? despesas.reduce((soma, linha) => soma + centavos(linha.valor), 0)
     : 0;
-  const retiradaEmCentavos = houveRetirada ? centavos(valorRetirado) : 0;
+  const retiradaEmCentavos = houveRetirada ? somaDasRetiradas(retiradas) : 0;
   const totalDoCaixa = formatarMoeda(
     String(recebidoEmCentavos + retiradaEmCentavos + despesasEmCentavos),
   );
@@ -256,8 +263,12 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
       return;
     }
 
-    if (houveRetirada && (!responsavelRetirada || centavos(valorRetirado) === 0)) {
-      setErro("Informe quem retirou e o valor retirado.");
+    const retiradaDoTurno = montarRetiradasDoTurno(
+      houveRetirada ? retiradas : [],
+      responsaveisAtivos,
+    );
+    if (!retiradaDoTurno.ok) {
+      setErro(retiradaDoTurno.erro);
       return;
     }
     if (houveDevolucao && centavos(devolucaoValor) === 0) {
@@ -288,9 +299,8 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
       cartao: digitosParaDecimal(cartao),
       dinheiro: digitosParaDecimal(dinheiro),
       link_pagamento: digitosParaDecimal(linkPagamento),
-      houve_retirada: houveRetirada,
-      responsavel_retirada: houveRetirada ? responsavelRetirada : null,
-      valor_retirado: houveRetirada ? digitosParaDecimal(valorRetirado) : null,
+      houve_retirada: retiradaDoTurno.retiradas.length > 0,
+      retiradas: retiradaDoTurno.retiradas,
       despesas: despesaDoTurno.despesas,
       houve_devolucao: houveDevolucao,
       devolucao_valor: houveDevolucao ? digitosParaDecimal(devolucaoValor) : null,
@@ -506,27 +516,40 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
 
       {visiveis.retirada && (
         <Pergunta rotulo="Houve retirada?" valor={houveRetirada} onChange={setHouveRetirada}>
-          <Campo rotulo="Quem retirou" htmlFor={`${id}-responsavel`}>
-            <CampoSelecao
-              id={`${id}-responsavel`}
-              valor={responsavelRetirada}
-              onChange={setResponsavelRetirada}
-            >
-              <option value="">Escolha a pessoa</option>
-              {responsaveisAtivos.map((pessoa) => (
-                <option key={pessoa.id} value={pessoa.id}>
-                  {pessoa.nome}
-                </option>
-              ))}
-            </CampoSelecao>
-          </Campo>
-          <Campo rotulo="Valor retirado" htmlFor={`${id}-valor-retirado`}>
-            <CampoMoeda
-              id={`${id}-valor-retirado`}
-              digitos={valorRetirado}
-              onChange={setValorRetirado}
-            />
-          </Campo>
+          <Linhas
+            linhas={retiradas}
+            aoMudar={setRetiradas}
+            nova={(chave) => ({ chave, responsavel: "", valor: "" })}
+            rotuloDoBotao="Adicionar pessoa"
+            renderizar={(linha, atualizar) => (
+              <>
+                <Campo rotulo="Quem retirou" htmlFor={`${id}-retirada-${linha.chave}`}>
+                  <CampoSelecao
+                    id={`${id}-retirada-${linha.chave}`}
+                    valor={linha.responsavel}
+                    onChange={(responsavel) => atualizar({ ...linha, responsavel })}
+                  >
+                    <option value="">Escolha a pessoa</option>
+                    {responsaveisAtivos.map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.id}>
+                        {pessoa.nome}
+                      </option>
+                    ))}
+                  </CampoSelecao>
+                </Campo>
+                <Campo
+                  rotulo="Valor retirado"
+                  htmlFor={`${id}-retirada-valor-${linha.chave}`}
+                >
+                  <CampoMoeda
+                    id={`${id}-retirada-valor-${linha.chave}`}
+                    digitos={linha.valor}
+                    onChange={(valor) => atualizar({ ...linha, valor })}
+                  />
+                </Campo>
+              </>
+            )}
+          />
         </Pergunta>
       )}
 
@@ -738,7 +761,8 @@ function Aviso({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * A lista de linhas que cresce — despesas e consumo tem a mesma mecanica.
+ * A lista de linhas que cresce — retirada, despesas e consumo tem a mesma
+ * mecanica.
  *
  * `chave` e um contador, e nao o indice: apagar a linha do meio remontaria as
  * de baixo se a chave fosse posicional, e o campo em foco perderia o cursor.

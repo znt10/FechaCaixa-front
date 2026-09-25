@@ -19,6 +19,7 @@ import {
   type LinhaDeConsumoDoPainel,
 } from "../consumo-editavel";
 import type { LinhaDeDespesa } from "../despesas-do-turno";
+import { somaDasRetiradas, type LinhaDeRetirada } from "../retiradas-do-turno";
 import type {
   CamposEditaveis,
   FechamentoLido,
@@ -36,8 +37,7 @@ type Rascunho = {
   cartao: string;
   linkPagamento: string;
   houveRetirada: boolean;
-  responsavelRetirada: string;
-  valorRetirado: string;
+  retiradas: LinhaDeRetirada[];
   houveDespesa: boolean;
   despesas: LinhaDeDespesa[];
   houveDevolucao: boolean;
@@ -54,8 +54,25 @@ const doServidor = (fechamento: FechamentoLido): Rascunho => ({
   cartao: decimalParaDigitos(fechamento.cartao),
   linkPagamento: decimalParaDigitos(fechamento.link_pagamento),
   houveRetirada: fechamento.houve_retirada,
-  responsavelRetirada: fechamento.responsavel_retirada ?? "",
-  valorRetirado: decimalParaDigitos(fechamento.valor_retirado),
+  // Pelas linhas. Sem nenhuma com a pergunta ligada, e um lancamento gravado
+  // por fora do formulario: o resumo vira a unica linha, para salvar outra
+  // coisa no cartao nao apagar a retirada.
+  retiradas:
+    fechamento.retiradas.length > 0
+      ? fechamento.retiradas.map((retirada, indice) => ({
+          chave: indice,
+          responsavel: retirada.responsavel ?? "",
+          valor: decimalParaDigitos(retirada.valor),
+        }))
+      : fechamento.houve_retirada
+        ? [
+            {
+              chave: 0,
+              responsavel: fechamento.responsavel_retirada ?? "",
+              valor: decimalParaDigitos(fechamento.valor_retirado),
+            },
+          ]
+        : [],
   houveDespesa: fechamento.despesas.length > 0,
   despesas: fechamento.despesas.map((despesa, indice) => ({
     chave: indice,
@@ -82,6 +99,27 @@ const novaLinhaDeDespesa = (): LinhaDeDespesa => ({
   descricao: "",
   valor: "",
 });
+
+const novaLinhaDeRetirada = (): LinhaDeRetirada => ({
+  chave: proximaChave++,
+  responsavel: "",
+  valor: "",
+});
+
+const retiradaCompleta = (linha: LinhaDeRetirada) =>
+  Boolean(linha.responsavel) && centavos(linha.valor) > 0;
+
+const retiradaEmBranco = (linha: LinhaDeRetirada) =>
+  !linha.responsavel && centavos(linha.valor) === 0;
+
+/** A retirada reduzida ao que o servidor guarda, para comparar rascunho e
+ *  gravado — pela ordem, como o consumo: duas linhas iguais sao duas retiradas. */
+const assinaturaDaRetirada = (linhas: LinhaDeRetirada[]) =>
+  JSON.stringify(
+    linhas
+      .filter((linha) => !retiradaEmBranco(linha))
+      .map((linha) => [linha.responsavel, centavos(linha.valor)]),
+  );
 
 const novaLinhaDeConsumo = (): LinhaDeConsumoDoPainel => ({
   chave: proximaChave++,
@@ -141,6 +179,25 @@ export function TurnoEditavel({
   // depois — desativada ou desmarcada na tela da empresa. Sem isso o campo
   // abriria vazio no consumo dela, e salvar qualquer outra coisa no cartao
   // apagaria o desconto de alguem que ja comeu.
+  // Mesma razao para quem retirou: a pessoa desativada depois do turno
+  // continua no seletor da linha dela.
+  const opcoesDeRetirada = useMemo(() => {
+    const lista = [...responsaveis];
+    for (const retirada of fechamento.retiradas) {
+      if (
+        retirada.responsavel &&
+        !lista.some((pessoa) => pessoa.id === retirada.responsavel)
+      ) {
+        lista.push({
+          id: retirada.responsavel,
+          nome: retirada.nome ?? "Sem nome",
+          ativo: false,
+        });
+      }
+    }
+    return lista;
+  }, [responsaveis, fechamento.retiradas]);
+
   const opcoesDeConsumo = useMemo(() => {
     const lista = [...quemConsome];
     for (const consumo of fechamento.consumos) {
@@ -165,7 +222,8 @@ export function TurnoEditavel({
   // Retirada, despesa e desperdicio andam em grupo: o backend recusa uma
   // despesa sem descricao, entao o que muda junto tem que ser gravado junto.
   const retiradaMudou =
-    mudou("houveRetirada") || mudou("responsavelRetirada") || mudou("valorRetirado");
+    assinaturaDaRetirada(rascunho.houveRetirada ? rascunho.retiradas : []) !==
+    assinaturaDaRetirada(base.houveRetirada ? base.retiradas : []);
   const despesaMudou =
     listaDeDespesas(rascunho.despesas) !== listaDeDespesas(base.despesas);
   const devolucaoMudou =
@@ -195,8 +253,11 @@ export function TurnoEditavel({
   // vermelho depois que o servidor recusar.
   const pendencias = [
     rascunho.houveRetirada &&
-      !(rascunho.responsavelRetirada && centavos(rascunho.valorRetirado) > 0) &&
-      "Escolha quem retirou e informe o valor da retirada.",
+      (!rascunho.retiradas.some(retiradaCompleta) ||
+        rascunho.retiradas.some(
+          (linha) => !retiradaCompleta(linha) && !retiradaEmBranco(linha),
+        )) &&
+      "Escolha quem retirou e informe o valor de cada retirada.",
     // Linha em branco sai sozinha no salvamento; pela metade, nao: sem valor
     // ela nao soma, sem descricao a contabilidade nao lanca.
     rascunho.houveDespesa &&
@@ -237,13 +298,14 @@ export function TurnoEditavel({
     if (mudou("linkPagamento"))
       campos.link_pagamento = digitosParaDecimal(rascunho.linkPagamento);
     if (retiradaMudou) {
-      campos.houve_retirada = rascunho.houveRetirada;
-      campos.responsavel_retirada = rascunho.houveRetirada
-        ? rascunho.responsavelRetirada
-        : null;
-      campos.valor_retirado = rascunho.houveRetirada
-        ? digitosParaDecimal(rascunho.valorRetirado)
-        : null;
+      // Linhas em branco caem aqui; pela metade, o botao ja nao deixou chegar.
+      campos.retiradas = rascunho.houveRetirada
+        ? rascunho.retiradas.filter(retiradaCompleta).map((linha) => ({
+            responsavel: linha.responsavel,
+            valor: digitosParaDecimal(linha.valor),
+          }))
+        : [];
+      campos.houve_retirada = campos.retiradas.length > 0;
     }
     if (despesaMudou) {
       // Linhas em branco caem aqui: a gerencia abriu mais uma e nao usou.
@@ -331,7 +393,7 @@ export function TurnoEditavel({
   // gaveta, e as duas sairam dali depois da venda. A devolucao nao volta —
   // cancelou a venda junto e ja se descontou sozinha no numero contado.
   const voltaParaOTotal =
-    (rascunho.houveRetirada ? centavos(rascunho.valorRetirado) : 0) +
+    (rascunho.houveRetirada ? somaDasRetiradas(rascunho.retiradas) : 0) +
     (rascunho.houveDespesa
       ? rascunho.despesas.reduce((soma, l) => soma + centavos(l.valor), 0)
       : 0);
@@ -454,31 +516,94 @@ export function TurnoEditavel({
           <Pergunta
             rotulo="Houve retirada de dinheiro?"
             valor={rascunho.houveRetirada}
-            onChange={(ligado) => trocar("houveRetirada", ligado)}
+            onChange={(ligado) => {
+              trocar("houveRetirada", ligado);
+              if (ligado && rascunho.retiradas.length === 0) {
+                trocar("retiradas", [novaLinhaDeRetirada()]);
+              }
+            }}
           >
-            <Campo rotulo="QUEM RETIROU" htmlFor={`quem-${fechamento.id}`}>
-              <CampoSelecao
-                id={`quem-${fechamento.id}`}
-                valor={rascunho.responsavelRetirada}
-                onChange={(id) => trocar("responsavelRetirada", id)}
+            {rascunho.retiradas.map((linha, indice) => (
+              <div
+                key={linha.chave}
+                className="flex w-full flex-col gap-[10px] rounded-[10px] border border-caixa-border p-[12px]"
               >
-                <option value="" disabled>
-                  Selecione
-                </option>
-                {responsaveis.map((pessoa) => (
-                  <option key={pessoa.id} value={pessoa.id}>
-                    {pessoa.nome}
-                  </option>
-                ))}
-              </CampoSelecao>
-            </Campo>
-            <Campo rotulo="VALOR RETIRADO" htmlFor={`retirado-${fechamento.id}`}>
-              <CampoMoeda
-                id={`retirado-${fechamento.id}`}
-                digitos={rascunho.valorRetirado}
-                onChange={(valor) => trocar("valorRetirado", valor)}
-              />
-            </Campo>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
+                    Retirada {indice + 1}
+                  </span>
+                  {rascunho.retiradas.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        trocar(
+                          "retiradas",
+                          rascunho.retiradas.filter((l) => l.chave !== linha.chave),
+                        )
+                      }
+                      className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
+                    >
+                      Remover
+                    </button>
+                  )}
+                </div>
+                <Campo
+                  rotulo="QUEM RETIROU"
+                  htmlFor={`quem-${fechamento.id}-${linha.chave}`}
+                >
+                  <CampoSelecao
+                    id={`quem-${fechamento.id}-${linha.chave}`}
+                    valor={linha.responsavel}
+                    onChange={(id) =>
+                      trocar(
+                        "retiradas",
+                        rascunho.retiradas.map((l) =>
+                          l.chave === linha.chave ? { ...l, responsavel: id } : l,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="" disabled>
+                      Selecione
+                    </option>
+                    {opcoesDeRetirada.map((pessoa) => (
+                      <option key={pessoa.id} value={pessoa.id}>
+                        {pessoa.nome}
+                        {pessoa.ativo ? "" : " (fora da lista)"}
+                      </option>
+                    ))}
+                  </CampoSelecao>
+                </Campo>
+                <Campo
+                  rotulo="VALOR RETIRADO"
+                  htmlFor={`retirado-${fechamento.id}-${linha.chave}`}
+                >
+                  <CampoMoeda
+                    id={`retirado-${fechamento.id}-${linha.chave}`}
+                    digitos={linha.valor}
+                    onChange={(valor) =>
+                      trocar(
+                        "retiradas",
+                        rascunho.retiradas.map((l) =>
+                          l.chave === linha.chave ? { ...l, valor } : l,
+                        ),
+                      )
+                    }
+                  />
+                </Campo>
+              </div>
+            ))}
+            {rascunho.retiradas.length > 0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  trocar("retiradas", [...rascunho.retiradas, novaLinhaDeRetirada()])
+                }
+                className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[10px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
+              >
+                + Adicionar pessoa
+              </button>
+            )}
           </Pergunta>
 
           <Pergunta

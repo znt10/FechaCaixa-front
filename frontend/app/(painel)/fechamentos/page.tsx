@@ -622,11 +622,18 @@ function Detalhe({ lancamento }: { lancamento: FechamentoLido }) {
 
       {!limpo && (
       <div className="flex flex-col gap-[2px] px-[16px] py-[12px]">
-        {lancamento.houve_retirada && (
-          <Item cor="saida" rotulo="Retirada" valor={lancamento.valor_retirado}>
-            {lancamento.responsavel_retirada_nome ?? "—"}
-          </Item>
-        )}
+        {/* Uma linha por pessoa que retirou. Sem linhas, o resumo. */}
+        {lancamento.retiradas?.length
+          ? lancamento.retiradas.map((retirada) => (
+              <Item key={retirada.id} cor="saida" rotulo="Retirada" valor={retirada.valor}>
+                {retirada.nome ?? "—"}
+              </Item>
+            ))
+          : lancamento.houve_retirada && (
+              <Item cor="saida" rotulo="Retirada" valor={lancamento.valor_retirado}>
+                {lancamento.responsavel_retirada_nome ?? "—"}
+              </Item>
+            )}
         {/* Uma linha por gasto: gas e agua do mesmo turno sao duas despesas.
             Antes cabia uma so, e o resto ia empilhado no campo de texto. */}
         {lancamento.despesas.map((despesa) => (

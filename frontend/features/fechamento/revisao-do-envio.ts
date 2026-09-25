@@ -73,11 +73,14 @@ export const montarRevisao = (
   // numa ordem diferente e o que faz o olho pular uma linha.
   const blocos: BlocoDaRevisao[] = [];
 
-  if (payload.houve_retirada) {
-    const quem = contexto.responsaveis.find((r) => r.id === payload.responsavel_retirada);
+  if (payload.houve_retirada && payload.retiradas.length > 0) {
     blocos.push({
-      titulo: "Retirada",
-      linhas: [{ rotulo: quem?.nome ?? SEM_NOME, valor: emReais(payload.valor_retirado) }],
+      titulo: payload.retiradas.length > 1 ? "Retiradas" : "Retirada",
+      linhas: payload.retiradas.map((retirada) => ({
+        rotulo:
+          contexto.responsaveis.find((r) => r.id === retirada.responsavel)?.nome ?? SEM_NOME,
+        valor: emReais(retirada.valor),
+      })),
     });
   }
 
