@@ -1,5 +1,5 @@
 import { apiV1 } from "@/shared/services/api";
-import type { DespesaLancada, Periodo } from "./fechamentos";
+import type { DespesaLancada, Periodo, RetiradaLancada } from "./fechamentos";
 
 // ======================================================
 // 🔹 PAINEL DE FECHAMENTO (Admin/Gerente)
@@ -53,9 +53,13 @@ export type FechamentoLido = {
   /** @deprecated */
   total_liquido: string;
   houve_retirada: boolean;
+  /** O resumo das `retiradas`: a primeira pessoa e a soma. A soma e o que os
+   *  totais leem; quem precisa de "quem levou quanto" le as linhas. */
   responsavel_retirada: string | null;
   responsavel_retirada_nome: string | null;
   valor_retirado: string | null;
+  /** Uma linha por pessoa que levou dinheiro no turno. */
+  retiradas: RetiradaLancada[];
   despesas: DespesaLancada[];
   /** Registrada e neutra: o dinheiro saiu da gaveta e cancelou a venda junto,
    *  entao ja se descontou sozinha. Somar ou subtrair contaria duas vezes. */
@@ -197,8 +201,9 @@ export type CamposEditaveis = Partial<{
   dinheiro: string;
   link_pagamento: string;
   houve_retirada: boolean;
-  responsavel_retirada: string | null;
-  valor_retirado: string | null;
+  /** Como as despesas: a lista enviada substitui a anterior, vazia apaga
+   *  todas, omitida deixa como esta. */
+  retiradas: { responsavel: string; valor: string }[];
   /** A lista enviada substitui a anterior; vazia apaga todas. Omitida, as que
    *  existem ficam como estao. */
   despesas: { descricao: string; valor: string }[];

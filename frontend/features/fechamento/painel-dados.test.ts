@@ -44,6 +44,7 @@ const fechamento = (extra: Partial<FechamentoLido> = {}): FechamentoLido => {
     responsavel_retirada: null,
     responsavel_retirada_nome: null,
     valor_retirado: null,
+    retiradas: [],
     despesas: [],
     houve_devolucao: false,
     devolucao_valor: null,

@@ -40,6 +40,7 @@ const QUEM_CONSOME: Encarregado[] = [pessoa("enc-2", "Paulo"), pessoa("enc-3", "
 
 const RESPONSAVEIS: ResponsavelRetirada[] = [
   { id: "resp-1", nome: "Dona Cida", ativo: true },
+  { id: "resp-2", nome: "Seu Juca", ativo: true },
 ];
 
 const payloadBase = (extra: Partial<FechamentoPayload> = {}): FechamentoPayload => ({
@@ -51,8 +52,7 @@ const payloadBase = (extra: Partial<FechamentoPayload> = {}): FechamentoPayload 
   dinheiro: "80.00",
   link_pagamento: "0.00",
   houve_retirada: false,
-  responsavel_retirada: null,
-  valor_retirado: null,
+  retiradas: [],
   despesas: [],
   houve_devolucao: false,
   devolucao_valor: null,
@@ -137,14 +137,38 @@ describe("os blocos que so aparecem quando houve", () => {
     const revisao = montarRevisao(
       payloadBase({
         houve_retirada: true,
-        responsavel_retirada: "resp-1",
-        valor_retirado: "50.00",
+        retiradas: [{ responsavel: "resp-1", valor: "50.00" }],
       }),
       contexto,
     );
 
     expect(revisao.blocos).toEqual([
       { titulo: "Retirada", linhas: [{ rotulo: "Dona Cida", valor: "50,00" }] },
+    ]);
+  });
+
+  it("mostra cada pessoa que retirou, uma linha por pessoa", () => {
+    // O dono e a socia no mesmo turno: somados numa linha so, o fim do mes
+    // nao consegue cobrar de cada um o que levou.
+    const revisao = montarRevisao(
+      payloadBase({
+        houve_retirada: true,
+        retiradas: [
+          { responsavel: "resp-1", valor: "50.00" },
+          { responsavel: "resp-2", valor: "20.00" },
+        ],
+      }),
+      contexto,
+    );
+
+    expect(revisao.blocos).toEqual([
+      {
+        titulo: "Retiradas",
+        linhas: [
+          { rotulo: "Dona Cida", valor: "50,00" },
+          { rotulo: "Seu Juca", valor: "20,00" },
+        ],
+      },
     ]);
   });
 
@@ -228,8 +252,7 @@ describe("os blocos que so aparecem quando houve", () => {
     const revisao = montarRevisao(
       payloadBase({
         houve_retirada: true,
-        responsavel_retirada: "resp-1",
-        valor_retirado: "50.00",
+        retiradas: [{ responsavel: "resp-1", valor: "50.00" }],
         despesas: [{ descricao: "Gás", valor: "120.00" }],
         houve_devolucao: true,
         devolucao_valor: "30.00",

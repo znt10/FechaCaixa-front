@@ -46,6 +46,23 @@ export type DespesaDoTurno = {
 /** A mesma linha de volta do servidor, com o id. */
 export type DespesaLancada = DespesaDoTurno & { id: string };
 
+/** Uma linha de retirada dentro do envio do turno: quem levou, e quanto.
+ *
+ *  Era um par de campos no fechamento, e cabia uma pessoa por turno — o dono e
+ *  a socia retiram no mesmo expediente. */
+export type RetiradaDoTurno = {
+  responsavel: string;
+  valor: string;
+};
+
+/** A mesma linha de volta do servidor, com o nome junto. `nome` e nulo quando
+ *  a pessoa foi apagada do cadastro — o valor continua somando. */
+export type RetiradaLancada = RetiradaDoTurno & {
+  id: string;
+  responsavel: string | null;
+  nome: string | null;
+};
+
 /** Uma linha de consumo dentro do envio do turno: quem comeu, e quanto. */
 export type ConsumoDoTurno = {
   encarregado: string;
@@ -91,8 +108,9 @@ export type FechamentoPayload = {
   dinheiro: string;
   link_pagamento: string;
   houve_retirada: boolean;
-  responsavel_retirada?: string | null;
-  valor_retirado?: string | null;
+  /** Quem levou dinheiro da gaveta, uma linha por pessoa. Vazio quando nao
+   *  houve retirada. Numa correcao, a lista enviada substitui a anterior. */
+  retiradas: RetiradaDoTurno[];
   /** O que a loja gastou no turno, uma linha por gasto. Vazio quando nao
    *  gastou nada. Numa correcao, a lista enviada substitui a anterior. */
   despesas: DespesaDoTurno[];
@@ -155,8 +173,10 @@ export type FechamentoParaCorrigir = {
   dinheiro: string | null;
   link_pagamento: string | null;
   houve_retirada: boolean;
+  /** O resumo das linhas abaixo (a primeira pessoa e a soma). */
   responsavel_retirada: string | null;
   valor_retirado: string | null;
+  retiradas: RetiradaLancada[];
   despesas: DespesaLancada[];
   houve_devolucao: boolean;
   devolucao_valor: string | null;

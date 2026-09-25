@@ -24,6 +24,11 @@ import {
   type LinhaDeDespesa,
 } from "@/features/fechamento/despesas-do-turno";
 import {
+  montarRetiradasDoTurno,
+  somaDasRetiradas,
+  type LinhaDeRetirada,
+} from "@/features/fechamento/retiradas-do-turno";
+import {
   linhaEditavelDoDesperdicio,
   montarDesperdiciosDoTurno,
   type LinhaDeDesperdicio,
@@ -198,9 +203,10 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const [dinheiro, setDinheiro] = useState("");
   const [linkPagamento, setLinkPagamento] = useState("");
 
+  // Uma linha por pessoa: o dono e a socia retiram no mesmo turno, e antes
+  // cabia uma so.
   const [houveRetirada, setHouveRetirada] = useState(false);
-  const [responsavelRetirada, setResponsavelRetirada] = useState("");
-  const [valorRetirado, setValorRetirado] = useState("");
+  const [retiradas, setRetiradas] = useState<LinhaDeRetirada[]>([]);
 
   // Uma linha por gasto, como o consumo: o turno compra gas, agua e remedio no
   // mesmo expediente, e antes cabia um so — o resto ia empilhado num campo de
@@ -240,6 +246,12 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     valor,
   });
 
+  const novaLinhaDeRetirada = (responsavel = "", valor = ""): LinhaDeRetirada => ({
+    chave: proximaChave.current++,
+    responsavel,
+    valor,
+  });
+
   const novaLinhaDeDespesa = (descricao = "", valor = ""): LinhaDeDespesa => ({
     chave: proximaChave.current++,
     descricao,
@@ -251,6 +263,21 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     salgadoId,
     quantidade,
   });
+
+  const alternarRetirada = (houve: boolean) => {
+    setHouveRetirada(houve);
+    setRetiradas(houve && retiradas.length === 0 ? [novaLinhaDeRetirada()] : retiradas);
+  };
+
+  const mudarRetirada = (chave: number, campos: Partial<LinhaDeRetirada>) =>
+    setRetiradas((linhas) =>
+      linhas.map((linha) =>
+        linha.chave === chave ? { ...linha, ...campos } : linha,
+      ),
+    );
+
+  const removerRetirada = (chave: number) =>
+    setRetiradas((linhas) => linhas.filter((linha) => linha.chave !== chave));
 
   const alternarDespesa = (houve: boolean) => {
     setHouveDespesa(houve);
@@ -357,7 +384,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const despesasEmCentavos = houveDespesa
     ? despesas.reduce((soma, linha) => soma + centavos(linha.valor), 0)
     : 0;
-  const retiradaEmCentavos = houveRetirada ? centavos(valorRetirado) : 0;
+  const retiradaEmCentavos = houveRetirada ? somaDasRetiradas(retiradas) : 0;
 
   // Retirada e despesa VOLTAM para o total: `dinheiro` e o que sobrou na
   // gaveta, e as duas sairam dali depois da venda — a venda valeu. A devolucao
@@ -375,8 +402,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     setDinheiro("");
     setLinkPagamento("");
     setHouveRetirada(false);
-    setResponsavelRetirada("");
-    setValorRetirado("");
+    setRetiradas([]);
     setHouveDespesa(false);
     setDespesas([]);
     setHouveDevolucao(false);
@@ -397,9 +423,14 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     setCartao(decimalParaDigitos(lancamento.cartao));
     setDinheiro(decimalParaDigitos(lancamento.dinheiro));
     setLinkPagamento(decimalParaDigitos(lancamento.link_pagamento));
-    setHouveRetirada(lancamento.houve_retirada);
-    setResponsavelRetirada(lancamento.responsavel_retirada ?? "");
-    setValorRetirado(decimalParaDigitos(lancamento.valor_retirado));
+    // Pelas linhas, e nao pelo resumo: reabrir so com a primeira pessoa e
+    // salvar apagaria a segunda.
+    setHouveRetirada(lancamento.retiradas.length > 0);
+    setRetiradas(
+      lancamento.retiradas.map((retirada) =>
+        novaLinhaDeRetirada(retirada.responsavel ?? "", decimalParaDigitos(retirada.valor)),
+      ),
+    );
     setHouveDespesa(lancamento.despesas.length > 0);
     setDespesas(
       lancamento.despesas.map((despesa) =>
@@ -521,6 +552,15 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
       return;
     }
 
+    const retiradaDoTurno = montarRetiradasDoTurno(
+      houveRetirada ? retiradas : [],
+      responsaveis.data ?? [],
+    );
+    if (!retiradaDoTurno.ok) {
+      setErro(retiradaDoTurno.erro);
+      return;
+    }
+
     const despesaDoTurno = montarDespesasDoTurno(houveDespesa ? despesas : []);
     if (!despesaDoTurno.ok) {
       setErro(despesaDoTurno.erro);
@@ -559,11 +599,10 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
       cartao: digitosParaDecimal(cartao),
       dinheiro: digitosParaDecimal(dinheiro),
       link_pagamento: digitosParaDecimal(linkPagamento),
-      houve_retirada: houveRetirada,
-      responsavel_retirada: houveRetirada ? responsavelRetirada : null,
-      valor_retirado: houveRetirada ? digitosParaDecimal(valorRetirado) : null,
+      houve_retirada: retiradaDoTurno.retiradas.length > 0,
       // Sempre presente, mesmo vazia, pela mesma razao do consumo: numa
       // correcao a lista enviada substitui a anterior.
+      retiradas: retiradaDoTurno.retiradas,
       despesas: despesaDoTurno.despesas,
       houve_devolucao: houveDevolucao,
       devolucao_valor: houveDevolucao ? digitosParaDecimal(devolucaoValor) : null,
@@ -866,31 +905,74 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
               <Pergunta
                 rotulo="Houve retirada de dinheiro?"
                 valor={houveRetirada}
-                onChange={setHouveRetirada}
+                onChange={alternarRetirada}
               >
-                <Campo rotulo="QUEM RETIROU" htmlFor="responsavel-retirada">
-                  <CampoSelecao
-                    id="responsavel-retirada"
-                    valor={responsavelRetirada}
-                    onChange={setResponsavelRetirada}
+                {retiradas.map((linha, indice) => (
+                  <div
+                    key={linha.chave}
+                    className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
                   >
-                    <option value="" disabled>
-                      {responsaveis.isPending ? "Carregando..." : "Selecione"}
-                    </option>
-                    {(responsaveis.data ?? []).map((pessoa) => (
-                      <option key={pessoa.id} value={pessoa.id}>
-                        {pessoa.nome}
-                      </option>
-                    ))}
-                  </CampoSelecao>
-                </Campo>
-                <Campo rotulo="VALOR RETIRADO" htmlFor="valor-retirado">
-                  <CampoMoeda
-                    id="valor-retirado"
-                    digitos={valorRetirado}
-                    onChange={setValorRetirado}
-                  />
-                </Campo>
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
+                        Retirada {indice + 1}
+                      </span>
+                      {/* A primeira linha nao some: sem nenhuma, a resposta
+                          "sim" ficaria sem o que preencher. */}
+                      {retiradas.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removerRetirada(linha.chave)}
+                          className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+
+                    <Campo
+                      rotulo="QUEM RETIROU"
+                      htmlFor={`retirada-quem-${linha.chave}`}
+                    >
+                      <CampoSelecao
+                        id={`retirada-quem-${linha.chave}`}
+                        valor={linha.responsavel}
+                        onChange={(responsavel) =>
+                          mudarRetirada(linha.chave, { responsavel })
+                        }
+                      >
+                        <option value="" disabled>
+                          {responsaveis.isPending ? "Carregando..." : "Selecione"}
+                        </option>
+                        {(responsaveis.data ?? []).map((pessoa) => (
+                          <option key={pessoa.id} value={pessoa.id}>
+                            {pessoa.nome}
+                          </option>
+                        ))}
+                      </CampoSelecao>
+                    </Campo>
+
+                    <Campo
+                      rotulo="VALOR RETIRADO"
+                      htmlFor={`retirada-valor-${linha.chave}`}
+                    >
+                      <CampoMoeda
+                        id={`retirada-valor-${linha.chave}`}
+                        digitos={linha.valor}
+                        onChange={(valor) => mudarRetirada(linha.chave, { valor })}
+                      />
+                    </Campo>
+                  </div>
+                ))}
+
+                {retiradas.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setRetiradas([...retiradas, novaLinhaDeRetirada()])}
+                    className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
+                  >
+                    + Adicionar pessoa
+                  </button>
+                )}
               </Pergunta>
             )}
 
@@ -1166,10 +1248,16 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                     <span>Na gaveta</span>
                     <span className="font-medium">R$ {naGaveta}</span>
                   </div>
-                  {houveRetirada && (
+                  {retiradaEmCentavos > 0 && (
                     <div className="flex items-center justify-between text-[14px]">
-                      <span>Retirada</span>
-                      <span className="font-medium">+ R$ {formatarMoeda(valorRetirado)}</span>
+                      <span>
+                        {retiradas.filter((l) => Number(l.valor || "0") > 0).length > 1
+                          ? "Retiradas"
+                          : "Retirada"}
+                      </span>
+                      <span className="font-medium">
+                        + R$ {formatarMoeda(String(retiradaEmCentavos))}
+                      </span>
                     </div>
                   )}
                   {despesasEmCentavos > 0 && (

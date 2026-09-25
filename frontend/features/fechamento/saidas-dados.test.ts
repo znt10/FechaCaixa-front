@@ -35,6 +35,7 @@ const fechamento = (extra: Partial<FechamentoLido> = {}): FechamentoLido => {
     responsavel_retirada: null,
     responsavel_retirada_nome: null,
     valor_retirado: null,
+    retiradas: [],
     despesas: [],
     houve_devolucao: false,
     devolucao_valor: null,
@@ -102,6 +103,31 @@ describe("montarSaidas", () => {
     const resumo = montarSaidas([CENTRO], [comRetirada("300.00", "Bruno")], "TODAS");
 
     expect(resumo.linhas[0].saidas[0].descricao).toBe("Bruno");
+  });
+
+  it("duas pessoas que retiraram no mesmo turno viram duas saidas", () => {
+    // O resumo (primeira pessoa e soma) fica de lado quando ha linhas: somado
+    // num nome so, o fim do mes nao cobra de cada um o que levou.
+    const resumo = montarSaidas(
+      [CENTRO],
+      [
+        comRetirada("500.00", "Marina", {
+          retiradas: [
+            { id: "r-a", responsavel: "r-1", nome: "Marina", valor: "300.00" },
+            { id: "r-b", responsavel: "r-2", nome: "Bruno", valor: "200.00" },
+          ],
+        }),
+      ],
+      "TODAS",
+    );
+
+    expect(
+      resumo.linhas[0].saidas.map((s) => [s.tipo, s.descricao, s.valor]),
+    ).toEqual([
+      ["RETIRADA", "Marina", 300],
+      ["RETIRADA", "Bruno", 200],
+    ]);
+    expect(resumo.linhas[0].total).toBe(500);
   });
 
   /** A flag ligada com valor zerado e o estado que o formulario deixa no meio
