@@ -44,4 +44,7 @@ services:
       start_period: 20s
     environment:
       API_PROXY_URL: ${API_PROXY_URL:?defina API_PROXY_URL}
+      # Igual ao PROXY_SEGREDO do backend: e com ele que o Django aceita o IP
+      # do visitante que o proxy.ts repassa. So em execucao, nao no build.
+      PROXY_SEGREDO: ${PROXY_SEGREDO:?defina PROXY_SEGREDO}
       NODE_ENV: production
