@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { URL_DA_API } from "@/shared/config/api";
+import {
+  CABECALHO_IP,
+  CABECALHO_SEGREDO,
+  cabecalhosDoVisitante,
+} from "@/shared/config/ip-do-cliente";
 
 // /fechamento e publico de proposito: o funcionario da loja lanca o caixa
 // sem login (trade-off aceito no piloto).
@@ -110,7 +115,32 @@ const pareceApelidoDeEmpresa = (pathname: string) => {
   return segmentos.length === 1 && !ROTAS_DO_APP.has(segmentos[0]);
 };
 
+/**
+ * Pedido a API: segue para o rewrite do next.config com o IP do visitante.
+ *
+ * Os dois cabecalhos sao APAGADOS antes, venham de onde vierem: chegando de
+ * fora, e alguem tentando se passar por este servidor. O segredo barraria o
+ * golpe de qualquer jeito; apagar tira a duvida de qual valor seguiu.
+ */
+function paraOBackend(request: NextRequest) {
+  const headers = new Headers(request.headers);
+  headers.delete(CABECALHO_IP);
+  headers.delete(CABECALHO_SEGREDO);
+  for (const [nome, valor] of Object.entries(
+    cabecalhosDoVisitante(request.headers),
+  )) {
+    headers.set(nome, valor);
+  }
+  return NextResponse.next({ request: { headers } });
+}
+
 export default function proxy(request: NextRequest) {
+  // Antes de tudo: a API nao passa por redirect de barra nem por checagem de
+  // login — quem responde por ela e o Django.
+  if (request.nextUrl.pathname.startsWith("/backend/")) {
+    return paraOBackend(request);
+  }
+
   const token = request.cookies.get("access_token")?.value;
   const refreshToken = request.cookies.get("refresh_token")?.value;
   const role = normalizeRole(request.cookies.get("role")?.value);
@@ -118,7 +148,7 @@ export default function proxy(request: NextRequest) {
 
   // Com skipTrailingSlashRedirect no next.config, a normalizacao da barra
   // final das rotas de pagina passa a ser responsabilidade do middleware
-  // (as rotas /backend/* ficam fora do matcher e mantem a barra).
+  // (as rotas /backend/* saem antes, em paraOBackend, e mantem a barra).
   if (pathname !== "/" && pathname.endsWith("/")) {
     // URL padrao, nao request.nextUrl.clone(): o NextURL re-aplica a barra
     // final original ao serializar, o que geraria um loop de redirect.
@@ -187,6 +217,8 @@ async function refreshAccessToken(request: NextRequest) {
     method: "POST",
     headers: {
       Cookie: request.headers.get("cookie") ?? "",
+      // Sem isto a renovacao de todo mundo contaria no IP deste servidor.
+      ...cabecalhosDoVisitante(request.headers),
     },
   });
 
@@ -210,8 +242,7 @@ async function refreshAccessToken(request: NextRequest) {
 }
 
 export const config = {
-  // "backend" fica fora do matcher: as chamadas de API same-origin passam
-  // direto para o rewrite do next.config sem sofrer redirect de navegacao.
+  // /backend entra: e ali que o IP do visitante e posto (ver paraOBackend).
   //
   // Os arquivos do PWA tambem: sem eles na lista, /icones/*.png era tratado
   // como rota protegida e respondia 307 para /login — o navegador nao
@@ -220,6 +251,6 @@ export const config = {
   // ramo de "apelido de empresa", que e publico. Explicito para nao depender
   // disso.
   matcher: [
-    "/((?!backend|_next/static|_next/image|icones/|sw\\.js|manifest\\.webmanifest|apple-touch-icon\\.png|favicon\\.ico|favicon\\.svg|icon\\.svg).*)",
+    "/((?!_next/static|_next/image|icones/|sw\\.js|manifest\\.webmanifest|apple-touch-icon\\.png|favicon\\.ico|favicon\\.svg|icon\\.svg).*)",
   ],
 };
