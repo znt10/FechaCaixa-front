@@ -6,11 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useModuloDeNotas } from "@/features/admin/hooks/useModuloDeNotas";
+import { useAbasDoBanco } from "@/features/banco/hooks/useBanco";
 import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 import { BotaoDeExportar } from "@/features/fechamento/components/BotaoDeExportar";
 import {
   AREAS,
   areaDaRota,
+  areasDisponiveis,
   paginasDaArea,
   type Area,
 } from "@/features/fechamento/areas-do-painel";
@@ -49,13 +51,17 @@ export function TopbarPainel() {
   const usuarioDaSessao = useUsuarioAtual();
   const usuario = usuarioSalvo ?? usuarioDaSessao.data;
   const moduloDeNotas = useModuloDeNotas();
+  const abasDoBanco = useAbasDoBanco();
   const catalogoAtivo = useCatalogoAtivo();
 
   // Derivada da rota aberta, e nao guardada: a URL nao tem como discordar de
   // si mesma. Estado velho sobrevivendo a uma troca ja fez este painel mostrar
   // a empresa errada depois de um login novo.
   const area = areaDaRota(caminho);
-  const temDespesas = moduloDeNotas.ativo;
+  const areas = areasDisponiveis({
+    notas: moduloDeNotas.ativo,
+    banco: abasDoBanco.ativo,
+  });
 
   return (
     <header className="w-full border-b border-caixa-border bg-caixa-surface md:h-[93px]">
@@ -72,10 +78,10 @@ export function TopbarPainel() {
             {/* O seletor toma o lugar do antigo "Painel de gestao": aquela
                 linha nao informava nada — a pessoa esta olhando para o painel.
                 Trocada por algo com trabalho a fazer, o cabecalho nao ganha
-                peso nenhum. Sem o modulo de despesas ela volta a ser texto:
-                um seletor de uma opcao so e pior que nenhum. */}
-            {temDespesas ? (
-              <SeletorDeArea area={area} />
+                peso nenhum. Sem nenhuma area alem do caixa ela volta a ser
+                texto: um seletor de uma opcao so e pior que nenhum. */}
+            {areas.length > 1 ? (
+              <SeletorDeArea area={area} areas={areas} />
             ) : (
               <span className="text-[13px] leading-[1.4] text-caixa-muted">
                 Painel de gestão
@@ -111,6 +117,7 @@ export function TopbarPainel() {
             {paginasDaArea(area, {
               gerente: ehGerente(usuario?.group),
               notas: moduloDeNotas.ativo,
+              banco: abasDoBanco.ativo,
               catalogo: catalogoAtivo,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
@@ -143,7 +150,7 @@ export function TopbarPainel() {
 }
 
 /**
- * A area em que se esta, e a porta para a outra.
+ * A area em que se esta, e a porta para as outras.
  *
  * Menu proprio em vez de <select>: o nativo abre com a cara do sistema
  * operacional no meio de uma barra que nao se parece com nenhum, e no celular
@@ -189,7 +196,7 @@ const MENU =
 const FOCO =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caixa-accent";
 
-function SeletorDeArea({ area }: { area: Area }) {
+function SeletorDeArea({ area, areas }: { area: Area; areas: typeof AREAS }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const caixa = useFechaAoSair(aberto, useCallback(() => setAberto(false), []));
@@ -216,7 +223,7 @@ function SeletorDeArea({ area }: { area: Area }) {
           role="menu"
           className={`${MENU} left-0 top-[calc(100%+6px)] min-w-[212px]`}
         >
-          {AREAS.map((opcao) => {
+          {areas.map((opcao) => {
             const nesta = opcao.id === area;
             return (
               <button
