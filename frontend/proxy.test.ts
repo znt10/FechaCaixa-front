@@ -137,6 +137,32 @@ describe("proxy: o que cada papel alcanca", () => {
     },
   );
 
+  // O banco e da gerencia, como no backend: o funcionario confere o caixa.
+  describe.each(["/extrato", "/contas-bancarias"])("a tela do banco %s", (rota) => {
+    it.each(["Gerente", "Admin"])("%s entra", (papel) => {
+      const resposta = pedirComo(papel, rota);
+
+      expect(resposta?.status).toBe(200);
+      expect(resposta?.headers.get("location")).toBeNull();
+    });
+
+    it("o funcionario volta para o painel", () => {
+      const resposta = pedirComo("Funcionario", rota);
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/fechamentos");
+    });
+
+    // Fora da lista, ela seria tomada por apelido de empresa e a casca da
+    // tela iria para quem nao fez login — o que ja aconteceu com as notas.
+    it("sem login vai para o login", () => {
+      const resposta = pedir(rota);
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/login");
+    });
+  });
+
   // Cookie com papel que o sistema nao conhece (renomeacao de grupo no
   // backend, cookie velho de uma versao anterior): a sessao cai, em vez de a
   // pessoa entrar em algum lugar por engano.

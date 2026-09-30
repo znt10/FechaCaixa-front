@@ -35,6 +35,12 @@ const PAINEL_DE_CAIXA = [
   "/notas-fiscais",
 ];
 
+// O extrato bancario e so da gerencia, como no backend
+// (IsGerenteOrAdministrador): o funcionario confere o caixa, nao o banco da
+// empresa. Aqui, ao contrario das notas, o papel decide — porque la tambem
+// decide, e as duas regras sao a mesma.
+const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
+
 // ATENCAO ao tirar uma rota daqui: esta tabela tambem alimenta a lista de
 // rotas conhecidas do app (ver ROTAS_DO_APP abaixo). Uma rota removida de
 // todos os papeis deixa de ser conhecida e cai no ramo de "apelido de
@@ -44,10 +50,10 @@ const PAINEL_DE_CAIXA = [
 const ROLE_ROUTES: Record<string, string[]> = {
   // O painel de caixa e as mesmas telas para todo mundo que entra com login.
   // O que separa os papeis e o que existe ALEM delas.
-  Admin: PAINEL_DE_CAIXA,
+  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],
   // So o gerente tem /empresa: codigo de acesso, lojas, quem retira dinheiro
   // e quem tem login.
-  Gerente: ["/empresa", ...PAINEL_DE_CAIXA],
+  Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],
   // O funcionario confere e corrige o caixa, e nao administra a empresa.
   Funcionario: PAINEL_DE_CAIXA,
 };

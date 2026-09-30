@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   AREAS,
   areaDaRota,
+  areasDisponiveis,
   paginasDaArea,
   type Area,
 } from "./areas-do-painel";
@@ -127,5 +128,45 @@ describe("a aba Catálogo acompanha o que a empresa vende", () => {
     const abas = paginasDaArea("CAIXA", { gerente: true, notas: false, catalogo: true });
 
     expect(abas.map((pagina) => pagina.href)).toContain("/catalogo");
+  });
+});
+
+describe("o extrato mora em Despesas, com as notas", () => {
+  it("extrato e contas são Despesas", () => {
+    expect(areaDaRota("/extrato")).toBe("DESPESAS");
+    expect(areaDaRota("/contas-bancarias")).toBe("DESPESAS");
+  });
+
+  it("não confunde uma rota que só começa parecido", () => {
+    expect(areaDaRota("/extratos-velhos")).toBe("CAIXA");
+  });
+
+  it("as abas do banco vêm depois das notas, e só com o banco liberado", () => {
+    const abas = (opcoes: { notas: boolean; banco?: boolean }) =>
+      paginasDaArea("DESPESAS", { gerente: true, ...opcoes }).map((p) => p.rotulo);
+
+    expect(abas({ notas: true })).toEqual(["Notas fiscais"]);
+    expect(abas({ notas: true, banco: true })).toEqual([
+      "Notas fiscais",
+      "Extrato",
+      "Contas e categorias",
+    ]);
+    expect(abas({ notas: false, banco: true })).toEqual(["Extrato", "Contas e categorias"]);
+  });
+
+  it("Despesas entra no seletor com as notas ou com o banco", () => {
+    const areas = (opcoes: { notas: boolean; banco: boolean }) =>
+      areasDisponiveis(opcoes).map((area) => [area.id, area.inicio]);
+
+    expect(areas({ notas: false, banco: false })).toEqual([["CAIXA", "/fechamentos"]]);
+    expect(areas({ notas: true, banco: true })).toEqual([
+      ["CAIXA", "/fechamentos"],
+      ["DESPESAS", "/notas-fiscais"],
+    ]);
+    // Sem as notas, a porta de Despesas é o extrato: a das notas daria 403.
+    expect(areas({ notas: false, banco: true })).toEqual([
+      ["CAIXA", "/fechamentos"],
+      ["DESPESAS", "/extrato"],
+    ]);
   });
 });
