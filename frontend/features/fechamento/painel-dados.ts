@@ -375,9 +375,14 @@ export const fimDoMes = (mesISO: string) => {
 };
 
 /** "24 a 30 de agosto de 2026", ou com os dois meses quando a semana vira o mes. */
-export const rotuloDaSemana = (dataISO: string) => {
-  const de = inicioDaSemana(dataISO);
-  const ate = fimDaSemana(dataISO);
+export const rotuloDaSemana = (dataISO: string) =>
+  rotuloDoIntervalo(inicioDaSemana(dataISO), fimDaSemana(dataISO));
+
+/** "4 a 22 de outubro de 2026", com os dois meses quando o intervalo vira o
+ *  mes — e o rotulo do dia quando o intervalo e um dia so, porque "13 a 13 de
+ *  outubro" parece erro de digitacao. */
+export const rotuloDoIntervalo = (de: string, ate: string) => {
+  if (de === ate) return rotuloDoDia(de);
   const dia = (iso: string) => Number(iso.split("-")[2]);
   const mesEAno = (iso: string) => {
     const [ano, mes] = iso.split("-").map(Number);
