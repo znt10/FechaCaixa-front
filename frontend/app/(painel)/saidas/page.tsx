@@ -32,6 +32,7 @@ import {
   useFechamentosDoIntervalo,
   useLojasDoPainel,
 } from "@/features/fechamento/hooks/usePainel";
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
 import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 
@@ -565,6 +566,8 @@ function LinhaDaPessoa({
   aberta: boolean;
   aoAlternar: () => void;
 }) {
+  const umFechamentoPorDia = useUmFechamentoPorDia();
+
   return (
     <li className="border-t border-caixa-border first:border-t-0">
       <button
@@ -633,7 +636,7 @@ function LinhaDaPessoa({
                 {diaCurto(saida.data)}
               </span>
               <span className="w-[54px] shrink-0 text-caixa-muted">
-                {rotuloDoPeriodo(saida.periodo)}
+                {rotuloDoPeriodo(saida.periodo, umFechamentoPorDia)}
               </span>
               <span className="min-w-0 flex-1 truncate leading-[1.4]">
                 {saida.lojaNome}
@@ -667,6 +670,8 @@ function LinhaDoSalgado({
   aberta: boolean;
   aoAlternar: () => void;
 }) {
+  const umFechamentoPorDia = useUmFechamentoPorDia();
+
   return (
     <li className="border-t border-caixa-border first:border-t-0">
       <button
@@ -738,7 +743,7 @@ function LinhaDoSalgado({
                 {diaCurto(saida.data)}
               </span>
               <span className="w-[54px] shrink-0 text-caixa-muted">
-                {rotuloDoPeriodo(saida.periodo)}
+                {rotuloDoPeriodo(saida.periodo, umFechamentoPorDia)}
               </span>
               <span className="min-w-0 flex-1 truncate leading-[1.4]">
                 {saida.lojaNome}
@@ -766,6 +771,8 @@ function LinhaDaLoja({
   aberta: boolean;
   aoAlternar: () => void;
 }) {
+  const umFechamentoPorDia = useUmFechamentoPorDia();
+
   return (
     <li className="border-t border-caixa-border first:border-t-0">
       <button
@@ -866,7 +873,7 @@ function LinhaDaLoja({
                 {diaCurto(saida.data)}
               </span>
               <span className="w-[54px] shrink-0 text-caixa-muted">
-                {rotuloDoPeriodo(saida.periodo)}
+                {rotuloDoPeriodo(saida.periodo, umFechamentoPorDia)}
               </span>
               <span
                 className={`shrink-0 rounded-full px-[10px] py-[2px] text-[12px] font-semibold ${

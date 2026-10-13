@@ -20,6 +20,8 @@ import {
 } from "../consumo-editavel";
 import type { LinhaDeDespesa } from "../despesas-do-turno";
 import { somaDasRetiradas, type LinhaDeRetirada } from "../retiradas-do-turno";
+import { avisoDeTurnoOcupado, opcoesDeTurno } from "../turno-editavel";
+import type { Periodo } from "../services/fechamentos";
 import type {
   CamposEditaveis,
   FechamentoLido,
@@ -32,6 +34,7 @@ import type {
  * ela aperta "Salvar alteracoes".
  */
 type Rascunho = {
+  periodo: Periodo;
   dinheiro: string;
   pix: string;
   cartao: string;
@@ -49,6 +52,7 @@ type Rascunho = {
 };
 
 const doServidor = (fechamento: FechamentoLido): Rascunho => ({
+  periodo: fechamento.periodo,
   dinheiro: decimalParaDigitos(fechamento.dinheiro),
   pix: decimalParaDigitos(fechamento.pix),
   cartao: decimalParaDigitos(fechamento.cartao),
@@ -140,6 +144,9 @@ export function TurnoEditavel({
   fechamento,
   responsaveis,
   quemConsome,
+  turnosDoDia,
+  outrosDoDia,
+  umFechamentoPorDia,
   onSalvar,
   onConferir,
   conferindo,
@@ -150,6 +157,15 @@ export function TurnoEditavel({
   responsaveis: ResponsavelDoPainel[];
   /** Quem entra na lista de consumo. Outro cadastro, nao o de quem retira. */
   quemConsome: ResponsavelDoPainel[];
+  /** Os turnos que existem no dia, pelo servidor — o feriado so ele sabe.
+   *  Indefinido enquanto ele nao responde. */
+  turnosDoDia: Periodo[] | undefined;
+  /** Os outros lancamentos da mesma loja no mesmo dia: e por eles que se sabe
+   *  se o turno de destino ja esta ocupado. */
+  outrosDoDia: FechamentoLido[];
+  /** A empresa fecha o caixa uma vez por dia: o turno do dia inteiro e o
+   *  "Dia", e nao o feriado. */
+  umFechamentoPorDia: boolean;
   onSalvar: (id: string, campos: CamposEditaveis) => Promise<unknown>;
   onConferir: (id: string) => void;
   conferindo: boolean;
@@ -209,6 +225,8 @@ export function TurnoEditavel({
   }, [quemConsome, fechamento.consumos]);
 
   const mudou = (campo: keyof Rascunho) => rascunho[campo] !== base[campo];
+
+  const turnosDoSeletor = opcoesDeTurno(turnosDoDia, fechamento.periodo);
   // Comparada pelo conteudo, nao pela referencia: cada tecla cria um array
   // novo, e comparar objeto marcaria "alterado" sem nada ter mudado.
   const listaDeDespesas = (linhas: LinhaDeDespesa[]) =>
@@ -236,6 +254,7 @@ export function TurnoEditavel({
     assinaturaDoConsumo(base.houveConsumo ? base.consumos : []);
 
   const alteracoes = [
+    mudou("periodo") && "Turno",
     mudou("dinheiro") && "Dinheiro",
     mudou("pix") && "Pix",
     mudou("cartao") && "Cartão",
@@ -291,7 +310,17 @@ export function TurnoEditavel({
   const salvar = async () => {
     if (!podeSalvar) return;
 
+    // Antes de tudo, porque e a unica alteracao que mexe em outro lancamento:
+    // dois caixas no mesmo turno somam como se a loja tivesse vendido o dobro.
+    // Pergunta e nao proibe — quando os dois da loja trocaram os turnos entre
+    // si, um tem que passar pelo turno do outro.
+    const aviso = mudou("periodo")
+      ? avisoDeTurnoOcupado(rascunho.periodo, outrosDoDia, umFechamentoPorDia)
+      : null;
+    if (aviso && !window.confirm(aviso)) return;
+
     const campos: CamposEditaveis = {};
+    if (mudou("periodo")) campos.periodo = rascunho.periodo;
     if (mudou("dinheiro")) campos.dinheiro = digitosParaDecimal(rascunho.dinheiro);
     if (mudou("pix")) campos.pix = digitosParaDecimal(rascunho.pix);
     if (mudou("cartao")) campos.cartao = digitosParaDecimal(rascunho.cartao);
@@ -364,7 +393,7 @@ export function TurnoEditavel({
 
     const dataFormatada = fechamento.data.split("-").reverse().join("/");
     const certeza = window.confirm(
-      `Cancelar o lançamento de ${rotuloDoPeriodo(fechamento.periodo)} de ${dataFormatada}? ` +
+      `Cancelar o lançamento de ${rotuloDoPeriodo(fechamento.periodo, umFechamentoPorDia)} de ${dataFormatada}? ` +
         "Ele sai dos relatórios e a loja pode lançar esse turno de novo." +
         (temAlteracoes
           ? " As alterações não salvas nesta tela serão descartadas."
@@ -418,7 +447,7 @@ export function TurnoEditavel({
       <header className="flex flex-wrap items-center justify-between gap-[12px] border-b border-caixa-border px-[16px] py-[16px] md:px-[24px] md:py-[18px]">
         <div className="flex flex-col gap-[3px]">
           <h3 className="text-[17px] font-bold leading-[1.2]">
-            {rotuloDoPeriodo(fechamento.periodo)}
+            {rotuloDoPeriodo(fechamento.periodo, umFechamentoPorDia)}
           </h3>
           <p className="text-[13px] leading-[1.4] text-caixa-muted">
             {fechamento.nome_funcionario} · lançou às {horaDoLancamento}
@@ -474,6 +503,24 @@ export function TurnoEditavel({
 
       <div className="grid gap-[28px] px-[16px] py-[18px] md:px-[24px] md:py-[22px] md:grid-cols-2">
         <div className="flex flex-col gap-[16px]">
+          {/* So quando ha para onde mover: no domingo e no feriado o dia tem
+              um turno so, e um seletor de uma opcao so ocuparia espaco. */}
+          {turnosDoSeletor.length > 1 && (
+            <Campo rotulo="TURNO" htmlFor={`turno-${fechamento.id}`}>
+              <CampoSelecao
+                id={`turno-${fechamento.id}`}
+                valor={rascunho.periodo}
+                onChange={(valor) => trocar("periodo", valor as Periodo)}
+              >
+                {turnosDoSeletor.map((periodo) => (
+                  <option key={periodo} value={periodo}>
+                    {rotuloDoPeriodo(periodo, umFechamentoPorDia)}
+                  </option>
+                ))}
+              </CampoSelecao>
+            </Campo>
+          )}
+
           <span className="text-[12px] font-semibold tracking-[0.08em] text-caixa-muted">
             FORMAS DE PAGAMENTO
           </span>
