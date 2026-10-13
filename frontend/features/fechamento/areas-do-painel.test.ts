@@ -101,6 +101,7 @@ describe("AREAS", () => {
     expect(AREAS.map((area) => [area.id, area.inicio])).toEqual([
       ["CAIXA", "/fechamentos"],
       ["DESPESAS", "/notas-fiscais"],
+      ["COMPROVANTES", "/comprovantes"],
     ]);
   });
 
@@ -108,6 +109,7 @@ describe("AREAS", () => {
     expect(AREAS.map((area) => area.rotulo)).toEqual([
       "Fechamento de caixa",
       "Despesas",
+      "Comprovantes",
     ]);
   });
 });
@@ -168,5 +170,30 @@ describe("o extrato mora em Despesas, com as notas", () => {
       ["CAIXA", "/fechamentos"],
       ["DESPESAS", "/extrato"],
     ]);
+  });
+});
+
+describe("área de comprovantes", () => {
+  it("as rotas de comprovantes são da área Comprovantes", () => {
+    expect(areaDaRota("/comprovantes")).toBe("COMPROVANTES");
+    expect(areaDaRota("/comprovantes/configurar")).toBe("COMPROVANTES");
+  });
+
+  it("a madrinha (só caixa e comprovantes) vê duas áreas", () => {
+    const areas = areasDisponiveis({ notas: false, banco: false, comprovantes: true });
+    expect(areas.map((area) => area.id)).toEqual(["CAIXA", "COMPROVANTES"]);
+  });
+
+  it("sem o módulo, a área não aparece", () => {
+    const areas = areasDisponiveis({ notas: true, banco: true });
+    expect(areas.map((area) => area.id)).not.toContain("COMPROVANTES");
+  });
+
+  it("as abas são Comprovantes e Configurar", () => {
+    expect(
+      paginasDaArea("COMPROVANTES", { gerente: true, notas: false, comprovantes: true }).map(
+        (pagina) => pagina.rotulo,
+      ),
+    ).toEqual(["Comprovantes", "Configurar"]);
   });
 });

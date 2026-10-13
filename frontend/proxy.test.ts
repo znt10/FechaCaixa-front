@@ -163,6 +163,32 @@ describe("proxy: o que cada papel alcanca", () => {
     });
   });
 
+  // Comprovantes sao da gerencia, como o banco (IsGerenteOrAdministrador).
+  describe.each(["/comprovantes", "/comprovantes/configurar"])("a tela de comprovantes %s", (rota) => {
+    it.each(["Gerente", "Admin"])("%s entra", (papel) => {
+      const resposta = pedirComo(papel, rota);
+
+      expect(resposta?.status).toBe(200);
+      expect(resposta?.headers.get("location")).toBeNull();
+    });
+
+    it("o funcionario volta para o painel", () => {
+      const resposta = pedirComo("Funcionario", rota);
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/fechamentos");
+    });
+
+    // Fora da tabela de papeis, a rota seria lida como apelido de empresa,
+    // que e publico.
+    it("sem login vai para o login", () => {
+      const resposta = pedir(rota);
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/login");
+    });
+  });
+
   // Cookie com papel que o sistema nao conhece (renomeacao de grupo no
   // backend, cookie velho de uma versao anterior): a sessao cai, em vez de a
   // pessoa entrar em algum lugar por engano.
