@@ -163,6 +163,27 @@ describe("proxy: o que cada papel alcanca", () => {
     });
   });
 
+  // O dono da plataforma entra com o papel Admin; quem barra quem não é
+  // superusuário é a API (IsSuperuser). Gerente e funcionário nem chegam.
+  describe("a tela Plataforma", () => {
+    it("o Admin entra", () => {
+      const resposta = pedirComo("Admin", "/plataforma");
+      expect(resposta?.status).toBe(200);
+    });
+
+    it.each(["Gerente", "Funcionario"])("%s volta para o painel", (papel) => {
+      const resposta = pedirComo(papel, "/plataforma");
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/fechamentos");
+    });
+
+    it("sem login vai para o login", () => {
+      const resposta = pedir("/plataforma");
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/login");
+    });
+  });
+
   // Cookie com papel que o sistema nao conhece (renomeacao de grupo no
   // backend, cookie velho de uma versao anterior): a sessao cai, em vez de a
   // pessoa entrar em algum lugar por engano.

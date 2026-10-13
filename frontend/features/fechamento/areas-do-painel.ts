@@ -10,7 +10,7 @@
  * rolava com cinco destinos. Pior que o espaço era a mistura — quem entra para
  * conferir o caixa das oito lojas da manhã não está procurando nota de gás.
  */
-export type Area = "CAIXA" | "DESPESAS";
+export type Area = "CAIXA" | "DESPESAS" | "PLATAFORMA";
 
 export type Pagina = { href: string; rotulo: string };
 
@@ -46,10 +46,15 @@ const BANCO: Pagina[] = [
   { href: "/contas-bancarias", rotulo: "Contas e categorias" },
 ];
 
+// So o dono da plataforma: as empresas clientes, quem pagou, quem esta
+// bloqueado. Nao e de nenhuma empresa, por isso area propria.
+const PLATAFORMA: Pagina[] = [{ href: "/plataforma", rotulo: "Empresas" }];
+
 /** As áreas do seletor, na ordem em que aparecem, e por onde cada uma começa. */
 export const AREAS: { id: Area; rotulo: string; inicio: string }[] = [
   { id: "CAIXA", rotulo: "Fechamento de caixa", inicio: "/fechamentos" },
   { id: "DESPESAS", rotulo: "Despesas", inicio: "/notas-fiscais" },
+  { id: "PLATAFORMA", rotulo: "Plataforma", inicio: "/plataforma" },
 ];
 
 /**
@@ -59,8 +64,21 @@ export const AREAS: { id: Area; rotulo: string; inicio: string }[] = [
  * aqui filtrado pelo cargo (ver `mostrarAbasDoBanco`). Quem tem só o banco
  * entra em Despesas pelo extrato: a porta das notas terminaria em recusa.
  */
-export const areasDisponiveis = ({ notas, banco }: { notas: boolean; banco: boolean }) =>
-  AREAS.filter((area) => area.id === "CAIXA" || notas || banco).map((area) =>
+export const areasDisponiveis = ({
+  notas,
+  banco,
+  plataforma = false,
+}: {
+  notas: boolean;
+  banco: boolean;
+  plataforma?: boolean;
+}) =>
+  AREAS.filter(
+    (area) =>
+      area.id === "CAIXA" ||
+      (area.id === "DESPESAS" && (notas || banco)) ||
+      (area.id === "PLATAFORMA" && plataforma),
+  ).map((area) =>
     area.id === "DESPESAS" && !notas ? { ...area, inicio: BANCO[0].href } : area,
   );
 
@@ -76,6 +94,7 @@ const ehDaLista = (caminho: string, paginas: Pagina[]) =>
  * a empresa errada depois de um login novo. A URL não tem como mentir.
  */
 export const areaDaRota = (caminho: string): Area => {
+  if (ehDaLista(caminho, PLATAFORMA)) return "PLATAFORMA";
   return ehDaLista(caminho, [...NOTAS, ...BANCO]) ? "DESPESAS" : "CAIXA";
 };
 
@@ -92,8 +111,16 @@ export const paginasDaArea = (
     // esconder a aba por engano tira a tela de quem depende dela, e mostrá-la
     // a mais custa uma aba que não faz nada.
     catalogo = true,
-  }: { gerente: boolean; notas: boolean; banco?: boolean; catalogo?: boolean },
+    plataforma = false,
+  }: {
+    gerente: boolean;
+    notas: boolean;
+    banco?: boolean;
+    catalogo?: boolean;
+    plataforma?: boolean;
+  },
 ): Pagina[] => {
+  if (area === "PLATAFORMA") return plataforma ? [...PLATAFORMA] : [];
   if (area === "DESPESAS") return [...(notas ? NOTAS : []), ...(banco ? BANCO : [])];
   if (!gerente) return [...CAIXA];
   // Catálogo sai da fila quando a empresa não vende nada de catálogo: ali não

@@ -41,6 +41,12 @@ const PAINEL_DE_CAIXA = [
 // decide, e as duas regras sao a mesma.
 const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
 
+// A tela Plataforma e do dono da plataforma, que entra com o papel Admin. O
+// cargo Admin tambem existe dentro das empresas: quem separa um do outro e a
+// API (IsSuperuser), e a pagina mostra a recusa. Gerente e funcionario nem
+// chegam.
+const TELA_DA_PLATAFORMA = "/plataforma";
+
 // ATENCAO ao tirar uma rota daqui: esta tabela tambem alimenta a lista de
 // rotas conhecidas do app (ver ROTAS_DO_APP abaixo). Uma rota removida de
 // todos os papeis deixa de ser conhecida e cai no ramo de "apelido de
@@ -50,7 +56,7 @@ const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
 const ROLE_ROUTES: Record<string, string[]> = {
   // O painel de caixa e as mesmas telas para todo mundo que entra com login.
   // O que separa os papeis e o que existe ALEM delas.
-  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],
+  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, TELA_DA_PLATAFORMA],
   // So o gerente tem /empresa: codigo de acesso, lojas, quem retira dinheiro
   // e quem tem login.
   Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],

@@ -16,6 +16,7 @@ import {
   paginasDaArea,
   type Area,
 } from "@/features/fechamento/areas-do-painel";
+import { mostrarPlataforma } from "@/features/mensalidade/mensalidade-da-tela";
 import { useUsuarioAtual } from "@/shared/hooks/useUsuarioAtual";
 import { logout } from "@/shared/services/auth";
 import { esquecerSessaoAnterior } from "@/shared/services/cache-da-sessao";
@@ -52,6 +53,7 @@ export function TopbarPainel() {
   const usuario = usuarioSalvo ?? usuarioDaSessao.data;
   const moduloDeNotas = useModuloDeNotas();
   const abasDoBanco = useAbasDoBanco();
+  const plataforma = mostrarPlataforma(usuarioDaSessao.data);
   const catalogoAtivo = useCatalogoAtivo();
 
   // Derivada da rota aberta, e nao guardada: a URL nao tem como discordar de
@@ -61,6 +63,7 @@ export function TopbarPainel() {
   const areas = areasDisponiveis({
     notas: moduloDeNotas.ativo,
     banco: abasDoBanco.ativo,
+    plataforma,
   });
 
   return (
@@ -119,6 +122,7 @@ export function TopbarPainel() {
               notas: moduloDeNotas.ativo,
               banco: abasDoBanco.ativo,
               catalogo: catalogoAtivo,
+              plataforma,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
               return (
