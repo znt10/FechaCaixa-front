@@ -1,4 +1,5 @@
 import { TopbarPainel } from "@/features/fechamento/components/TopbarPainel";
+import { PortaoDaMensalidade } from "@/features/mensalidade/components/PortaoDaMensalidade";
 
 /**
  * A casca das telas de gestao: /fechamentos, /por-loja, /saidas, /graficos e
@@ -18,6 +19,9 @@ import { TopbarPainel } from "@/features/fechamento/components/TopbarPainel";
  * Server component de proposito: nao ha estado aqui, e assim ele nao entra no
  * bundle que o navegador baixa. A topbar continua sendo cliente (ela le o
  * caminho atual para marcar a aba).
+ *
+ * Abaixo da barra, o portão da mensalidade decide entre o conteúdo, a tela de
+ * pagamento e a de empresa desativada.
  */
 export default function LayoutDoPainel({
   children,
@@ -27,7 +31,7 @@ export default function LayoutDoPainel({
   return (
     <div className="min-h-screen w-full bg-caixa-bg font-sans text-caixa-ink">
       <TopbarPainel />
-      {children}
+      <PortaoDaMensalidade>{children}</PortaoDaMensalidade>
     </div>
   );
 }
