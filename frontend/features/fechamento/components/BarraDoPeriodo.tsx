@@ -10,6 +10,7 @@ import {
   somarDias,
   somarMeses,
 } from "../painel-dados";
+import { posicaoNoPeriodo, type PeriodoLivre } from "../periodo-livre";
 
 /**
  * A navegacao de periodo das quatro telas do painel.
@@ -202,6 +203,7 @@ export function CalendarioDeDias({
   diaDesabilitado,
   tomDoDia,
   aoTrocarDeMes,
+  periodo,
 }: {
   diaISO: string;
   porSemana: boolean;
@@ -223,6 +225,10 @@ export function CalendarioDeDias({
   /** Avisa quem folheou para outro mes. Sem a prop, o mes visitado continua
    *  sendo assunto so daqui. */
   aoTrocarDeMes?: (mes: string) => void;
+  /** O modo periodo da planilha: acende do primeiro ao ultimo dia, as pontas
+   *  cheias e o meio suave, como a semana. Com a prop, `diaISO` so diz em que
+   *  mes o calendario abre — o escolhido e o periodo. */
+  periodo?: PeriodoLivre;
 }) {
   // O mes visitado e estado proprio: folhear ate marco e voltar sem escolher
   // nada nao pode mexer no que a tela esta mostrando.
@@ -258,9 +264,15 @@ export function CalendarioDeDias({
 
       <div className="grid grid-cols-7 gap-[2px]">
         {diasDaGrade(mes).map((dia) => {
-          const escolhido = porSemana
-            ? inicioDaSemana(dia) === semanaEscolhida
-            : dia === diaISO;
+          const posicao = periodo ? posicaoNoPeriodo(dia, periodo) : null;
+          const escolhido = periodo
+            ? posicao !== null
+            : porSemana
+              ? inicioDaSemana(dia) === semanaEscolhida
+              : dia === diaISO;
+          // O trecho escolhido acende no fundo suave; so o dia avulso e as
+          // pontas do periodo acendem cheios.
+          const suave = periodo ? posicao === "meio" : porSemana;
           const doMes = mesDe(dia) === mes;
           const bloqueado = diaDesabilitado?.(dia) ?? false;
           const tom = tomDoDia?.(dia) ?? null;
@@ -279,7 +291,7 @@ export function CalendarioDeDias({
               className={`relative h-[34px] rounded-[8px] text-[14px] tabular-nums transition ${
                 bloqueado
                   ? "cursor-not-allowed text-caixa-muted/35"
-                  : escolhido && porSemana
+                  : escolhido && suave
                     ? "bg-caixa-accent-soft font-semibold text-caixa-accent"
                     : escolhido
                       ? "bg-caixa-accent font-semibold text-white"
@@ -293,7 +305,7 @@ export function CalendarioDeDias({
                               ? "text-caixa-ink hover:bg-caixa-faixa"
                               : "text-caixa-muted/60 hover:bg-caixa-faixa"
               } ${
-                dia === hoje && !(escolhido && !porSemana) && !bloqueado
+                dia === hoje && !(escolhido && !suave) && !bloqueado
                   ? "ring-1 ring-inset ring-caixa-accent/40"
                   : ""
               } ${
