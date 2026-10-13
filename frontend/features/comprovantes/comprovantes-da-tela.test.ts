@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  acoesDoDetalhe,
   escolhasIniciais,
   linhasDoResumo,
   montarFiltro,
@@ -92,5 +93,19 @@ describe("textos", () => {
   it("data ISO vira o valor do input datetime-local, no horário de São Paulo", () => {
     expect(paraDataLocal("2026-10-13T13:03:22Z")).toBe("2026-10-13T10:03");
     expect(paraDataLocal(null)).toBe("");
+  });
+});
+
+describe("acoesDoDetalhe", () => {
+  it("conferir: confirma ou descarta", () => {
+    expect(acoesDoDetalhe("CONFERIR")).toEqual({ principal: "confirmar", descartar: true });
+  });
+
+  it("ok: salva a correção ou descarta", () => {
+    expect(acoesDoDetalhe("OK")).toEqual({ principal: "salvar", descartar: true });
+  });
+
+  it("descartado: só volta para conferir", () => {
+    expect(acoesDoDetalhe("DESCARTADO")).toEqual({ principal: "voltar", descartar: false });
   });
 });

@@ -20,6 +20,7 @@ import {
   getRemetentes,
   type EdicaoDeComprovante,
   type FiltroDeComprovantes,
+  voltarParaConferir,
 } from "../services/comprovantes";
 
 /** Toda consulta do módulo mora embaixo desta chave: confirmar ou editar muda
@@ -49,6 +50,7 @@ export const useEditarComprovante = () =>
 export const useConfirmarComprovante = () => useMudanca(confirmarComprovante);
 export const useDescartarComprovante = () => useMudanca(descartarComprovante);
 export const useEnviarComprovante = () => useMudanca(enviarComprovante);
+export const useVoltarParaConferir = () => useMudanca(voltarParaConferir);
 
 export const useAreaDeComprovantes = () => {
   const usuario = useUsuarioAtual();

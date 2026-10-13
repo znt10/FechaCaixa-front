@@ -74,6 +74,13 @@ const ROTULOS: Record<Situacao, string> = {
 
 export const rotuloDaSituacao = (situacao: Situacao) => ROTULOS[situacao];
 
+/** Os botões do detalhe. Descartado não some: volta para conferir, e só soma
+ * depois de confirmado de novo. */
+export const acoesDoDetalhe = (situacao: Situacao) => ({
+  principal: ({ CONFERIR: "confirmar", OK: "salvar", DESCARTADO: "voltar" } as const)[situacao],
+  descartar: situacao !== "DESCARTADO",
+});
+
 /** ISO do servidor -> valor de <input type="datetime-local">, em São Paulo. */
 export const paraDataLocal = (iso: string | null) => {
   if (!iso) return "";

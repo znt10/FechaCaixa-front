@@ -103,6 +103,11 @@ export const descartarComprovante = async (id: string): Promise<Comprovante> => 
   return res.json();
 };
 
+export const voltarParaConferir = async (id: string): Promise<Comprovante> => {
+  const res = await apiV1(`${BASE}${id}/voltar-para-conferir/`, { method: "POST" });
+  return res.json();
+};
+
 export const enviarComprovante = async ({
   arquivo,
   loja,

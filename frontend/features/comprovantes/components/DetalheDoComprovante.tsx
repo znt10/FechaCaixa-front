@@ -5,11 +5,12 @@ import { useState } from "react";
 import { useGruposDeDespesa } from "@/features/admin/hooks/useNotas";
 import { useLojasDoPainel } from "@/features/fechamento/hooks/usePainel";
 
-import { paraDataLocal } from "../comprovantes-da-tela";
+import { acoesDoDetalhe, paraDataLocal } from "../comprovantes-da-tela";
 import {
   useConfirmarComprovante,
   useDescartarComprovante,
   useEditarComprovante,
+  useVoltarParaConferir,
 } from "../hooks/useComprovantes";
 import { urlDoArquivo, type Comprovante } from "../services/comprovantes";
 
@@ -31,6 +32,8 @@ export function DetalheDoComprovante({
   const editar = useEditarComprovante();
   const confirmar = useConfirmarComprovante();
   const descartar = useDescartarComprovante();
+  const voltar = useVoltarParaConferir();
+  const acoes = acoesDoDetalhe(comprovante.situacao);
 
   const [valor, setValor] = useState(comprovante.valor ?? "");
   const [dataHora, setDataHora] = useState(paraDataLocal(comprovante.data_hora));
@@ -38,8 +41,8 @@ export function DetalheDoComprovante({
   const [loja, setLoja] = useState(comprovante.loja ?? "");
   const [elemento, setElemento] = useState(comprovante.elemento ?? "");
 
-  const ocupado = editar.isPending || confirmar.isPending || descartar.isPending;
-  const erro = editar.error ?? confirmar.error ?? descartar.error;
+  const ocupado = editar.isPending || confirmar.isPending || descartar.isPending || voltar.isPending;
+  const erro = editar.error ?? confirmar.error ?? descartar.error ?? voltar.error;
 
   const salvar = async () => {
     await editar.mutateAsync({
@@ -153,16 +156,22 @@ export function DetalheDoComprovante({
           {erro && <p className="text-[13px] text-red-700">{(erro as Error).message}</p>}
 
           <div className="mt-auto flex flex-wrap gap-[8px] pt-[8px]">
-            {comprovante.situacao === "CONFERIR" ? (
+            {acoes.principal === "confirmar" && (
               <button type="button" disabled={ocupado} onClick={salvarEConfirmar} className={`${BOTAO} bg-caixa-accent text-white`}>
                 Confirmar
               </button>
-            ) : (
+            )}
+            {acoes.principal === "salvar" && (
               <button type="button" disabled={ocupado} onClick={async () => { await salvar(); onFechar(); }} className={`${BOTAO} bg-caixa-accent text-white`}>
                 Salvar
               </button>
             )}
-            {comprovante.situacao !== "DESCARTADO" && (
+            {acoes.principal === "voltar" && (
+              <button type="button" disabled={ocupado} onClick={async () => { await voltar.mutateAsync(comprovante.id); onFechar(); }} className={`${BOTAO} bg-caixa-accent text-white`}>
+                Voltar para conferir
+              </button>
+            )}
+            {acoes.descartar && (
               <button
                 type="button"
                 disabled={ocupado}
