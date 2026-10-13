@@ -190,11 +190,13 @@ export const getQuemConsomeDoPainel = async (): Promise<ResponsavelDoPainel[]> =
 /**
  * O que a gerencia pode corrigir num turno ja lancado.
  *
- * `loja`, `data` e `periodo` ficam de fora de proposito: mudar qualquer um
- * dos tres nao e corrigir um lancamento, e move-lo para outro lugar do painel
- * — se a loja errou o turno, o certo e apagar e lancar de novo.
+ * `loja` e `data` ficam de fora de proposito: mudar um dos dois nao e corrigir
+ * um lancamento, e move-lo para outro lugar do painel. O turno entra: quem
+ * fecha a tarde as vezes escolhe "Manha", e cancelar e relancar jogava fora o
+ * caixa certo junto. O servidor so aceita um turno que existe naquele dia.
  */
 export type CamposEditaveis = Partial<{
+  periodo: Periodo;
   nome_funcionario: string;
   pix: string;
   cartao: string;

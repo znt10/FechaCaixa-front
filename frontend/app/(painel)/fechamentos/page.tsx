@@ -26,7 +26,7 @@ import {
   type Visao,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
-import { useMinhaEmpresa } from "@/features/admin/hooks/useEmpresa";
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
 import type { FechamentoLido } from "@/features/fechamento/services/painel";
 
 const CORES_STATUS: Record<StatusLinha["tipo"], string> = {
@@ -56,7 +56,7 @@ export default function PainelFechamentoPage() {
   const [mes, setMes] = useState(() => mesDe(hojeISO()));
 
   const referencia = visao === "DIARIO" ? dia : mes;
-  const empresa = useMinhaEmpresa();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
   const lojas = useLojasDoPainel();
   const fechamentos = useFechamentosDoPainel(visao, referencia);
 
@@ -73,7 +73,7 @@ export default function PainelFechamentoPage() {
     lancamentos,
     de,
     ate,
-    empresa.data?.fechamentos_por_dia === 1,
+    umFechamentoPorDia,
   );
 
   // Derivado em vez de guardado no estado: sair de uma quarta com "Manha"
@@ -292,7 +292,7 @@ export default function PainelFechamentoPage() {
             { valor: "TODOS" as FiltroTurno, rotulo: "Todos os turnos" },
             ...turnosDaTela.map((periodo) => ({
               valor: periodo as FiltroTurno,
-              rotulo: rotuloDoPeriodo(periodo),
+              rotulo: rotuloDoPeriodo(periodo, umFechamentoPorDia),
             })),
           ].map(({ valor, rotulo }) => (
             <button
@@ -563,6 +563,7 @@ function Linha({
  *  cobra de gente diferente. */
 function Detalhe({ lancamento }: { lancamento: FechamentoLido }) {
   const conferir = useConferirFechamento();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
 
   const hora = new Date(lancamento.created_at).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -591,7 +592,7 @@ function Detalhe({ lancamento }: { lancamento: FechamentoLido }) {
       >
         <div className="flex flex-wrap items-center gap-[10px]">
           <span className="rounded-[6px] bg-caixa-ink px-[10px] py-[4px] text-[11px] font-bold uppercase tracking-[0.6px] text-white">
-            {rotuloDoPeriodo(lancamento.periodo)}
+            {rotuloDoPeriodo(lancamento.periodo, umFechamentoPorDia)}
           </span>
           <span className="text-[14px] font-semibold text-caixa-ink">
             {lancamento.nome_funcionario}

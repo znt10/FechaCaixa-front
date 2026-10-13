@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
+import { useTurnosDaData } from "@/features/admin/hooks/useReposicao";
 import { TurnoEditavel } from "@/features/fechamento/components/TurnoEditavel";
 import {
   emReais,
@@ -47,6 +49,10 @@ export default function PorLojaPage() {
   const editar = useEditarFechamento();
   const conferir = useConferirFechamento();
   const cancelar = useCancelarFechamentoDoPainel();
+  // Para o seletor de turno de cada cartao: quais turnos existem no dia (o
+  // feriado so o servidor sabe) e como a empresa chama o do dia inteiro.
+  const turnosDoDia = useTurnosDaData(dia);
+  const umFechamentoPorDia = useUmFechamentoPorDia();
 
   // Quais turnos estao com edicao em aberto. Trocar de loja ou de dia monta
   // cartoes novos e joga fora o que foi digitado — com o salvamento no botao,
@@ -240,7 +246,7 @@ export default function PorLojaPage() {
                           : "bg-caixa-faixa text-caixa-muted"
                       }`}
                     >
-                      {rotuloDoPeriodo(turno.periodo)}
+                      {rotuloDoPeriodo(turno.periodo, umFechamentoPorDia)}
                       {turno.conferido && " ✓"}
                     </span>
                   ))
@@ -272,6 +278,9 @@ export default function PorLojaPage() {
               fechamento={turno}
               responsaveis={responsaveis.data ?? []}
               quemConsome={quemConsome.data ?? []}
+              turnosDoDia={turnosDoDia.data?.periodos}
+              outrosDoDia={turnosDaLoja.filter((outro) => outro.id !== turno.id)}
+              umFechamentoPorDia={umFechamentoPorDia}
               onSalvar={(id, campos) => editar.mutateAsync({ id, campos })}
               onConferir={(id) => conferir.mutate(id)}
               conferindo={conferir.isPending && conferir.variables === turno.id}
