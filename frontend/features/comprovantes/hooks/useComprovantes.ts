@@ -9,11 +9,15 @@ import { useUsuarioAtual } from "@/shared/hooks/useUsuarioAtual";
 
 import { mostrarAreaDeComprovantes } from "../comprovantes-da-tela";
 import {
+  apagarRemetente,
   confirmarComprovante,
+  criarRemetente,
   descartarComprovante,
   editarComprovante,
   enviarComprovante,
   getComprovantes,
+  getConfiguracao,
+  getRemetentes,
   type EdicaoDeComprovante,
   type FiltroDeComprovantes,
 } from "../services/comprovantes";
@@ -56,3 +60,12 @@ export const useAreaDeComprovantes = () => {
     }),
   };
 };
+
+export const useConfiguracao = () =>
+  useQuery({ queryKey: [RAIZ, "configuracao"], queryFn: getConfiguracao });
+
+export const useRemetentes = () =>
+  useQuery({ queryKey: [RAIZ, "remetentes"], queryFn: getRemetentes });
+
+export const useCriarRemetente = () => useMudanca(criarRemetente);
+export const useApagarRemetente = () => useMudanca(apagarRemetente);
