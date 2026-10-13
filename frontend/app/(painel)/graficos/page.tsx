@@ -19,7 +19,7 @@ import {
   turnosDoFiltro,
   type FiltroTurno,
 } from "@/features/fechamento/painel-dados";
-import { useMinhaEmpresa } from "@/features/admin/hooks/useEmpresa";
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
 import { montarResumo, type Fatia } from "@/features/fechamento/graficos-dados";
 import {
   useFechamentosDoIntervalo,
@@ -50,7 +50,7 @@ export default function GraficosPage() {
         ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
         : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
-  const empresa = useMinhaEmpresa();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
   const lojas = useLojasDoPainel();
   const fechamentos = useFechamentosDoIntervalo(de, ate);
 
@@ -63,7 +63,7 @@ export default function GraficosPage() {
     lancamentos,
     de,
     ate,
-    empresa.data?.fechamentos_por_dia === 1,
+    umFechamentoPorDia,
   );
 
   // Derivado, e nao guardado: trocar de periodo com "Manha" ligado deixaria o
@@ -185,7 +185,7 @@ export default function GraficosPage() {
               { valor: "TODOS" as FiltroTurno, rotulo: "Todos os turnos" },
               ...turnosDaTela.map((periodo) => ({
                 valor: periodo as FiltroTurno,
-                rotulo: rotuloDoPeriodo(periodo),
+                rotulo: rotuloDoPeriodo(periodo, umFechamentoPorDia),
               })),
             ].map(({ valor, rotulo }) => (
               <button
@@ -217,7 +217,8 @@ export default function GraficosPage() {
               {resumo.lojaNome}
             </h2>
             <span className="text-[13px] text-caixa-muted">
-              {turnoEfetivo !== "TODOS" && `${rotuloDoPeriodo(turnoEfetivo)} · `}
+              {turnoEfetivo !== "TODOS" &&
+                `${rotuloDoPeriodo(turnoEfetivo, umFechamentoPorDia)} · `}
               {resumo.lancamentos === 1
                 ? "1 lançamento no período"
                 : `${resumo.lancamentos} lançamentos no período`}

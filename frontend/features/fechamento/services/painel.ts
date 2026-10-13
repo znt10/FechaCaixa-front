@@ -1,4 +1,8 @@
 import { apiV1 } from "@/shared/services/api";
+import {
+  enderecoDaPlanilha,
+  type ChaveDaAba,
+} from "@/features/fechamento/abas-da-planilha";
 import type { DespesaLancada, Periodo, RetiradaLancada } from "./fechamentos";
 
 // ======================================================
@@ -86,15 +90,20 @@ export type FechamentoLido = {
 };
 
 /**
- * A planilha do periodo: baixa o .xlsx e devolve o nome do arquivo.
+ * A planilha do periodo, com as abas marcadas: baixa o .xlsx e devolve o nome
+ * do arquivo.
  *
  * Passa pelo `apiV1` em vez de ser um link direto porque o token pode ter
  * expirado — um link comum devolveria um JSON de erro no lugar do arquivo,
  * sem chance de renovar. O nome vem do servidor (empresa e periodo), e nao
  * daqui: e la que se sabe de qual empresa e o login.
  */
-export const baixarPlanilhaDoPeriodo = async (de: string, ate: string) => {
-  const res = await apiV1(`/planilha/?de=${de}&ate=${ate}`);
+export const baixarPlanilhaDoPeriodo = async (
+  de: string,
+  ate: string,
+  abas: ReadonlySet<ChaveDaAba>,
+) => {
+  const res = await apiV1(enderecoDaPlanilha(de, ate, abas));
   const arquivo = await res.blob();
 
   const cabecalho = res.headers.get("Content-Disposition") ?? "";
@@ -190,11 +199,13 @@ export const getQuemConsomeDoPainel = async (): Promise<ResponsavelDoPainel[]> =
 /**
  * O que a gerencia pode corrigir num turno ja lancado.
  *
- * `loja`, `data` e `periodo` ficam de fora de proposito: mudar qualquer um
- * dos tres nao e corrigir um lancamento, e move-lo para outro lugar do painel
- * — se a loja errou o turno, o certo e apagar e lancar de novo.
+ * `loja` e `data` ficam de fora de proposito: mudar um dos dois nao e corrigir
+ * um lancamento, e move-lo para outro lugar do painel. O turno entra: quem
+ * fecha a tarde as vezes escolhe "Manha", e cancelar e relancar jogava fora o
+ * caixa certo junto. O servidor so aceita um turno que existe naquele dia.
  */
 export type CamposEditaveis = Partial<{
+  periodo: Periodo;
   nome_funcionario: string;
   pix: string;
   cartao: string;

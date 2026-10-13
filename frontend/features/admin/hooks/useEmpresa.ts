@@ -27,6 +27,13 @@ import {
 export const useMinhaEmpresa = () =>
   useQuery({ queryKey: ["admin", "minha-empresa"], queryFn: getMinhaEmpresa });
 
+/** A empresa fecha o caixa uma vez por dia. E o que decide se o turno do dia
+ *  inteiro se chama "Dia" (o caixa de todo dia) ou "Feriado" (o unico dia em
+ *  que a empresa de manha e tarde fecha uma vez so). Mesma consulta da tela da
+ *  empresa: o cache e um so, e nenhum componente que pergunta faz outra busca. */
+export const useUmFechamentoPorDia = () =>
+  useMinhaEmpresa().data?.fechamentos_por_dia === 1;
+
 export const useResponsaveis = () =>
   useQuery({ queryKey: ["admin", "responsaveis"], queryFn: getResponsaveis });
 
