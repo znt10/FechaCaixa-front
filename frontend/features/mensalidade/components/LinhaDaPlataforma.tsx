@@ -15,7 +15,7 @@ import {
   useRecusarPagamento,
   useRegistrarPagamento,
 } from "../hooks/usePlataforma";
-import type { EmpresaDaPlataforma } from "../services/mensalidade";
+import type { EmpresaDaPlataforma, MudancaDaEmpresa } from "../services/mensalidade";
 
 const TONS = {
   ok: "bg-caixa-accent-soft text-caixa-accent",
@@ -37,7 +37,12 @@ export function LinhaDaPlataforma({ empresa }: { empresa: EmpresaDaPlataforma })
   const recusar = useRecusarPagamento();
   const registrar = useRegistrarPagamento();
 
+  // Valor e "paga ate" ficam escritos, como o ultimo pagamento; o Editar abre
+  // os dois de uma vez. Eram uma caixa de digitar sempre aberta (o valor), que
+  // lia diferente dos outros numeros da linha e salvava ao sair do campo.
+  const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(empresa.valor_mensal ?? "");
+  const [pagaAteEditado, setPagaAteEditado] = useState(empresa.paga_ate ?? "");
   const [registrando, setRegistrando] = useState(false);
   const [pagaAte, setPagaAte] = useState(() =>
     empresa.paga_ate ? umMesDepois(empresa.paga_ate) : "",
@@ -49,10 +54,24 @@ export function LinhaDaPlataforma({ empresa }: { empresa: EmpresaDaPlataforma })
   const ocupado = mudar.isPending || confirmar.isPending || recusar.isPending || registrar.isPending;
   const erro = mudar.error ?? confirmar.error ?? recusar.error ?? registrar.error;
 
-  const salvarValor = () => {
-    if (valor && valor !== empresa.valor_mensal) {
-      mudar.mutate({ id: empresa.id, mudanca: { valor_mensal: valor } });
+  const abrirEdicao = () => {
+    setValor(empresa.valor_mensal ?? "");
+    setPagaAteEditado(empresa.paga_ate ?? "");
+    setEditando(true);
+  };
+
+  const salvarEdicao = (evento: React.FormEvent) => {
+    evento.preventDefault();
+    const mudanca: MudancaDaEmpresa = {};
+    if (valor && valor !== empresa.valor_mensal) mudanca.valor_mensal = valor;
+    if (pagaAteEditado && pagaAteEditado !== empresa.paga_ate) {
+      mudanca.paga_ate = pagaAteEditado;
     }
+    if (Object.keys(mudanca).length === 0) {
+      setEditando(false);
+      return;
+    }
+    mudar.mutate({ id: empresa.id, mudanca }, { onSuccess: () => setEditando(false) });
   };
 
   const alternarIsenta = () =>
@@ -109,36 +128,65 @@ export function LinhaDaPlataforma({ empresa }: { empresa: EmpresaDaPlataforma })
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-[16px] text-[14px]">
-        <label className="flex items-center gap-[8px] text-caixa-muted">
-          Valor
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={valor}
-            onChange={(evento) => setValor(evento.target.value)}
-            onBlur={salvarValor}
-            className={`${CAMPO} w-[110px]`}
-          />
-        </label>
-        <span className="text-caixa-muted">
-          Paga até{" "}
-          <strong className="text-caixa-ink">
-            {empresa.paga_ate ? emDataBrasileira(empresa.paga_ate) : "—"}
-          </strong>
-        </span>
-        <span className="text-caixa-muted">
-          Último pagamento{" "}
-          <strong className="text-caixa-ink">
-            {empresa.ultimo_pagamento
-              ? `${reais(empresa.ultimo_pagamento.valor)} em ${emDataBrasileira(
-                  empresa.ultimo_pagamento.resolvido_em,
-                )}`
-              : "nenhum"}
-          </strong>
-        </span>
-      </div>
+      {editando ? (
+        <form onSubmit={salvarEdicao} className="flex flex-wrap items-end gap-[10px] text-[14px]">
+          <label className="flex flex-col gap-[4px] text-caixa-muted">
+            Valor
+            <input
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              value={valor}
+              onChange={(evento) => setValor(evento.target.value)}
+              className={`${CAMPO} w-[110px]`}
+            />
+          </label>
+          <label className="flex flex-col gap-[4px] text-caixa-muted">
+            Paga até
+            <input
+              type="date"
+              value={pagaAteEditado}
+              onChange={(evento) => setPagaAteEditado(evento.target.value)}
+              className={CAMPO}
+            />
+          </label>
+          <button type="submit" disabled={ocupado} className={BOTAO_FORTE}>
+            Salvar
+          </button>
+          <button type="button" onClick={() => setEditando(false)} className={BOTAO}>
+            Cancelar
+          </button>
+        </form>
+      ) : (
+        <div className="flex flex-wrap items-center gap-[16px] text-[14px]">
+          <span className="text-caixa-muted">
+            Valor:{" "}
+            <strong className="text-caixa-ink">
+              {empresa.valor_mensal ? reais(empresa.valor_mensal) : "—"}
+            </strong>
+          </span>
+          <span className="text-caixa-muted">
+            Paga até:{" "}
+            <strong className="text-caixa-ink">
+              {empresa.paga_ate ? emDataBrasileira(empresa.paga_ate) : "—"}
+            </strong>
+          </span>
+          <span className="text-caixa-muted">
+            Último pagamento:{" "}
+            <strong className="text-caixa-ink">
+              {empresa.ultimo_pagamento
+                ? `${reais(empresa.ultimo_pagamento.valor)} em ${emDataBrasileira(
+                    empresa.ultimo_pagamento.resolvido_em,
+                  )}`
+                : "nenhum"}
+            </strong>
+          </span>
+          <button type="button" onClick={abrirEdicao} disabled={ocupado} className={BOTAO}>
+            Editar
+          </button>
+        </div>
+      )}
 
       {empresa.aguardando && (
         <div className="flex flex-wrap items-center justify-between gap-[10px] rounded-[10px] bg-caixa-warn-soft px-[14px] py-[10px] text-[14px] text-caixa-warn">
