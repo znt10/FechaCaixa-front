@@ -102,6 +102,7 @@ describe("AREAS", () => {
       ["CAIXA", "/fechamentos"],
       ["DESPESAS", "/notas-fiscais"],
       ["COMPROVANTES", "/comprovantes"],
+      ["PLATAFORMA", "/plataforma"],
     ]);
   });
 
@@ -110,6 +111,7 @@ describe("AREAS", () => {
       "Fechamento de caixa",
       "Despesas",
       "Comprovantes",
+      "Plataforma",
     ]);
   });
 });
@@ -195,5 +197,40 @@ describe("área de comprovantes", () => {
         (pagina) => pagina.rotulo,
       ),
     ).toEqual(["Comprovantes", "Configurar"]);
+  });
+});
+
+describe("a área Plataforma", () => {
+  it("/plataforma é Plataforma", () => {
+    expect(areaDaRota("/plataforma")).toBe("PLATAFORMA");
+  });
+
+  it("só entra no seletor para o dono da plataforma", () => {
+    const ids = (opcoes: { notas: boolean; banco: boolean; plataforma?: boolean }) =>
+      areasDisponiveis(opcoes).map((area) => area.id);
+
+    expect(ids({ notas: true, banco: true })).toEqual(["CAIXA", "DESPESAS"]);
+  });
+
+  it("o dono da plataforma só vê a Plataforma", () => {
+    // Ele não fecha caixa nem lança despesa: administra as empresas. O caixa
+    // e as despesas que ele via eram os de todas as empresas juntas.
+    const ids = areasDisponiveis({
+      notas: true,
+      banco: true,
+      comprovantes: true,
+      plataforma: true,
+    }).map((area) => area.id);
+
+    expect(ids).toEqual(["PLATAFORMA"]);
+  });
+
+  it("tem a aba Empresas só com a opção ligada", () => {
+    expect(paginasDaArea("PLATAFORMA", { gerente: false, notas: false })).toEqual([]);
+    expect(
+      paginasDaArea("PLATAFORMA", { gerente: false, notas: false, plataforma: true }).map(
+        (p) => p.rotulo,
+      ),
+    ).toEqual(["Empresas"]);
   });
 });

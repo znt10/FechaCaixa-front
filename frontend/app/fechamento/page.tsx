@@ -8,6 +8,8 @@ import { TelaDoCodigo } from "@/features/fechamento/components/TelaDoCodigo";
 import { useEmpresaDoFormulario } from "@/features/fechamento/hooks/useAcesso";
 import { useRegistrarPWA } from "@/features/fechamento/hooks/useRegistrarPWA";
 import { enderecoDaEmpresa } from "@/features/fechamento/services/acesso";
+import { EmpresaDesativada } from "@/features/mensalidade/components/EmpresaDesativada";
+import { codigoDoErro } from "@/shared/services/api";
 
 /**
  * A porta do formulario, sem endereco de empresa nenhum.
@@ -41,6 +43,16 @@ export default function FechamentoPage() {
     return (
       <div className="flex min-h-screen w-full items-center justify-center bg-caixa-bg font-sans">
         <p className="text-[15px] text-caixa-muted">Abrindo...</p>
+      </div>
+    );
+  }
+
+  // O aparelho ja conectado de uma empresa desativada: dizer isso, em vez de
+  // pedir um codigo que nao vai abrir.
+  if (codigoDoErro(empresa.error) === "empresa_desativada") {
+    return (
+      <div className="min-h-screen w-full bg-caixa-bg font-sans text-caixa-ink">
+        <EmpresaDesativada />
       </div>
     );
   }

@@ -17,6 +17,7 @@ import {
   paginasDaArea,
   type Area,
 } from "@/features/fechamento/areas-do-painel";
+import { mostrarPlataforma } from "@/features/mensalidade/mensalidade-da-tela";
 import { useUsuarioAtual } from "@/shared/hooks/useUsuarioAtual";
 import { logout } from "@/shared/services/auth";
 import { esquecerSessaoAnterior } from "@/shared/services/cache-da-sessao";
@@ -53,6 +54,7 @@ export function TopbarPainel() {
   const usuario = usuarioSalvo ?? usuarioDaSessao.data;
   const moduloDeNotas = useModuloDeNotas();
   const abasDoBanco = useAbasDoBanco();
+  const plataforma = mostrarPlataforma(usuarioDaSessao.data);
   const areaDeComprovantes = useAreaDeComprovantes();
   const catalogoAtivo = useCatalogoAtivo();
 
@@ -63,6 +65,7 @@ export function TopbarPainel() {
   const areas = areasDisponiveis({
     notas: moduloDeNotas.ativo,
     banco: abasDoBanco.ativo,
+    plataforma,
     comprovantes: areaDeComprovantes.ativo,
   });
 
@@ -103,7 +106,7 @@ export function TopbarPainel() {
               pelo overflow-x escondido do body. */}
           <div className="flex items-center gap-[10px] md:hidden">
             <Conta usuario={usuario} className="flex" />
-            <BotaoDeExportar />
+            {!plataforma && <BotaoDeExportar />}
           </div>
         </div>
 
@@ -122,6 +125,7 @@ export function TopbarPainel() {
               notas: moduloDeNotas.ativo,
               banco: abasDoBanco.ativo,
               catalogo: catalogoAtivo,
+              plataforma,
               comprovantes: areaDeComprovantes.ativo,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
@@ -145,7 +149,9 @@ export function TopbarPainel() {
         {/* No desktop a acao vem antes da identidade: a conta fecha a barra,
             como em toda topbar. */}
         <div className="hidden items-center gap-[16px] md:flex">
-          <BotaoDeExportar />
+          {/* A planilha e do caixa de uma empresa; o dono da plataforma nao
+              fecha caixa de ninguem. */}
+          {!plataforma && <BotaoDeExportar />}
           <Conta usuario={usuario} className="flex" />
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { apiV1 } from "./api";
+import { apiV1, apiV1Publico, codigoDoErro, ErroDaApi } from "./api";
 
 /**
  * O 403 quase derrubou a aplicacao inteira.
@@ -79,5 +79,42 @@ describe("apiV1 e o corpo FormData", () => {
 
     const headers = fetchMock.mock.calls[0][1].headers as Headers;
     expect(headers.has("Content-Type")).toBe(false);
+  });
+});
+
+describe("o erro da API carrega o status e o código", () => {
+  it("apiV1 lança ErroDaApi com o code do backend", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({ detail: "A mensalidade está atrasada.", code: "mensalidade_bloqueada" }),
+          { status: 402, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const erro = await apiV1("/fechamentos-caixa/").catch((e: unknown) => e);
+
+    expect(erro).toBeInstanceOf(ErroDaApi);
+    expect((erro as ErroDaApi).message).toBe("A mensalidade está atrasada.");
+    expect((erro as ErroDaApi).status).toBe(402);
+    expect(codigoDoErro(erro)).toBe("mensalidade_bloqueada");
+  });
+
+  it("erro sem code dá null", () => {
+    expect(codigoDoErro(new Error("qualquer"))).toBeNull();
+  });
+
+  it("apiV1Publico se identifica como formulário", async () => {
+    const fetchFalso = vi.fn(async (_url: unknown, _init?: RequestInit) =>
+      new Response("{}", { status: 200 }),
+    );
+    vi.stubGlobal("fetch", fetchFalso);
+
+    await apiV1Publico("/formulario/empresa/");
+
+    const cabecalhos = new Headers(fetchFalso.mock.calls[0][1]?.headers);
+    expect(cabecalhos.get("X-Formulario")).toBe("1");
   });
 });

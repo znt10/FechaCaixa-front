@@ -41,6 +41,12 @@ const PAINEL_DE_CAIXA = [
 // decide, e as duas regras sao a mesma.
 const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
 
+// A tela Plataforma e do dono da plataforma, que entra com papel proprio
+// ("Plataforma", o superusuario no backend). Ele so alcanca ela: nao fecha
+// caixa nem lanca despesa. O Admin das empresas nao chega nela, e quem barra
+// de verdade continua sendo a API (IsSuperuser).
+const TELA_DA_PLATAFORMA = "/plataforma";
+
 // Comprovantes sao da gerencia, como o extrato (IsGerenteOrAdministrador no
 // backend). Precisa estar aqui mesmo assim: rota fora desta tabela cai no ramo
 // de "apelido de empresa", que e PUBLICO.
@@ -56,6 +62,7 @@ const ROLE_ROUTES: Record<string, string[]> = {
   // O painel de caixa e as mesmas telas para todo mundo que entra com login.
   // O que separa os papeis e o que existe ALEM delas.
   Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
+  Plataforma: [TELA_DA_PLATAFORMA],
   // So o gerente tem /empresa: codigo de acesso, lojas, quem retira dinheiro
   // e quem tem login.
   Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
@@ -71,6 +78,8 @@ const ROLE_HOME: Record<string, string> = {
   Admin: "/fechamentos",
   Gerente: "/fechamentos",
   Funcionario: "/fechamentos",
+  // O dono da plataforma entra direto nas empresas.
+  Plataforma: TELA_DA_PLATAFORMA,
 };
 
 const normalizeRole = (role?: string) => {
@@ -93,6 +102,10 @@ const normalizeRole = (role?: string) => {
 
   if (normalized === "funcionario") {
     return "Funcionario";
+  }
+
+  if (normalized === "plataforma") {
+    return "Plataforma";
   }
 
   return undefined;

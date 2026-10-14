@@ -38,6 +38,47 @@ const extractApiErrorMessage = (data: unknown): string | null => {
   return null;
 };
 
+/**
+ * O erro de uma resposta da API: a mensagem de sempre, mais o status e o
+ * `code` que o backend manda em algumas recusas.
+ *
+ * Continua sendo um Error com a mesma `message`, então toda tela que mostra
+ * `erro.message` segue igual. O `codigo` é para quem precisa trocar a tela
+ * inteira, e não só avisar: empresa desativada, mensalidade bloqueada.
+ */
+export class ErroDaApi extends Error {
+  readonly status: number;
+  readonly codigo: string | null;
+
+  constructor(mensagem: string, status: number, codigo: string | null) {
+    super(mensagem);
+    this.name = "ErroDaApi";
+    this.status = status;
+    this.codigo = codigo;
+  }
+}
+
+export const codigoDoErro = (erro: unknown): string | null =>
+  erro instanceof ErroDaApi ? erro.codigo : null;
+
+const erroDaResposta = async (response: Response): Promise<ErroDaApi> => {
+  let message = `Erro ${response.status}`;
+  let codigo: string | null = null;
+
+  try {
+    const data = await response.clone().json();
+    message = extractApiErrorMessage(data) || message;
+    if (data && typeof data === "object") {
+      const codigoCru = (data as Record<string, unknown>).code;
+      if (typeof codigoCru === "string") codigo = codigoCru;
+    }
+  } catch {
+    message = (await response.clone().text()) || message;
+  }
+
+  return new ErroDaApi(message, response.status, codigo);
+};
+
 export const apiFetch = async (
   endpoint: string,
   options: RequestInit = {},
@@ -102,17 +143,7 @@ export const apiFetch = async (
   }
 
   if (!response.ok) {
-    let message = `Erro ${response.status}`;
-
-    try {
-      const data = await response.clone().json();
-      message = extractApiErrorMessage(data) || message;
-    } catch {
-      const errorText = await response.clone().text();
-      message = errorText || message;
-    }
-
-    throw new Error(message);
+    throw await erroDaResposta(response);
   }
 
   return response;
@@ -142,19 +173,19 @@ export const apiV1Publico = async (
     requestHeaders.set("Content-Type", "application/json");
   }
 
+  // O formulário da loja se identifica. No tablet da loja o gerente pode
+  // estar logado também, e com a empresa bloqueada o cookie dele faria o
+  // backend recusar o lançamento do caixa. Com este cabeçalho, quem decide é
+  // o cookie do aparelho (ver CABECALHO_DO_FORMULARIO no backend).
+  requestHeaders.set("X-Formulario", "1");
+
   const response = await fetch(`${API_URL}/api/v1${endpoint}`, {
     ...rest,
     headers: requestHeaders,
   });
 
   if (!response.ok) {
-    let message = `Erro ${response.status}`;
-    try {
-      message = extractApiErrorMessage(await response.clone().json()) || message;
-    } catch {
-      message = (await response.clone().text()) || message;
-    }
-    throw new Error(message);
+    throw await erroDaResposta(response);
   }
 
   return response;

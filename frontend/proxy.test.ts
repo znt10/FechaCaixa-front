@@ -189,6 +189,37 @@ describe("proxy: o que cada papel alcanca", () => {
     });
   });
 
+  // O dono da plataforma entra com o papel proprio "Plataforma" (o superusuario
+  // no backend). O "Admin" das empresas nao chega na tela, e o dono nao chega
+  // no caixa: ele administra as empresas, nao fecha caixa.
+  describe("a tela Plataforma", () => {
+    it("o dono da plataforma entra", () => {
+      const resposta = pedirComo("Plataforma", "/plataforma");
+      expect(resposta?.status).toBe(200);
+    });
+
+    it.each(["Admin", "Gerente", "Funcionario"])("%s volta para o painel", (papel) => {
+      const resposta = pedirComo(papel, "/plataforma");
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/fechamentos");
+    });
+
+    it.each(["/fechamentos", "/notas-fiscais", "/extrato", "/empresa"])(
+      "o dono da plataforma em %s volta para a Plataforma",
+      (rota) => {
+        const resposta = pedirComo("Plataforma", rota);
+        expect(resposta?.status).toBe(307);
+        expect(resposta?.headers.get("location")).toContain("/plataforma");
+      },
+    );
+
+    it("sem login vai para o login", () => {
+      const resposta = pedir("/plataforma");
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/login");
+    });
+  });
+
   // Cookie com papel que o sistema nao conhece (renomeacao de grupo no
   // backend, cookie velho de uma versao anterior): a sessao cai, em vez de a
   // pessoa entrar em algum lugar por engano.
