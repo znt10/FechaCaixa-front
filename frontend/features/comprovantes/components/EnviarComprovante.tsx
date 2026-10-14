@@ -10,7 +10,14 @@ import type { Comprovante } from "../services/comprovantes";
  *  abre preenchido (para escolher a loja: o papel da lotérica não diz).
  *  Várias de uma vez: lidas uma por uma, e no fim um resumo do que entrou —
  *  é o caminho de quem só tem as fotos, sem e-mail. */
-export function EnviarComprovante({ onLido }: { onLido: (comprovante: Comprovante) => void }) {
+export function EnviarComprovante({
+  loja,
+  onLido,
+}: {
+  /** Para onde vão as fotos; null deixa a leitura achar pelo CNPJ ou conta. */
+  loja: { id: string; nome: string } | null;
+  onLido: (comprovante: Comprovante) => void;
+}) {
   const entrada = useRef<HTMLInputElement>(null);
   const enviar = useEnviarComprovante();
   const [progresso, setProgresso] = useState<{ atual: number; total: number } | null>(null);
@@ -26,7 +33,7 @@ export function EnviarComprovante({ onLido }: { onLido: (comprovante: Comprovant
 
     if (arquivos.length === 1) {
       try {
-        onLido(await enviar.mutateAsync({ arquivo: arquivos[0] }));
+        onLido(await enviar.mutateAsync({ arquivo: arquivos[0], loja: loja?.id }));
       } catch (falha) {
         setErro((falha as Error).message);
       }
@@ -39,7 +46,7 @@ export function EnviarComprovante({ onLido }: { onLido: (comprovante: Comprovant
     for (const [indice, arquivo] of arquivos.entries()) {
       setProgresso({ atual: indice + 1, total: arquivos.length });
       try {
-        const comprovante = await enviar.mutateAsync({ arquivo });
+        const comprovante = await enviar.mutateAsync({ arquivo, loja: loja?.id });
         resultados.push({ nome: arquivo.name, situacao: comprovante.situacao });
       } catch (falha) {
         resultados.push({ nome: arquivo.name, erro: (falha as Error).message });
@@ -73,7 +80,14 @@ export function EnviarComprovante({ onLido }: { onLido: (comprovante: Comprovant
             ? "Lendo o comprovante…"
             : "Enviar comprovantes"}
       </button>
-      <p className="text-[13px] text-caixa-muted">Dá para escolher várias fotos de uma vez.</p>
+      <p className="text-[13px] text-caixa-muted">
+        Dá para escolher várias fotos de uma vez.
+        {loja && (
+          <>
+            {" "}Elas entram na loja <strong className="font-semibold text-caixa-ink">{loja.nome}</strong>.
+          </>
+        )}
+      </p>
       {erro && <p className="text-[13px] text-red-700">{erro}</p>}
       {resumo && (
         <div className="flex max-w-[560px] flex-col gap-[6px] rounded-[10px] border border-caixa-border bg-caixa-surface px-[14px] py-[10px] text-[14px]">

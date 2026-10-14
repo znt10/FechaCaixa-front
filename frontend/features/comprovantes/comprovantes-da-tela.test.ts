@@ -5,6 +5,7 @@ import {
   avisoDeConferir,
   escolhasIniciais,
   linhasDoResumo,
+  lojaDoEnvio,
   montarFiltro,
   mostrarAreaDeComprovantes,
   paraDataLocal,
@@ -191,5 +192,26 @@ describe("resumoDoEnvio", () => {
         { nome: "b.jpg", erro: "Isto não parece um comprovante de pagamento." },
       ]).titulo,
     ).toBe("Nenhuma das 2 entrou");
+  });
+});
+
+describe("lojaDoEnvio", () => {
+  const centro = { id: "l1", nome_loja: "Centro" };
+  const praia = { id: "l2", nome_loja: "Praia" };
+
+  it("a loja escolhida nos chips", () => {
+    expect(lojaDoEnvio([centro, praia], "l2")).toEqual({ id: "l2", nome: "Praia" });
+  });
+
+  it("empresa de uma loja só: sempre ela, sem ninguém escolher", () => {
+    expect(lojaDoEnvio([centro], "")).toEqual({ id: "l1", nome: "Centro" });
+  });
+
+  it("várias lojas e nenhuma escolhida: a leitura decide", () => {
+    expect(lojaDoEnvio([centro, praia], "")).toBeNull();
+  });
+
+  it("'Sem loja' escolhido: nenhuma", () => {
+    expect(lojaDoEnvio([centro], "sem")).toBeNull();
   });
 });

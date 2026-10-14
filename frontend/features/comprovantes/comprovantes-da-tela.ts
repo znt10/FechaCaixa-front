@@ -137,3 +137,19 @@ export const resumoDoEnvio = (resultados: ResultadoDoEnvio[]) => {
       .map(({ nome, erro }) => ({ nome, erro: erro as string })),
   };
 };
+
+/** Para que loja vão as fotos do envio. A escolhida nos chips; numa empresa
+ *  de uma loja só (a madrinha), sempre ela. Sem isso, a foto de um papel da
+ *  lotérica, que não diz a loja, entraria sem loja. */
+export const lojaDoEnvio = (
+  lojas: { id: string; nome_loja: string }[],
+  lojaDoFiltro: string,
+): { id: string; nome: string } | null => {
+  if (lojaDoFiltro === "sem") return null;
+  const loja = lojaDoFiltro
+    ? lojas.find((item) => item.id === lojaDoFiltro)
+    : lojas.length === 1
+      ? lojas[0]
+      : undefined;
+  return loja ? { id: loja.id, nome: loja.nome_loja } : null;
+};
