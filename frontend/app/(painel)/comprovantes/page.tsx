@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   escolhasIniciais,
   montarFiltro,
+  rotuloDoTotal,
   type EscolhasDosComprovantes,
   type Granularidade,
 } from "@/features/comprovantes/comprovantes-da-tela";
@@ -128,6 +129,16 @@ export default function ComprovantesPage() {
       </div>
 
       <div className="flex flex-col gap-[20px]">
+        {/* O total logo abaixo do período, em cima das lojas: o mesmo lugar
+            do fechamento de caixa e das Saídas. */}
+        {dados && (
+          <ResumoDosComprovantes
+            rotulo={rotuloDoTotal(granularidade)}
+            totais={dados.totais}
+            onVerConferir={() => escolher({ situacao: "CONFERIR" })}
+          />
+        )}
+
         {/* Lojas e situação no mesmo cartão dos Gráficos: no lugar do turno,
             a situação, que é o recorte que esta tela tem. */}
         <div className="cartao-caixa rounded-[12px] border border-caixa-border bg-caixa-surface p-[16px]">
@@ -165,13 +176,6 @@ export default function ComprovantesPage() {
             </div>
           </div>
         </div>
-
-        {dados && (
-          <ResumoDosComprovantes
-            totais={dados.totais}
-            onVerConferir={() => escolher({ situacao: "CONFERIR" })}
-          />
-        )}
 
         <div className="flex justify-end">
           <EnviarComprovante onLido={setAberto} />
