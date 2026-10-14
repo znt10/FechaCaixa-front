@@ -5,9 +5,11 @@ import {
   avisoDeConferir,
   escolhasIniciais,
   linhasDoResumo,
+  lojaDoEnvio,
   montarFiltro,
   mostrarAreaDeComprovantes,
   paraDataLocal,
+  resumoDoEnvio,
   intervaloDasEscolhas,
   rotuloDaSituacao,
   rotuloDoTotal,
@@ -158,5 +160,58 @@ describe("avisoDeConferir", () => {
   it("singular e plural, como o aviso das lojas no fechamento", () => {
     expect(avisoDeConferir(1)).toBe("1 comprovante para conferir");
     expect(avisoDeConferir(3)).toBe("3 comprovantes para conferir");
+  });
+});
+
+describe("resumoDoEnvio", () => {
+  it("conta o que entrou, o que ficou para conferir e o que foi recusado", () => {
+    expect(
+      resumoDoEnvio([
+        { nome: "a.jpg", situacao: "OK" },
+        { nome: "b.jpg", situacao: "CONFERIR" },
+        { nome: "c.jpg", situacao: "OK" },
+        { nome: "curriculo.pdf", erro: "Isto não parece um comprovante de pagamento." },
+      ]),
+    ).toEqual({
+      titulo: "3 de 4 entraram, 1 para conferir",
+      recusados: [{ nome: "curriculo.pdf", erro: "Isto não parece um comprovante de pagamento." }],
+    });
+  });
+
+  it("todas entraram, sem nada para conferir", () => {
+    expect(resumoDoEnvio([{ nome: "a.jpg", situacao: "OK" }, { nome: "b.jpg", situacao: "OK" }])).toEqual({
+      titulo: "2 de 2 entraram",
+      recusados: [],
+    });
+  });
+
+  it("nenhuma entrou", () => {
+    expect(
+      resumoDoEnvio([
+        { nome: "a.jpg", erro: "Este comprovante ja foi lancado." },
+        { nome: "b.jpg", erro: "Isto não parece um comprovante de pagamento." },
+      ]).titulo,
+    ).toBe("Nenhuma das 2 entrou");
+  });
+});
+
+describe("lojaDoEnvio", () => {
+  const centro = { id: "l1", nome_loja: "Centro" };
+  const praia = { id: "l2", nome_loja: "Praia" };
+
+  it("a loja escolhida nos chips", () => {
+    expect(lojaDoEnvio([centro, praia], "l2")).toEqual({ id: "l2", nome: "Praia" });
+  });
+
+  it("empresa de uma loja só: sempre ela, sem ninguém escolher", () => {
+    expect(lojaDoEnvio([centro], "")).toEqual({ id: "l1", nome: "Centro" });
+  });
+
+  it("várias lojas e nenhuma escolhida: a leitura decide", () => {
+    expect(lojaDoEnvio([centro, praia], "")).toBeNull();
+  });
+
+  it("'Sem loja' escolhido: nenhuma", () => {
+    expect(lojaDoEnvio([centro], "sem")).toBeNull();
   });
 });

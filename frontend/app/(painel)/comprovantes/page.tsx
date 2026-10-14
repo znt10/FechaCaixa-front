@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import {
   escolhasIniciais,
+  lojaDoEnvio,
   montarFiltro,
   rotuloDoTotal,
   type EscolhasDosComprovantes,
@@ -144,7 +145,7 @@ export default function ComprovantesPage() {
         {dados && <ResumoDosComprovantes rotulo={rotuloDoTotal(granularidade)} totais={dados.totais} />}
 
         <div>
-          <EnviarComprovante onLido={setAberto} />
+          <EnviarComprovante loja={lojaDoEnvio(lojas.data ?? [], escolhas.loja)} onLido={setAberto} />
         </div>
 
         {/* Filtros e lista num cartão só, como a tabela do fechamento: as
