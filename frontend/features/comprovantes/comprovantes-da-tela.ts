@@ -117,3 +117,23 @@ export const paraDataLocal = (iso: string | null) => {
   // "sv-SE" formata como "2026-10-13 10:03".
   return partes.replace(" ", "T");
 };
+
+/** Uma foto do envio de várias: a situação com que entrou, ou o erro. */
+export type ResultadoDoEnvio = { nome: string; situacao?: Situacao; erro?: string };
+
+/** O que a madrinha lê depois de mandar as fotos de uma vez. */
+export const resumoDoEnvio = (resultados: ResultadoDoEnvio[]) => {
+  const total = resultados.length;
+  const entraram = resultados.filter((r) => r.situacao).length;
+  const conferir = resultados.filter((r) => r.situacao === "CONFERIR").length;
+  const titulo =
+    entraram === 0
+      ? `Nenhuma das ${total} entrou`
+      : `${entraram} de ${total} entraram${conferir > 0 ? `, ${conferir} para conferir` : ""}`;
+  return {
+    titulo,
+    recusados: resultados
+      .filter((r) => r.erro)
+      .map(({ nome, erro }) => ({ nome, erro: erro as string })),
+  };
+};
