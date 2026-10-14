@@ -139,8 +139,8 @@ export type FechamentoConfirmacao = {
   loja_nome: string;
   data: string;
   periodo: Periodo;
-  /** A liquidez bruta: quanto a loja movimentou. Soma retirada e despesa de
-   *  volta, porque as duas sairam da gaveta depois da venda. */
+  /** O total do caixa: o recebido mais a retirada, que o dono so levou para
+   *  guardar. A despesa fica fora — foi gasta (ate 2026-10-14 ela somava). */
   total: string;
   /** O que saiu da gaveta e ficou anotado a parte: retirada, despesas e
    *  devolucao. Nao e o que foi descontado — so a devolucao nao volta. */

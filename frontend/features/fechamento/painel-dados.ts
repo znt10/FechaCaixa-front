@@ -25,10 +25,10 @@ export type LinhaPainel = {
    *  o que sobrou na gaveta. A despesa fica fora — ver montarPainel. */
   dinheiro: number;
   linkPagamento: number;
-  /** O que a loja gastou. Coluna propria porque esse dinheiro nao esta mais em
-   *  caixa, mas continua somando no total: a venda valeu. */
+  /** O que a loja gastou. Coluna propria, depois do total e fora dele: esse
+   *  dinheiro nao existe mais. */
   despesas: number;
-  /** A liquidez bruta: quanto a loja movimentou. */
+  /** O total do caixa: as quatro formas, com a retirada dentro do dinheiro. */
   total: number;
   status: StatusLinha;
   /** Os lancamentos crus, para o detalhe que abre ao clicar na linha. */
@@ -173,10 +173,11 @@ export const montarResumo = (
       dinheiro,
       linkPagamento,
       despesas,
-      // As cinco colunas fecham na horizontal: nada fica de fora e nada entra
-      // duas vezes. A despesa soma porque a venda valeu — o dinheiro e que ja
-      // nao esta mais la.
-      total: pix + cartao + dinheiro + linkPagamento + despesas,
+      // As quatro colunas de dinheiro fecham o total na horizontal. A despesa
+      // fica fora: foi gasta, e no total faria o caixa parecer maior do que o
+      // dinheiro que existe. Mesma conta do back (FechamentoCaixa.total), que
+      // a planilha e o Por loja usam — ate 2026-10-14 ela somava.
+      total: pix + cartao + dinheiro + linkPagamento,
       lancamentos,
       status: statusDaLoja(lancamentos, visao),
     };
