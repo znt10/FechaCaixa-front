@@ -27,11 +27,20 @@ import {
  *  lista e totais de uma vez, e invalidar a raiz pega os dois. */
 const RAIZ = "comprovantes";
 
+// O mesmo ritmo do painel do caixa: o comprovante do e-mail chega sozinho,
+// e quem deixa a tela aberta tem que vê-lo sem apertar F5.
+const INTERVALO_DE_ATUALIZACAO = 30 * 1000;
+
 export const useComprovantes = (filtro: FiltroDeComprovantes) =>
   useQuery({
     queryKey: [RAIZ, "lista", filtro],
     queryFn: () => getComprovantes(filtro),
     placeholderData: keepPreviousData,
+    staleTime: INTERVALO_DE_ATUALIZACAO,
+    refetchInterval: INTERVALO_DE_ATUALIZACAO,
+    // Com a aba escondida ninguém está olhando: não gasta rede.
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
   });
 
 const useMudanca = <Entrada, Saida>(acao: (entrada: Entrada) => Promise<Saida>) => {

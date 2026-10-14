@@ -9,6 +9,7 @@ import {
   paraDataLocal,
   intervaloDasEscolhas,
   rotuloDaSituacao,
+  rotuloDoTotal,
   type EscolhasDosComprovantes,
 } from "./comprovantes-da-tela";
 
@@ -141,5 +142,13 @@ describe("acoesDoDetalhe", () => {
 
   it("descartado: só volta para conferir", () => {
     expect(acoesDoDetalhe("DESCARTADO")).toEqual({ principal: "voltar", descartar: false });
+  });
+});
+
+describe("rotuloDoTotal", () => {
+  it("acompanha o período, como no fechamento de caixa", () => {
+    expect(rotuloDoTotal("DIA")).toBe("TOTAL DO DIA");
+    expect(rotuloDoTotal("SEMANA")).toBe("TOTAL DA SEMANA");
+    expect(rotuloDoTotal("MES")).toBe("TOTAL DO MÊS");
   });
 });

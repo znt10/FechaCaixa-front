@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   escolhasIniciais,
   montarFiltro,
+  rotuloDoTotal,
   type EscolhasDosComprovantes,
   type Granularidade,
 } from "@/features/comprovantes/comprovantes-da-tela";
@@ -128,6 +129,16 @@ export default function ComprovantesPage() {
       </div>
 
       <div className="flex flex-col gap-[20px]">
+        {/* O total logo abaixo do período, em cima das lojas: o mesmo lugar
+            do fechamento de caixa e das Saídas. */}
+        {dados && (
+          <ResumoDosComprovantes
+            rotulo={rotuloDoTotal(granularidade)}
+            totais={dados.totais}
+            onVerConferir={() => escolher({ situacao: "CONFERIR" })}
+          />
+        )}
+
         {/* Lojas e situação no mesmo cartão dos Gráficos: no lugar do turno,
             a situação, que é o recorte que esta tela tem. */}
         <div className="cartao-caixa rounded-[12px] border border-caixa-border bg-caixa-surface p-[16px]">
@@ -163,15 +174,30 @@ export default function ComprovantesPage() {
                 </button>
               ))}
             </div>
+            {/* Igual ao painel do caixa: a tela se atualiza a cada 30s, e
+                dizer quando foi a última vez evita o "será que já chegou?". */}
+            <span className="ml-auto flex items-center gap-[10px] text-[13px] text-caixa-muted">
+              {comprovantes.isFetching ? (
+                "Atualizando..."
+              ) : (
+                <>
+                  Atualizado às{" "}
+                  {new Date(comprovantes.dataUpdatedAt).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => comprovantes.refetch()}
+                    className="underline-offset-4 transition hover:text-caixa-ink hover:underline"
+                  >
+                    Atualizar
+                  </button>
+                </>
+              )}
+            </span>
           </div>
         </div>
-
-        {dados && (
-          <ResumoDosComprovantes
-            totais={dados.totais}
-            onVerConferir={() => escolher({ situacao: "CONFERIR" })}
-          />
-        )}
 
         <div className="flex justify-end">
           <EnviarComprovante onLido={setAberto} />

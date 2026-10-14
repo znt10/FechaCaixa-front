@@ -64,6 +64,10 @@ export const intervaloDasEscolhas = ({ granularidade, dia, mes }: EscolhasDosCom
       ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
       : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
+/** O rótulo do cartão do total, no mesmo tom do fechamento de caixa. */
+export const rotuloDoTotal = (granularidade: Granularidade) =>
+  ({ DIA: "TOTAL DO DIA", SEMANA: "TOTAL DA SEMANA", MES: "TOTAL DO MÊS" })[granularidade];
+
 export const montarFiltro = (escolhas: EscolhasDosComprovantes): FiltroDeComprovantes => {
   const filtro: FiltroDeComprovantes = { ...intervaloDasEscolhas(escolhas) };
   if (escolhas.loja) filtro.loja = escolhas.loja;
