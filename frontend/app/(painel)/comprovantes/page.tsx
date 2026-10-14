@@ -174,6 +174,28 @@ export default function ComprovantesPage() {
                 </button>
               ))}
             </div>
+            {/* Igual ao painel do caixa: a tela se atualiza a cada 30s, e
+                dizer quando foi a última vez evita o "será que já chegou?". */}
+            <span className="ml-auto flex items-center gap-[10px] text-[13px] text-caixa-muted">
+              {comprovantes.isFetching ? (
+                "Atualizando..."
+              ) : (
+                <>
+                  Atualizado às{" "}
+                  {new Date(comprovantes.dataUpdatedAt).toLocaleTimeString("pt-BR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => comprovantes.refetch()}
+                    className="underline-offset-4 transition hover:text-caixa-ink hover:underline"
+                  >
+                    Atualizar
+                  </button>
+                </>
+              )}
+            </span>
           </div>
         </div>
 
