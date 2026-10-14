@@ -64,6 +64,10 @@ export const intervaloDasEscolhas = ({ granularidade, dia, mes }: EscolhasDosCom
       ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
       : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
+/** O aviso em cima do total, no tom do "1 loja ainda não lançou". */
+export const avisoDeConferir = (quantos: number) =>
+  quantos === 1 ? "1 comprovante para conferir" : `${quantos} comprovantes para conferir`;
+
 /** O rótulo do cartão do total, no mesmo tom do fechamento de caixa. */
 export const rotuloDoTotal = (granularidade: Granularidade) =>
   ({ DIA: "TOTAL DO DIA", SEMANA: "TOTAL DA SEMANA", MES: "TOTAL DO MÊS" })[granularidade];

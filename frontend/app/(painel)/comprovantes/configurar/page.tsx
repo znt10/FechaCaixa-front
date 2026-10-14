@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { CartaoDeConfiguracao } from "@/features/comprovantes/components/CartaoDeConfiguracao";
 import { CategoriasDosComprovantes } from "@/features/comprovantes/components/CategoriasDosComprovantes";
 import { ListaDeRemetentes } from "@/features/comprovantes/components/ListaDeRemetentes";
 import { useConfiguracao } from "@/features/comprovantes/hooks/useComprovantes";
@@ -18,14 +19,16 @@ export default function ConfigurarComprovantesPage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-[900px] flex-col gap-[28px] px-[16px] pb-[60px] pt-[28px] md:px-[40px]">
+    <main className="mx-auto flex max-w-[900px] flex-col gap-[20px] px-[16px] pb-[60px] pt-[28px] md:px-[40px]">
       <div className="flex flex-col gap-[2px]">
         <h1 className="text-[22px] font-bold leading-[1.2]">Configurar</h1>
         <p className="text-[14px] text-caixa-muted">Para onde mandar, quem pode mandar e as categorias.</p>
       </div>
 
-      <section className="flex flex-col gap-[8px] rounded-[14px] border border-caixa-border bg-caixa-surface p-[16px]">
-        <h2 className="text-[16px] font-bold">Mande os comprovantes para</h2>
+      <CartaoDeConfiguracao
+        titulo="Mande os comprovantes para"
+        descricao="Encaminhe para este e-mail o comprovante do app do banco, mandando de um dos e-mails cadastrados abaixo."
+      >
         {endereco ? (
           <div className="flex flex-wrap items-center gap-[8px]">
             <code className="rounded-[8px] bg-zinc-100 px-[10px] py-[6px] text-[15px]">{endereco}</code>
@@ -41,7 +44,7 @@ export default function ConfigurarComprovantesPage() {
             A leitura automática está desligada: os comprovantes entram para conferir.
           </p>
         )}
-      </section>
+      </CartaoDeConfiguracao>
 
       <ListaDeRemetentes />
       <CategoriasDosComprovantes />

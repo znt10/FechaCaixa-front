@@ -12,7 +12,10 @@ const COR: Record<Comprovante["situacao"], string> = {
   DESCARTADO: "bg-zinc-200 text-zinc-700",
 };
 
-/** Tabela no desktop, cartões no celular: a mesma lista, um clique abre o detalhe. */
+const COLUNAS = "md:grid-cols-[110px_1fr_160px_160px_110px_100px]";
+
+/** Tabela no desktop, cartões no celular: a mesma lista, um clique abre o
+ *  detalhe. Mora dentro do cartão dos filtros, como a tabela do fechamento. */
 export function ListaDeComprovantes({
   comprovantes,
   onAbrir,
@@ -28,13 +31,25 @@ export function ListaDeComprovantes({
     );
   }
   return (
-    <ul className="flex flex-col divide-y divide-caixa-border rounded-[14px] border border-caixa-border bg-caixa-surface">
+    <>
+    <div
+      aria-hidden="true"
+      className={`hidden h-[47px] items-center gap-x-[12px] bg-caixa-faixa px-[16px] text-[11px] md:px-[24px] font-semibold tracking-[0.5px] text-caixa-muted md:grid ${COLUNAS}`}
+    >
+      <span>DATA</span>
+      <span>VALOR</span>
+      <span>PARA QUEM</span>
+      <span>LOJA</span>
+      <span>CATEGORIA</span>
+      <span>SITUAÇÃO</span>
+    </div>
+    <ul className="flex flex-col divide-y divide-caixa-border">
       {comprovantes.map((comprovante) => (
         <li key={comprovante.id}>
           <button
             type="button"
             onClick={() => onAbrir(comprovante)}
-            className="grid w-full grid-cols-[1fr_auto] gap-x-[12px] gap-y-[4px] px-[16px] py-[12px] text-left text-[14px] transition hover:bg-caixa-accent/5 md:grid-cols-[110px_1fr_160px_160px_110px_100px] md:items-center"
+            className={`grid w-full grid-cols-[1fr_auto] gap-x-[12px] gap-y-[4px] px-[16px] py-[12px] text-left text-[14px] transition md:px-[24px] hover:bg-caixa-accent/5 md:items-center ${COLUNAS}`}
           >
             <span className="text-caixa-muted md:order-none">{data(comprovante.data_hora)}</span>
             <span className="font-semibold md:order-none">
@@ -54,5 +69,6 @@ export function ListaDeComprovantes({
         </li>
       ))}
     </ul>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import {
   type EscolhasDosComprovantes,
   type Granularidade,
 } from "@/features/comprovantes/comprovantes-da-tela";
+import { AvisoDeConferir } from "@/features/comprovantes/components/AvisoDeConferir";
 import { DetalheDoComprovante } from "@/features/comprovantes/components/DetalheDoComprovante";
 import { EnviarComprovante } from "@/features/comprovantes/components/EnviarComprovante";
 import { ListaDeComprovantes } from "@/features/comprovantes/components/ListaDeComprovantes";
@@ -129,20 +130,27 @@ export default function ComprovantesPage() {
       </div>
 
       <div className="flex flex-col gap-[20px]">
-        {/* O total logo abaixo do período, em cima das lojas: o mesmo lugar
-            do fechamento de caixa e das Saídas. */}
-        {dados && (
-          <ResumoDosComprovantes
-            rotulo={rotuloDoTotal(granularidade)}
-            totais={dados.totais}
-            onVerConferir={() => escolher({ situacao: "CONFERIR" })}
+        {/* Em cima do total, como o "1 loja ainda não lançou" do fechamento:
+            o que está em conferir ainda não soma nele. */}
+        {dados && dados.totais.conferir > 0 && (
+          <AvisoDeConferir
+            quantos={dados.totais.conferir}
+            onVer={escolhas.situacao === "CONFERIR" ? undefined : () => escolher({ situacao: "CONFERIR" })}
           />
         )}
 
-        {/* Lojas e situação no mesmo cartão dos Gráficos: no lugar do turno,
-            a situação, que é o recorte que esta tela tem. */}
-        <div className="cartao-caixa rounded-[12px] border border-caixa-border bg-caixa-surface p-[16px]">
-          <div className="flex flex-wrap gap-[8px]">
+        {/* O total logo abaixo do período: o mesmo lugar do fechamento de
+            caixa e das Saídas. */}
+        {dados && <ResumoDosComprovantes rotulo={rotuloDoTotal(granularidade)} totais={dados.totais} />}
+
+        <div>
+          <EnviarComprovante onLido={setAberto} />
+        </div>
+
+        {/* Filtros e lista num cartão só, como a tabela do fechamento: as
+            lojas e a situação são o cabeçalho do que vem embaixo. */}
+        <div className="cartao-caixa-grande overflow-hidden rounded-[12px] border border-caixa-border bg-caixa-surface">
+          <div className="flex flex-wrap gap-[8px] border-b border-caixa-border px-[16px] py-[14px] md:px-[24px]">
             <ChipDeLoja rotulo="Todas as lojas" ativo={escolhas.loja === ""} aoClicar={() => escolher({ loja: "" })} />
             {(lojas.data ?? []).map((loja) => (
               <ChipDeLoja
@@ -154,8 +162,7 @@ export default function ComprovantesPage() {
             ))}
             <ChipDeLoja rotulo="Sem loja" ativo={escolhas.loja === "sem"} aoClicar={() => escolher({ loja: "sem" })} />
           </div>
-
-          <div className="mt-[14px] flex flex-wrap items-center gap-[10px] border-t border-caixa-border pt-[14px]">
+          <div className="flex flex-wrap items-center gap-[10px] border-b border-caixa-border px-[16px] py-[14px] md:px-[24px]">
             <span className="text-[13px] font-medium text-caixa-muted">Situação</span>
             <div className="flex flex-wrap gap-[4px] rounded-[10px] bg-caixa-faixa p-[3px]">
               {SITUACOES.map(({ valor, rotulo }) => (
@@ -197,31 +204,27 @@ export default function ComprovantesPage() {
               )}
             </span>
           </div>
-        </div>
 
-        <div className="flex justify-end">
-          <EnviarComprovante onLido={setAberto} />
+          {comprovantes.isError ? (
+            <p className="px-[16px] py-[24px] text-[14px] text-red-700 md:px-[24px]">Não deu para carregar os comprovantes.</p>
+          ) : !dados ? (
+            <p className="px-[16px] py-[24px] text-[14px] text-caixa-muted md:px-[24px]">Carregando…</p>
+          ) : (
+            <>
+              <ListaDeComprovantes comprovantes={dados.results} onAbrir={setAberto} />
+              {(dados.previous || dados.next) && (
+                <div className="flex justify-center gap-[8px] border-t border-caixa-border px-[16px] py-[14px]">
+                  <button type="button" disabled={!dados.previous} onClick={() => setEscolhas((a) => ({ ...a, pagina: a.pagina - 1 }))} className={CLASSE_FILTRO}>
+                    Anteriores
+                  </button>
+                  <button type="button" disabled={!dados.next} onClick={() => setEscolhas((a) => ({ ...a, pagina: a.pagina + 1 }))} className={CLASSE_FILTRO}>
+                    Próximas
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
-
-        {comprovantes.isError ? (
-          <p className="text-[14px] text-red-700">Não deu para carregar os comprovantes.</p>
-        ) : !dados ? (
-          <p className="text-[14px] text-caixa-muted">Carregando…</p>
-        ) : (
-          <>
-            <ListaDeComprovantes comprovantes={dados.results} onAbrir={setAberto} />
-            {(dados.previous || dados.next) && (
-              <div className="flex justify-center gap-[8px]">
-                <button type="button" disabled={!dados.previous} onClick={() => setEscolhas((a) => ({ ...a, pagina: a.pagina - 1 }))} className={CLASSE_FILTRO}>
-                  Anteriores
-                </button>
-                <button type="button" disabled={!dados.next} onClick={() => setEscolhas((a) => ({ ...a, pagina: a.pagina + 1 }))} className={CLASSE_FILTRO}>
-                  Próximas
-                </button>
-              </div>
-            )}
-          </>
-        )}
       </div>
 
       {aberto && (
