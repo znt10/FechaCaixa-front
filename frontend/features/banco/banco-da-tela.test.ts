@@ -48,6 +48,7 @@ const transacao = (mudanca: Partial<TransacaoBancaria> = {}): TransacaoBancaria 
   categoria: null,
   par: null,
   classificada: false,
+  automatica: false,
   ...mudanca,
 });
 
@@ -163,6 +164,13 @@ describe("a linha da tabela", () => {
     expect(linha.par).toBe("Transferência com Loja B (Inter 999)");
   });
 
+  it("marca a entrada que virou venda sozinha", () => {
+    expect(linhaDaTabela(transacao({ valor: "35.00", automatica: true })).automatica).toBe(
+      "Entrou como venda sozinha",
+    );
+    expect(linhaDaTabela(transacao()).automatica).toBeNull();
+  });
+
   it("usa o apelido da conta quando há", () => {
     const linha = linhaDaTabela(
       transacao({ conta_bancaria: { ...CONTA_A, apelido: "Conta do aluguel" } }),
@@ -185,6 +193,7 @@ describe("o resultado da importação", () => {
         repetidas: 41,
         pareadas: 1,
         classificadas: 0,
+        vendas: 0,
         periodo_de: null,
         periodo_ate: null,
       }),
@@ -192,6 +201,25 @@ describe("o resultado da importação", () => {
       "2 movimentações novas",
       "41 já existiam e não entraram de novo",
       "1 transferência entre lojas achada",
+    ]);
+  });
+
+  it("diz quantas entradas viraram venda sozinhas", () => {
+    expect(
+      frasesDaImportacao({
+        arquivo: "picpay.csv",
+        novas: 40,
+        repetidas: 0,
+        pareadas: 0,
+        classificadas: 3,
+        vendas: 30,
+        periodo_de: null,
+        periodo_ate: null,
+      }),
+    ).toEqual([
+      "40 movimentações novas",
+      "3 classificadas pelo que você já tinha respondido",
+      "30 entradas marcadas como venda",
     ]);
   });
 

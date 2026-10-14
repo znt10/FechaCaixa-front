@@ -84,6 +84,8 @@ export type TransacaoBancaria = {
   /** A outra ponta de uma transferência entre lojas, achada pelo sistema. */
   par: { id: string; data: string; conta_bancaria: ContaDaTransacao } | null;
   classificada: boolean;
+  /** Entrada que a importação marcou como venda sozinha, sem regra nem gente. */
+  automatica: boolean;
 };
 
 export type PaginaDeTransacoes = {
@@ -137,6 +139,8 @@ export type ExtratoImportado = {
   repetidas: number;
   pareadas: number;
   classificadas: number;
+  /** Entradas que viraram venda sozinhas. */
+  vendas: number;
   periodo_de: string | null;
   periodo_ate: string | null;
 };

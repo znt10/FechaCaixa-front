@@ -95,6 +95,11 @@ export function TabelaDeTransacoes({
                           {linha.par}
                         </span>
                       )}
+                      {linha.automatica && (
+                        <span className="mt-[2px] block text-[13px] text-caixa-muted">
+                          {linha.automatica}
+                        </span>
+                      )}
                     </td>
                     <td className="py-[12px] pr-[12px] text-[14px] leading-[1.35] text-caixa-muted">
                       {linha.lugar}
