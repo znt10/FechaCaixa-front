@@ -11,7 +11,7 @@ import {
   montarFiltroDoExtrato,
   mostrarAbasDoBanco,
   opcoesDaLinha,
-  separarOsOfx,
+  separarOsExtratos,
   trocarDeFiltro,
   valorComSinal,
   valorDaClassificacao,
@@ -195,13 +195,15 @@ describe("o resultado da importação", () => {
     ]);
   });
 
-  it("separa o que não é OFX antes de enviar", () => {
-    const { ofx, descartados } = separarOsOfx([
+  it("separa o que não é OFX nem CSV antes de enviar", () => {
+    const { extratos, descartados } = separarOsExtratos([
       { name: "outubro.OFX" },
+      { name: "extrato-2026-09-14-2026-10-13.csv" },
       { name: "extrato.pdf" },
     ]);
-    expect(ofx.map((a) => a.name)).toEqual(["outubro.OFX"]);
-    expect(descartados[0].arquivo).toBe("extrato.pdf");
+    expect(extratos.map((a) => a.name)).toEqual(["outubro.OFX", "extrato-2026-09-14-2026-10-13.csv"]);
+    expect(descartados.map((d) => d.arquivo)).toEqual(["extrato.pdf"]);
+    expect(descartados[0].motivo).toContain("CSV do PicPay");
   });
 });
 

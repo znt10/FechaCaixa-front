@@ -7,7 +7,7 @@ import {
   frasesDaImportacao,
   nomeDaConta,
   periodoDaImportacao,
-  separarOsOfx,
+  separarOsExtratos,
 } from "../banco-da-tela";
 import { useContasBancarias, useImportarExtrato } from "../hooks/useBanco";
 import type { ExtratoImportado, ExtratoRecusado } from "../services/banco";
@@ -43,14 +43,14 @@ export function UploadDeExtrato() {
     setImportados([]);
     setRecusados([]);
 
-    const { ofx, descartados } = separarOsOfx(Array.from(lista));
-    if (ofx.length === 0) {
+    const { extratos, descartados } = separarOsExtratos(Array.from(lista));
+    if (extratos.length === 0) {
       setRecusados(descartados);
       return;
     }
 
     importar.mutate(
-      { contaBancaria: contaEscolhida, arquivos: ofx },
+      { contaBancaria: contaEscolhida, arquivos: extratos },
       {
         onSuccess: (resposta) => {
           setImportados(resposta.importados);
@@ -119,7 +119,7 @@ export function UploadDeExtrato() {
               ? "Lendo o extrato..."
               : semConta
                 ? "Escolha a conta acima primeiro"
-                : "Solte aqui o extrato em OFX"}
+                : "Solte aqui o extrato em OFX (ou o CSV do PicPay)"}
           </span>
           <span className="text-[14px] leading-[1.4] text-caixa-muted">
             Pode subir o mês inteiro de novo: o que já entrou não se repete.
@@ -129,7 +129,7 @@ export function UploadDeExtrato() {
         <input
           ref={campoRef}
           type="file"
-          accept=".ofx"
+          accept=".ofx,.csv"
           multiple
           hidden
           onChange={(evento) => {
