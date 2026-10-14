@@ -199,8 +199,8 @@ export default function PorLojaPage() {
       <div className="mb-[28px] grid gap-[12px] sm:grid-cols-2 lg:grid-cols-4">
         {(lojas.data ?? []).map((loja) => {
           const turnos = porLoja.get(loja.id) ?? [];
-          // `total` e a liquidez bruta: ele ja soma de volta a retirada e as
-          // despesas, porque as duas sairam da gaveta depois da venda.
+          // `total` vem do back: o recebido mais a retirada. A despesa fica
+          // fora, foi gasta — a mesma conta do painel e da planilha.
           const total = turnos.reduce((soma, f) => soma + Number(f.total ?? 0), 0);
           const ativa = loja.id === lojaAtiva;
 

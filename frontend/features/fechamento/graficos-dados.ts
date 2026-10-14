@@ -44,8 +44,8 @@ export type ResumoDaLoja = {
   /** O que a loja gastou no turno. Fora das fatias porque nao esta mais em
    *  caixa — dentro delas, seria dinheiro que a empresa nao tem. */
   despesas: number;
-  /** A liquidez bruta: quanto a loja movimentou. `emCaixa` + `despesas`, porque
-   *  a venda valeu, inclusive a parte dela que ja foi gasta. */
+  /** O total do caixa: o mesmo que `emCaixa`. A despesa fica fora, como no
+   *  total do back — foi gasta, e somar mostraria dinheiro que nao existe. */
   total: number;
   fatias: Fatia[];
 };
@@ -107,7 +107,7 @@ export const montarResumo = (
     lancamentos: doEscopo.length,
     emCaixa,
     despesas,
-    total: emCaixa + despesas,
+    total: emCaixa,
     // A porcentagem e sobre o que esta em caixa, que e o que a pizza desenha.
     // Sobre o total, as quatro fatias somariam menos de 100% e sobraria um
     // pedaco vazio que a legenda nao explica.

@@ -261,19 +261,18 @@ export default function GraficosPage() {
                 ))}
 
                 <div className="mt-[10px] flex flex-col gap-[6px] rounded-[10px] bg-caixa-detalhe px-[14px] py-[12px]">
-                  {/* As fatias desenham o que a empresa TEM: a retirada esta
-                      dentro do dinheiro, porque so mudou de mao. A despesa fica
-                      de fora — foi gasta — e por isso aparece na linha propria,
-                      somando para o total do periodo em vez de subtraindo. */}
-                  <Linha rotulo="Em caixa" valor={emReais(resumo.emCaixa)} />
-                  {resumo.despesas > 0 && (
-                    <Linha rotulo="Despesas" valor={emReais(resumo.despesas)} />
-                  )}
+                  {/* As fatias desenham o que a empresa TEM, e o total e isso:
+                      a retirada esta dentro do dinheiro, porque so mudou de
+                      mao. A despesa foi gasta e fica fora do total — aparece
+                      embaixo, anotada, como na planilha. */}
                   <Linha
                     rotulo="Total do período"
                     valor={emReais(resumo.total)}
                     forte
                   />
+                  {resumo.despesas > 0 && (
+                    <Linha rotulo="Despesas (fora do total)" valor={emReais(resumo.despesas)} />
+                  )}
                 </div>
               </dl>
             </div>

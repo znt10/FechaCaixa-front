@@ -46,8 +46,8 @@ export type FechamentoLido = {
   /** As formas de pagamento cruas. Nao e o que a loja vendeu: `dinheiro` e o
    *  que sobrou na gaveta, ja sem a retirada e as despesas. */
   recebido: string;
-  /** A liquidez bruta: quanto a loja movimentou. Soma retirada e despesa de
-   *  volta, porque as duas sairam da gaveta DEPOIS da venda. */
+  /** O total do caixa: o recebido mais a retirada, que o dono so levou para
+   *  guardar. A despesa fica fora — foi gasta (ate 2026-10-14 ela somava). */
   total: string;
   /** O que saiu da gaveta e ficou anotado: retirada + despesas + devolucao.
    *  Serve para a gerencia ler, nao para descontar de nada. */

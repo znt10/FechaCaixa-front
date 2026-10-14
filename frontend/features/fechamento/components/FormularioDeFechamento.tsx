@@ -54,6 +54,7 @@ import {
 } from "@/features/fechamento/hooks/useFechamento";
 import { ehDomingo, hojeISO } from "@/features/fechamento/painel-dados";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
+import { contaDoCaixa } from "@/features/fechamento/conta-do-caixa";
 import {
   montarRevisao,
   rotuloDoTurno,
@@ -386,15 +387,18 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     : 0;
   const retiradaEmCentavos = houveRetirada ? somaDasRetiradas(retiradas) : 0;
 
-  // Retirada e despesa VOLTAM para o total: `dinheiro` e o que sobrou na
-  // gaveta, e as duas sairam dali depois da venda — a venda valeu. A devolucao
-  // nao volta, porque cancelou a venda junto e ja se descontou sozinha.
-  const voltaParaOTotal = retiradaEmCentavos + despesasEmCentavos;
+  // A retirada volta para o total; a despesa e a devolucao nao. Ver
+  // contaDoCaixa — e a mesma conta que o back grava.
+  const conta = contaDoCaixa({
+    recebido: recebidoEmCentavos,
+    retirada: retiradaEmCentavos,
+    despesas: despesasEmCentavos,
+  });
   const devolucaoEmCentavos = houveDevolucao ? centavos(devolucaoValor) : 0;
 
-  const temVolta = voltaParaOTotal > 0;
-  const naGaveta = formatarMoeda(String(recebidoEmCentavos));
-  const totalDoCaixa = formatarMoeda(String(recebidoEmCentavos + voltaParaOTotal));
+  const temVolta = conta.mostraAConta;
+  const naGaveta = formatarMoeda(String(conta.naGaveta));
+  const totalDoCaixa = formatarMoeda(String(conta.total));
 
   const limpar = () => {
     setPix("");
@@ -1260,18 +1264,6 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                       </span>
                     </div>
                   )}
-                  {despesasEmCentavos > 0 && (
-                    <div className="flex items-center justify-between text-[14px]">
-                      <span>
-                        {despesas.filter((l) => Number(l.valor || "0") > 0).length > 1
-                          ? "Despesas"
-                          : "Despesa"}
-                      </span>
-                      <span className="font-medium">
-                        + R$ {formatarMoeda(String(despesasEmCentavos))}
-                      </span>
-                    </div>
-                  )}
                   <div className="h-px w-full bg-caixa-accent/20" />
                 </>
               )}
@@ -1283,6 +1275,18 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                   R$ {totalDoCaixa}
                 </span>
               </div>
+
+              {/* A despesa fica fora da soma, como a devolucao, e pelo mesmo
+                  motivo leva a frase: sem ela, parece que o total esqueceu. */}
+              {despesasEmCentavos > 0 && (
+                <p className="text-[13px] leading-[1.45] text-caixa-accent/80">
+                  {despesas.filter((l) => Number(l.valor || "0") > 0).length > 1
+                    ? "Despesas"
+                    : "Despesa"}{" "}
+                  R$ {formatarMoeda(String(despesasEmCentavos))} — foi gasta,
+                  fica anotada e não entra no total.
+                </p>
+              )}
 
               {/* Fora da soma, e com o motivo escrito: sem a frase ela lê como
                   esquecimento — e "por que a devolução não desceu o total?" e
