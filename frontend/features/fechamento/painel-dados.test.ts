@@ -15,7 +15,9 @@ import type { FechamentoLido, LojaDoPainel } from "./services/painel";
  *   despesa  -> foi gasta. Esse dinheiro nao existe mais.
  *
  * Por isso a retirada volta para a coluna de dinheiro e a despesa tem coluna
- * propria. As duas somam no total, porque a venda valeu nos dois casos.
+ * propria. So a retirada soma no total: a despesa fica anotada, fora dele,
+ * porque e dinheiro que a loja nao tem mais. Ate 2026-10-14 ela somava; o
+ * total do back (FechamentoCaixa.total) mudou junto, e os dois tem que bater.
  */
 const CENTRO: LojaDoPainel = { id: "l-centro", nome_loja: "Loja Centro", ativo: true };
 
@@ -97,8 +99,9 @@ describe("as colunas de dinheiro do painel", () => {
     expect(totais.despesas).toBe(100);
   });
 
-  it("as cinco colunas fecham o total na horizontal", () => {
-    // E o que a dona confere: arrastar a linha tem que dar a coluna TOTAL.
+  it("as quatro colunas de dinheiro fecham o total, e a despesa fica fora", () => {
+    // E o que a dona confere: arrastar a linha ate o TOTAL tem que dar ele.
+    // A despesa vem depois, anotada — como na planilha.
     const totais = painel([
       fechamento({
         dinheiro: "300.00",
@@ -111,15 +114,11 @@ describe("as colunas de dinheiro do painel", () => {
       }),
     ]);
 
-    const soma =
-      totais.dinheiro +
-      totais.pix +
-      totais.cartao +
-      totais.linkPagamento +
-      totais.despesas;
+    const soma = totais.dinheiro + totais.pix + totais.cartao + totais.linkPagamento;
 
     expect(soma).toBe(totais.total);
-    expect(totais.total).toBe(1160);
+    expect(totais.total).toBe(1100);
+    expect(totais.despesas).toBe(60);
   });
 
   it("a devolucao nao entra em coluna nenhuma", () => {

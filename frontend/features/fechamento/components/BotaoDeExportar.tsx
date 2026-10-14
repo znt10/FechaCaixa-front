@@ -18,26 +18,44 @@ import {
   rotuloDoDia,
   rotuloDoMes,
 } from "@/features/fechamento/painel-dados";
+import {
+  PERIODO_VAZIO,
+  escolherDia,
+  rotuloDoPeriodoLivre,
+  type PeriodoLivre,
+} from "@/features/fechamento/periodo-livre";
+import {
+  ABAS_DA_PLANILHA,
+  type ChaveDaAba,
+} from "@/features/fechamento/abas-da-planilha";
 import { baixarPlanilhaDoPeriodo } from "@/features/fechamento/services/painel";
 
-const MODOS: { valor: ModoDoPeriodo; rotulo: string }[] = [
+/** Os modos da barra de periodo, e mais um que so a planilha tem: o periodo
+ *  livre, escolhido em dois cliques no calendario. */
+type ModoDaExportacao = ModoDoPeriodo | "PERIODO";
+
+const MODOS: { valor: ModoDaExportacao; rotulo: string }[] = [
   { valor: "DIA", rotulo: "Dia" },
   { valor: "SEMANA", rotulo: "Semana" },
   { valor: "MES", rotulo: "Mês" },
+  { valor: "PERIODO", rotulo: "Período" },
 ];
 
-/** As quatro abas do arquivo, na ordem em que aparecem nele. Espelham
- *  app/api/v1/views/planilha.py. */
-const ABAS = ["Entradas", "Saídas", "Consumo por pessoa", "Consumo"];
+const TODAS_AS_ABAS = (): Set<ChaveDaAba> =>
+  new Set(ABAS_DA_PLANILHA.map((aba) => aba.chave));
 
 /**
  * Leva um periodo para uma planilha.
  *
  * A dona fecha o mes no Excel — o desconto em folha e a conversa com o contador
- * acontecem la. O arquivo sai com quatro abas (Entradas, Saidas, Consumo por
- * pessoa e Consumo) porque as tres coisas tem grao diferente: numa tabela so,
+ * acontecem la. O arquivo sai em abas (Entradas, Saidas, Consumo por pessoa,
+ * Consumo e Desperdicio) porque as coisas tem grao diferente: numa tabela so,
  * arrastar a soma pela coluna de valor misturaria o caixa da loja com o lanche
  * de quem trabalha nela.
+ *
+ * Nem todo arquivo vai para o mesmo lugar: no dia 25 o consumo, do dia 26 do
+ * mes anterior ate ali, vai sozinho para o financeiro. Dai as abas se marcarem
+ * e o modo Periodo, que escolhe o primeiro e o ultimo dia no calendario.
  *
  * Mora na topbar, e nao na toolbar das telas. O arquivo e o mesmo nas quatro
  * telas do painel: colado na navegacao de periodo ele prometia exportar "o que
@@ -48,9 +66,11 @@ const ABAS = ["Entradas", "Saídas", "Consumo por pessoa", "Consumo"];
  */
 export function BotaoDeExportar({ className = "" }: { className?: string }) {
   const [aberto, setAberto] = useState(false);
-  const [modo, setModo] = useState<ModoDoPeriodo>("MES");
+  const [modo, setModo] = useState<ModoDaExportacao>("MES");
   const [dia, setDia] = useState(hojeISO);
   const [mes, setMes] = useState(() => mesDe(hojeISO()));
+  const [periodoLivre, setPeriodoLivre] = useState<PeriodoLivre>(PERIODO_VAZIO);
+  const [abas, setAbas] = useState(TODAS_AS_ABAS);
   const [baixando, setBaixando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -84,29 +104,51 @@ export function BotaoDeExportar({ className = "" }: { className?: string }) {
     setModo("MES");
     setDia(hojeISO());
     setMes(mesDe(hojeISO()));
+    setPeriodoLivre(PERIODO_VAZIO);
+    // As abas tambem voltam todas: desmarcadas da vez passada, elas sumiriam
+    // do fechamento do mes sem ninguem perceber que faltava aba no arquivo.
+    setAbas(TODAS_AS_ABAS());
     setErro(null);
     setAberto(true);
   };
 
-  const { de, ate } =
+  // Nulo so no periodo livre pela metade: ainda nao ha o que baixar.
+  const intervalo =
     modo === "DIA"
       ? { de: dia, ate: dia }
       : modo === "SEMANA"
         ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
-        : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
+        : modo === "MES"
+          ? { de: inicioDoMes(mes), ate: fimDoMes(mes) }
+          : periodoLivre.de && periodoLivre.ate
+            ? { de: periodoLivre.de, ate: periodoLivre.ate }
+            : null;
 
   const rotuloDoPeriodo =
     modo === "DIA"
       ? rotuloDoDia(dia)
       : modo === "SEMANA"
         ? rotuloDaSemana(dia)
-        : rotuloDoMes(mes);
+        : modo === "MES"
+          ? rotuloDoMes(mes)
+          : rotuloDoPeriodoLivre(periodoLivre);
+
+  const pronto = intervalo !== null && abas.size > 0;
+
+  const alternarAba = (chave: ChaveDaAba) =>
+    setAbas((atuais) => {
+      const proximas = new Set(atuais);
+      if (proximas.has(chave)) proximas.delete(chave);
+      else proximas.add(chave);
+      return proximas;
+    });
 
   const exportar = async () => {
+    if (!intervalo || abas.size === 0) return;
     setBaixando(true);
     setErro(null);
     try {
-      await baixarPlanilhaDoPeriodo(de, ate);
+      await baixarPlanilhaDoPeriodo(intervalo.de, intervalo.ate, abas);
       setAberto(false);
     } catch (falha) {
       setErro(
@@ -174,6 +216,15 @@ export function BotaoDeExportar({ className = "" }: { className?: string }) {
               semana que comeca na segunda. */}
           {modo === "MES" ? (
             <CalendarioDeMeses mesISO={mes} aoEscolher={setMes} />
+          ) : modo === "PERIODO" ? (
+            <CalendarioDeDias
+              diaISO={periodoLivre.de ?? dia}
+              porSemana={false}
+              periodo={periodoLivre}
+              aoEscolher={(clicado) =>
+                setPeriodoLivre((atual) => escolherDia(atual, clicado))
+              }
+            />
           ) : (
             <CalendarioDeDias
               diaISO={dia}
@@ -182,11 +233,36 @@ export function BotaoDeExportar({ className = "" }: { className?: string }) {
             />
           )}
 
+          {/* Caixinhas, e nao as abas do rodape abaixo clicaveis: aba que liga
+              e desliga nao parece clicavel para quem nunca viu, e quem marca
+              aqui e a dona, uma vez por mes. */}
+          <fieldset className="mt-[14px]">
+            <legend className="text-[11px] font-semibold uppercase tracking-[0.5px] text-caixa-muted">
+              Abas do arquivo
+            </legend>
+            <div className="mt-[6px] grid grid-cols-2 gap-x-[8px] gap-y-[2px]">
+              {ABAS_DA_PLANILHA.map(({ chave, rotulo }) => (
+                <label
+                  key={chave}
+                  className="flex cursor-pointer items-center gap-[8px] rounded-[8px] px-[6px] py-[6px] text-[13px] leading-[1.3] text-caixa-ink hover:bg-caixa-faixa"
+                >
+                  <input
+                    type="checkbox"
+                    checked={abas.has(chave)}
+                    onChange={() => alternarAba(chave)}
+                    className="h-[16px] w-[16px] shrink-0 accent-caixa-accent"
+                  />
+                  {rotulo}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
           {/* O arquivo antes de virar arquivo: o periodo por extenso, e as abas
-              desenhadas no rodape do bloco, no lugar onde a planilha as poe.
-              O periodo escrito e a ultima chance de ver que o mes escolhido nao
-              e o que se queria; as abas respondem o que ninguem respondia — o
-              que vem dentro. */}
+              marcadas desenhadas no rodape do bloco, no lugar onde a planilha
+              as poe. O periodo escrito e a ultima chance de ver que o mes
+              escolhido nao e o que se queria; as abas respondem o que ninguem
+              respondia — o que vem dentro. */}
           <div className="mt-[14px] overflow-hidden rounded-[10px] bg-caixa-faixa px-[12px] pt-[10px]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.5px] text-caixa-muted">
               Vai baixar
@@ -195,19 +271,27 @@ export function BotaoDeExportar({ className = "" }: { className?: string }) {
               {rotuloDoPeriodo}
             </p>
 
-            <ul
-              aria-label="Abas da planilha"
-              className="mt-[10px] flex flex-wrap gap-[3px]"
-            >
-              {ABAS.map((aba) => (
-                <li
-                  key={aba}
-                  className="shrink-0 whitespace-nowrap rounded-t-[6px] bg-caixa-surface px-[7px] py-[5px] text-[11px] leading-none text-caixa-muted"
-                >
-                  {aba}
-                </li>
-              ))}
-            </ul>
+            {abas.size > 0 ? (
+              <ul
+                aria-label="Abas da planilha"
+                className="mt-[10px] flex flex-wrap gap-[3px]"
+              >
+                {ABAS_DA_PLANILHA.filter(({ chave }) => abas.has(chave)).map(
+                  ({ chave, rotulo }) => (
+                    <li
+                      key={chave}
+                      className="shrink-0 whitespace-nowrap rounded-t-[6px] bg-caixa-surface px-[7px] py-[5px] text-[11px] leading-none text-caixa-muted"
+                    >
+                      {rotulo}
+                    </li>
+                  ),
+                )}
+              </ul>
+            ) : (
+              <p className="mt-[6px] pb-[10px] text-[12px] font-medium text-caixa-alerta">
+                Marque ao menos uma aba.
+              </p>
+            )}
           </div>
 
           {/* A seta esta aqui, e nao no gatilho: e clicando aqui que o arquivo
@@ -216,7 +300,7 @@ export function BotaoDeExportar({ className = "" }: { className?: string }) {
           <button
             type="button"
             onClick={exportar}
-            disabled={baixando}
+            disabled={baixando || !pronto}
             className="mt-[12px] flex w-full items-center justify-center gap-[8px] rounded-[10px] bg-caixa-accent px-[16px] py-[11px] text-[14px] font-semibold text-white transition hover:brightness-110 disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caixa-accent"
           >
             {baixando ? (

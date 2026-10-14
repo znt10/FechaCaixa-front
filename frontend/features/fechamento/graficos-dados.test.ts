@@ -96,9 +96,9 @@ describe("a pizza das formas de pagamento", () => {
     expect(fatia(resumo, "dinheiro").valor).toBe(300);
     expect(resumo.emCaixa).toBe(300);
     expect(resumo.despesas).toBe(100);
-    // O total continua sendo a liquidez bruta: a venda valeu, inclusive a
-    // parte dela que ja foi gasta.
-    expect(resumo.total).toBe(400);
+    // O total e o dinheiro que existe: a despesa foi gasta e fica fora dele,
+    // igual ao total do back. Ate 2026-10-14 ela somava.
+    expect(resumo.total).toBe(300);
   });
 
   it("a proporcao entre as fatias fica honesta", () => {
@@ -161,8 +161,8 @@ describe("a pizza das formas de pagamento", () => {
     // 100 na gaveta + 300 que o dono guardou: o dinheiro existe.
     expect(fatia(resumo, "dinheiro").valor).toBe(400);
     expect(resumo.emCaixa).toBe(400);
-    // Os 60 do gas nao existem mais, mas a venda deles valeu.
+    // Os 60 do gas nao existem mais: anotados, fora do total.
     expect(resumo.despesas).toBe(60);
-    expect(resumo.total).toBe(460);
+    expect(resumo.total).toBe(400);
   });
 });

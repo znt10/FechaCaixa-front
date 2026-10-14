@@ -20,7 +20,18 @@ describe("o rotulo do turno", () => {
     expect(rotuloDoPeriodo("MANHA")).toBe("Manhã");
     expect(rotuloDoPeriodo("TARDE")).toBe("Tarde");
     expect(rotuloDoPeriodo("DOMINGO")).toBe("Domingo");
-    expect(rotuloDoPeriodo("DIA")).toBe("Dia");
+  });
+
+  it("o turno do dia inteiro e o feriado, na empresa de manha e tarde", () => {
+    // E so no feriado que ela fecha uma vez no dia. Escrito "Dia", o filtro
+    // dos graficos mostrava Manha, Tarde, Domingo e Dia, e ninguem sabia de
+    // que turno o "Dia" era.
+    expect(rotuloDoPeriodo("DIA", false)).toBe("Feriado");
+  });
+
+  it("na empresa de um fechamento por dia, o turno continua sendo o dia", () => {
+    // Ali o dia inteiro e o caixa de todo dia, e nao feriado.
+    expect(rotuloDoPeriodo("DIA", true)).toBe("Dia");
   });
 
   it("nao depende da data para saber que e domingo", () => {

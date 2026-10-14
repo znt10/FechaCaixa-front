@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useModuloDeNotas } from "@/features/admin/hooks/useModuloDeNotas";
 import { useAbasDoBanco } from "@/features/banco/hooks/useBanco";
+import { useAreaDeComprovantes } from "@/features/comprovantes/hooks/useComprovantes";
 import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 import { BotaoDeExportar } from "@/features/fechamento/components/BotaoDeExportar";
 import {
@@ -54,6 +55,7 @@ export function TopbarPainel() {
   const moduloDeNotas = useModuloDeNotas();
   const abasDoBanco = useAbasDoBanco();
   const plataforma = mostrarPlataforma(usuarioDaSessao.data);
+  const areaDeComprovantes = useAreaDeComprovantes();
   const catalogoAtivo = useCatalogoAtivo();
 
   // Derivada da rota aberta, e nao guardada: a URL nao tem como discordar de
@@ -64,6 +66,7 @@ export function TopbarPainel() {
     notas: moduloDeNotas.ativo,
     banco: abasDoBanco.ativo,
     plataforma,
+    comprovantes: areaDeComprovantes.ativo,
   });
 
   return (
@@ -123,6 +126,7 @@ export function TopbarPainel() {
               banco: abasDoBanco.ativo,
               catalogo: catalogoAtivo,
               plataforma,
+              comprovantes: areaDeComprovantes.ativo,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
               return (

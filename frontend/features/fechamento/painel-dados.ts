@@ -25,10 +25,10 @@ export type LinhaPainel = {
    *  o que sobrou na gaveta. A despesa fica fora — ver montarPainel. */
   dinheiro: number;
   linkPagamento: number;
-  /** O que a loja gastou. Coluna propria porque esse dinheiro nao esta mais em
-   *  caixa, mas continua somando no total: a venda valeu. */
+  /** O que a loja gastou. Coluna propria, depois do total e fora dele: esse
+   *  dinheiro nao existe mais. */
   despesas: number;
-  /** A liquidez bruta: quanto a loja movimentou. */
+  /** O total do caixa: as quatro formas, com a retirada dentro do dinheiro. */
   total: number;
   status: StatusLinha;
   /** Os lancamentos crus, para o detalhe que abre ao clicar na linha. */
@@ -173,10 +173,11 @@ export const montarResumo = (
       dinheiro,
       linkPagamento,
       despesas,
-      // As cinco colunas fecham na horizontal: nada fica de fora e nada entra
-      // duas vezes. A despesa soma porque a venda valeu — o dinheiro e que ja
-      // nao esta mais la.
-      total: pix + cartao + dinheiro + linkPagamento + despesas,
+      // As quatro colunas de dinheiro fecham o total na horizontal. A despesa
+      // fica fora: foi gasta, e no total faria o caixa parecer maior do que o
+      // dinheiro que existe. Mesma conta do back (FechamentoCaixa.total), que
+      // a planilha e o Por loja usam — ate 2026-10-14 ela somava.
+      total: pix + cartao + dinheiro + linkPagamento,
       lancamentos,
       status: statusDaLoja(lancamentos, visao),
     };
@@ -219,21 +220,25 @@ export const ehDomingo = (dataISO: string) => {
  * do dia inteiro.
  *
  * Nao precisa da data: o turno ja diz qual e. Domingo tem valor proprio, e
- * "DIA" e o expediente inteiro de quem fecha o caixa uma vez por dia — e do
- * feriado de quem fecha duas.
+ * "DIA" e o expediente inteiro — o feriado de quem fecha o caixa duas vezes
+ * por dia, e o caixa de todo dia de quem fecha uma. Por isso o segundo
+ * argumento: e a empresa, e nao a data, que diz qual dos dois. Escrito "Dia"
+ * na empresa de manha e tarde, ninguem sabia de que turno se tratava.
  */
-export const rotuloDoPeriodo = (periodo: Periodo) =>
+export const rotuloDoPeriodo = (periodo: Periodo, umFechamentoPorDia = false) =>
   periodo === "MANHA"
     ? "Manhã"
     : periodo === "TARDE"
       ? "Tarde"
       : periodo === "DOMINGO"
         ? "Domingo"
-        : "Dia";
+        : umFechamentoPorDia
+          ? "Dia"
+          : "Feriado";
 
 // A ordem em que a loja vive o dia. Domingo e dia inteiro fecham a lista
 // porque nao convivem com os outros no mesmo dia: quando aparecem, e sozinhos.
-const ORDEM_DO_DIA: Periodo[] = ["MANHA", "TARDE", "DOMINGO", "DIA"];
+export const ORDEM_DO_DIA: Periodo[] = ["MANHA", "TARDE", "DOMINGO", "DIA"];
 
 /** Os turnos que cobrem o expediente inteiro — quando um deles aparece, e
  *  sozinho no dia. */
@@ -375,9 +380,14 @@ export const fimDoMes = (mesISO: string) => {
 };
 
 /** "24 a 30 de agosto de 2026", ou com os dois meses quando a semana vira o mes. */
-export const rotuloDaSemana = (dataISO: string) => {
-  const de = inicioDaSemana(dataISO);
-  const ate = fimDaSemana(dataISO);
+export const rotuloDaSemana = (dataISO: string) =>
+  rotuloDoIntervalo(inicioDaSemana(dataISO), fimDaSemana(dataISO));
+
+/** "4 a 22 de outubro de 2026", com os dois meses quando o intervalo vira o
+ *  mes — e o rotulo do dia quando o intervalo e um dia so, porque "13 a 13 de
+ *  outubro" parece erro de digitacao. */
+export const rotuloDoIntervalo = (de: string, ate: string) => {
+  if (de === ate) return rotuloDoDia(de);
   const dia = (iso: string) => Number(iso.split("-")[2]);
   const mesEAno = (iso: string) => {
     const [ano, mes] = iso.split("-").map(Number);

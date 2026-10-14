@@ -19,13 +19,14 @@ import {
   turnosDoFiltro,
   type FiltroTurno,
 } from "@/features/fechamento/painel-dados";
-import { useMinhaEmpresa } from "@/features/admin/hooks/useEmpresa";
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
 import { montarResumo, type Fatia } from "@/features/fechamento/graficos-dados";
 import {
   useFechamentosDoIntervalo,
   useLojasDoPainel,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
+import { ChipDeLoja } from "@/features/fechamento/components/ChipDeLoja";
 
 type Granularidade = "DIA" | "SEMANA" | "MES";
 
@@ -50,7 +51,7 @@ export default function GraficosPage() {
         ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
         : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
-  const empresa = useMinhaEmpresa();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
   const lojas = useLojasDoPainel();
   const fechamentos = useFechamentosDoIntervalo(de, ate);
 
@@ -63,7 +64,7 @@ export default function GraficosPage() {
     lancamentos,
     de,
     ate,
-    empresa.data?.fechamentos_por_dia === 1,
+    umFechamentoPorDia,
   );
 
   // Derivado, e nao guardado: trocar de periodo com "Manha" ligado deixaria o
@@ -185,7 +186,7 @@ export default function GraficosPage() {
               { valor: "TODOS" as FiltroTurno, rotulo: "Todos os turnos" },
               ...turnosDaTela.map((periodo) => ({
                 valor: periodo as FiltroTurno,
-                rotulo: rotuloDoPeriodo(periodo),
+                rotulo: rotuloDoPeriodo(periodo, umFechamentoPorDia),
               })),
             ].map(({ valor, rotulo }) => (
               <button
@@ -217,7 +218,8 @@ export default function GraficosPage() {
               {resumo.lojaNome}
             </h2>
             <span className="text-[13px] text-caixa-muted">
-              {turnoEfetivo !== "TODOS" && `${rotuloDoPeriodo(turnoEfetivo)} · `}
+              {turnoEfetivo !== "TODOS" &&
+                `${rotuloDoPeriodo(turnoEfetivo, umFechamentoPorDia)} · `}
               {resumo.lancamentos === 1
                 ? "1 lançamento no período"
                 : `${resumo.lancamentos} lançamentos no período`}
@@ -259,19 +261,18 @@ export default function GraficosPage() {
                 ))}
 
                 <div className="mt-[10px] flex flex-col gap-[6px] rounded-[10px] bg-caixa-detalhe px-[14px] py-[12px]">
-                  {/* As fatias desenham o que a empresa TEM: a retirada esta
-                      dentro do dinheiro, porque so mudou de mao. A despesa fica
-                      de fora — foi gasta — e por isso aparece na linha propria,
-                      somando para o total do periodo em vez de subtraindo. */}
-                  <Linha rotulo="Em caixa" valor={emReais(resumo.emCaixa)} />
-                  {resumo.despesas > 0 && (
-                    <Linha rotulo="Despesas" valor={emReais(resumo.despesas)} />
-                  )}
+                  {/* As fatias desenham o que a empresa TEM, e o total e isso:
+                      a retirada esta dentro do dinheiro, porque so mudou de
+                      mao. A despesa foi gasta e fica fora do total — aparece
+                      embaixo, anotada, como na planilha. */}
                   <Linha
                     rotulo="Total do período"
                     valor={emReais(resumo.total)}
                     forte
                   />
+                  {resumo.despesas > 0 && (
+                    <Linha rotulo="Despesas (fora do total)" valor={emReais(resumo.despesas)} />
+                  )}
                 </div>
               </dl>
             </div>
@@ -279,31 +280,6 @@ export default function GraficosPage() {
         </section>
       )}
     </main>
-  );
-}
-
-function ChipDeLoja({
-  rotulo,
-  ativo,
-  aoClicar,
-}: {
-  rotulo: string;
-  ativo: boolean;
-  aoClicar: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={ativo}
-      onClick={aoClicar}
-      className={`rounded-[8px] border px-[14px] py-[8px] text-[14px] font-medium transition ${
-        ativo
-          ? "border-caixa-accent bg-caixa-accent-soft text-caixa-accent"
-          : "border-caixa-border bg-caixa-surface text-caixa-muted hover:text-caixa-ink"
-      }`}
-    >
-      {rotulo}
-    </button>
   );
 }
 

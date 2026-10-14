@@ -26,7 +26,7 @@ import {
   type Visao,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
-import { useMinhaEmpresa } from "@/features/admin/hooks/useEmpresa";
+import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
 import type { FechamentoLido } from "@/features/fechamento/services/painel";
 
 const CORES_STATUS: Record<StatusLinha["tipo"], string> = {
@@ -56,7 +56,7 @@ export default function PainelFechamentoPage() {
   const [mes, setMes] = useState(() => mesDe(hojeISO()));
 
   const referencia = visao === "DIARIO" ? dia : mes;
-  const empresa = useMinhaEmpresa();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
   const lojas = useLojasDoPainel();
   const fechamentos = useFechamentosDoPainel(visao, referencia);
 
@@ -73,7 +73,7 @@ export default function PainelFechamentoPage() {
     lancamentos,
     de,
     ate,
-    empresa.data?.fechamentos_por_dia === 1,
+    umFechamentoPorDia,
   );
 
   // Derivado em vez de guardado no estado: sair de uma quarta com "Manha"
@@ -269,10 +269,10 @@ export default function PainelFechamentoPage() {
         </div>
       </section>
 
-      {/* Os cinco somam o total, na tela e na tabela. A retirada nao tem tile
-          proprio: ela sai do dinheiro e continua sendo dinheiro da empresa, so
-          na mao do dono — separa-la contaria a mesma venda duas vezes. A
-          despesa tem, porque esse dinheiro nao esta mais em caixa. */}
+      {/* Os quatro primeiros somam o total, na tela e na tabela. A retirada
+          nao tem tile proprio: ela sai do dinheiro e continua sendo dinheiro
+          da empresa, so na mao do dono — separa-la contaria a mesma venda duas
+          vezes. A despesa tem, mas fica fora do total: foi gasta. */}
       <div className="mb-[20px] grid grid-cols-2 gap-[16px] md:grid-cols-3 xl:grid-cols-5">
         {/* Dinheiro na frente: e o unico que passa pela gaveta, e o unico que
             some sem deixar rastro. O resto a maquininha e o banco conferem. */}
@@ -292,7 +292,7 @@ export default function PainelFechamentoPage() {
             { valor: "TODOS" as FiltroTurno, rotulo: "Todos os turnos" },
             ...turnosDaTela.map((periodo) => ({
               valor: periodo as FiltroTurno,
-              rotulo: rotuloDoPeriodo(periodo),
+              rotulo: rotuloDoPeriodo(periodo, umFechamentoPorDia),
             })),
           ].map(({ valor, rotulo }) => (
             <button
@@ -357,8 +357,8 @@ export default function PainelFechamentoPage() {
             <col className="w-[130px]" />
             <col className="w-[130px]" />
             <col className="w-[150px]" />
-            <col className="w-[130px]" />
             <col className="w-[150px]" />
+            <col className="w-[130px]" />
             <col className="w-[230px]" />
           </colgroup>
           <thead>
@@ -371,8 +371,9 @@ export default function PainelFechamentoPage() {
               <th className="text-right font-semibold">PIX</th>
               <th className="text-right font-semibold">CARTÃO</th>
               <th className="text-right font-semibold">LINK</th>
-              <th className="text-right font-semibold">DESPESAS</th>
               <th className="text-right font-semibold">TOTAL</th>
+              {/* Depois do TOTAL, como na planilha: anotada, fora da soma. */}
+              <th className="text-right font-semibold">DESPESAS</th>
               <th className="pl-[24px] pr-[24px] font-semibold">STATUS</th>
             </tr>
           </thead>
@@ -419,11 +420,11 @@ export default function PainelFechamentoPage() {
                 <td className="text-right text-[15px] tabular-nums">
                   {emReais(resumo.totais.linkPagamento)}
                 </td>
-                <td className="text-right text-[15px] tabular-nums">
-                  {emReais(resumo.totais.despesas)}
-                </td>
                 <td className="text-right text-[18px] font-bold tabular-nums">
                   R$ {emReais(resumo.totais.total)}
+                </td>
+                <td className="text-right text-[15px] tabular-nums">
+                  {emReais(resumo.totais.despesas)}
                 </td>
                 <td className="pr-[24px]" />
               </tr>
@@ -523,10 +524,10 @@ function Linha({
       <td className="text-right text-[15px] tabular-nums">{celula(linha.pix)}</td>
       <td className="text-right text-[15px] tabular-nums">{celula(linha.cartao)}</td>
       <td className="text-right text-[15px] tabular-nums">{celula(linha.linkPagamento)}</td>
-      <td className="text-right text-[15px] tabular-nums">{celula(linha.despesas)}</td>
       <td className="text-right text-[15px] font-medium tabular-nums">
         {vazia ? "—" : `R$ ${emReais(linha.total)}`}
       </td>
+      <td className="text-right text-[15px] tabular-nums">{celula(linha.despesas)}</td>
       <td className="pl-[24px] pr-[24px]">
         <span
           className={`inline-flex h-[29px] items-center gap-[7px] whitespace-nowrap rounded-full pl-[11px] pr-[12px] text-[12px] font-medium ${
@@ -563,6 +564,7 @@ function Linha({
  *  cobra de gente diferente. */
 function Detalhe({ lancamento }: { lancamento: FechamentoLido }) {
   const conferir = useConferirFechamento();
+  const umFechamentoPorDia = useUmFechamentoPorDia();
 
   const hora = new Date(lancamento.created_at).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
@@ -591,7 +593,7 @@ function Detalhe({ lancamento }: { lancamento: FechamentoLido }) {
       >
         <div className="flex flex-wrap items-center gap-[10px]">
           <span className="rounded-[6px] bg-caixa-ink px-[10px] py-[4px] text-[11px] font-bold uppercase tracking-[0.6px] text-white">
-            {rotuloDoPeriodo(lancamento.periodo)}
+            {rotuloDoPeriodo(lancamento.periodo, umFechamentoPorDia)}
           </span>
           <span className="text-[14px] font-semibold text-caixa-ink">
             {lancamento.nome_funcionario}

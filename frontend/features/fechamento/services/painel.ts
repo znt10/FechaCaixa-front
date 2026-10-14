@@ -1,4 +1,8 @@
 import { apiV1 } from "@/shared/services/api";
+import {
+  enderecoDaPlanilha,
+  type ChaveDaAba,
+} from "@/features/fechamento/abas-da-planilha";
 import type { DespesaLancada, Periodo, RetiradaLancada } from "./fechamentos";
 
 // ======================================================
@@ -42,8 +46,8 @@ export type FechamentoLido = {
   /** As formas de pagamento cruas. Nao e o que a loja vendeu: `dinheiro` e o
    *  que sobrou na gaveta, ja sem a retirada e as despesas. */
   recebido: string;
-  /** A liquidez bruta: quanto a loja movimentou. Soma retirada e despesa de
-   *  volta, porque as duas sairam da gaveta DEPOIS da venda. */
+  /** O total do caixa: o recebido mais a retirada, que o dono so levou para
+   *  guardar. A despesa fica fora — foi gasta (ate 2026-10-14 ela somava). */
   total: string;
   /** O que saiu da gaveta e ficou anotado: retirada + despesas + devolucao.
    *  Serve para a gerencia ler, nao para descontar de nada. */
@@ -86,15 +90,20 @@ export type FechamentoLido = {
 };
 
 /**
- * A planilha do periodo: baixa o .xlsx e devolve o nome do arquivo.
+ * A planilha do periodo, com as abas marcadas: baixa o .xlsx e devolve o nome
+ * do arquivo.
  *
  * Passa pelo `apiV1` em vez de ser um link direto porque o token pode ter
  * expirado — um link comum devolveria um JSON de erro no lugar do arquivo,
  * sem chance de renovar. O nome vem do servidor (empresa e periodo), e nao
  * daqui: e la que se sabe de qual empresa e o login.
  */
-export const baixarPlanilhaDoPeriodo = async (de: string, ate: string) => {
-  const res = await apiV1(`/planilha/?de=${de}&ate=${ate}`);
+export const baixarPlanilhaDoPeriodo = async (
+  de: string,
+  ate: string,
+  abas: ReadonlySet<ChaveDaAba>,
+) => {
+  const res = await apiV1(enderecoDaPlanilha(de, ate, abas));
   const arquivo = await res.blob();
 
   const cabecalho = res.headers.get("Content-Disposition") ?? "";
@@ -190,11 +199,13 @@ export const getQuemConsomeDoPainel = async (): Promise<ResponsavelDoPainel[]> =
 /**
  * O que a gerencia pode corrigir num turno ja lancado.
  *
- * `loja`, `data` e `periodo` ficam de fora de proposito: mudar qualquer um
- * dos tres nao e corrigir um lancamento, e move-lo para outro lugar do painel
- * — se a loja errou o turno, o certo e apagar e lancar de novo.
+ * `loja` e `data` ficam de fora de proposito: mudar um dos dois nao e corrigir
+ * um lancamento, e move-lo para outro lugar do painel. O turno entra: quem
+ * fecha a tarde as vezes escolhe "Manha", e cancelar e relancar jogava fora o
+ * caixa certo junto. O servidor so aceita um turno que existe naquele dia.
  */
 export type CamposEditaveis = Partial<{
+  periodo: Periodo;
   nome_funcionario: string;
   pix: string;
   cartao: string;

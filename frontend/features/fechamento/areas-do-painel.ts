@@ -10,7 +10,7 @@
  * rolava com cinco destinos. Pior que o espaço era a mistura — quem entra para
  * conferir o caixa das oito lojas da manhã não está procurando nota de gás.
  */
-export type Area = "CAIXA" | "DESPESAS" | "PLATAFORMA";
+export type Area = "CAIXA" | "DESPESAS" | "COMPROVANTES" | "PLATAFORMA";
 
 export type Pagina = { href: string; rotulo: string };
 
@@ -46,6 +46,14 @@ const BANCO: Pagina[] = [
   { href: "/contas-bancarias", rotulo: "Contas e categorias" },
 ];
 
+// Módulo próprio, e não mais uma aba de Despesas: quem usa só comprovante (a
+// empresa pequena, sem nota nem extrato) não deve ver o resto. O que é de
+// todo mundo — o plano de contas — fica editável aqui também.
+const COMPROVANTES: Pagina[] = [
+  { href: "/comprovantes", rotulo: "Comprovantes" },
+  { href: "/comprovantes/configurar", rotulo: "Configurar" },
+];
+
 // So o dono da plataforma: as empresas clientes, quem pagou, quem esta
 // bloqueado. Nao e de nenhuma empresa, por isso area propria.
 const PLATAFORMA: Pagina[] = [{ href: "/plataforma", rotulo: "Empresas" }];
@@ -54,6 +62,7 @@ const PLATAFORMA: Pagina[] = [{ href: "/plataforma", rotulo: "Empresas" }];
 export const AREAS: { id: Area; rotulo: string; inicio: string }[] = [
   { id: "CAIXA", rotulo: "Fechamento de caixa", inicio: "/fechamentos" },
   { id: "DESPESAS", rotulo: "Despesas", inicio: "/notas-fiscais" },
+  { id: "COMPROVANTES", rotulo: "Comprovantes", inicio: "/comprovantes" },
   { id: "PLATAFORMA", rotulo: "Plataforma", inicio: "/plataforma" },
 ];
 
@@ -63,14 +72,18 @@ export const AREAS: { id: Area; rotulo: string; inicio: string }[] = [
  * O caixa sempre; Despesas com as notas ou com o banco — e o banco já chega
  * aqui filtrado pelo cargo (ver `mostrarAbasDoBanco`). Quem tem só o banco
  * entra em Despesas pelo extrato: a porta das notas terminaria em recusa.
+ * Comprovantes so com o modulo deles, e cada area com a sua condicao: um
+ * "notas || banco" solto valeria tambem para a area de comprovantes.
  */
 export const areasDisponiveis = ({
   notas,
   banco,
+  comprovantes = false,
   plataforma = false,
 }: {
   notas: boolean;
   banco: boolean;
+  comprovantes?: boolean;
   plataforma?: boolean;
 }) =>
   // O dono da plataforma so administra as empresas: o caixa e as despesas que
@@ -81,7 +94,7 @@ export const areasDisponiveis = ({
     (area) =>
       area.id === "CAIXA" ||
       (area.id === "DESPESAS" && (notas || banco)) ||
-      (area.id === "PLATAFORMA" && plataforma),
+      (area.id === "COMPROVANTES" && comprovantes),
   ).map((area) =>
     area.id === "DESPESAS" && !notas ? { ...area, inicio: BANCO[0].href } : area,
   );
@@ -98,6 +111,7 @@ const ehDaLista = (caminho: string, paginas: Pagina[]) =>
  * a empresa errada depois de um login novo. A URL não tem como mentir.
  */
 export const areaDaRota = (caminho: string): Area => {
+  if (ehDaLista(caminho, COMPROVANTES)) return "COMPROVANTES";
   if (ehDaLista(caminho, PLATAFORMA)) return "PLATAFORMA";
   return ehDaLista(caminho, [...NOTAS, ...BANCO]) ? "DESPESAS" : "CAIXA";
 };
@@ -115,15 +129,18 @@ export const paginasDaArea = (
     // esconder a aba por engano tira a tela de quem depende dela, e mostrá-la
     // a mais custa uma aba que não faz nada.
     catalogo = true,
+    comprovantes = false,
     plataforma = false,
   }: {
     gerente: boolean;
     notas: boolean;
     banco?: boolean;
     catalogo?: boolean;
+    comprovantes?: boolean;
     plataforma?: boolean;
   },
 ): Pagina[] => {
+  if (area === "COMPROVANTES") return comprovantes ? [...COMPROVANTES] : [];
   if (area === "PLATAFORMA") return plataforma ? [...PLATAFORMA] : [];
   if (area === "DESPESAS") return [...(notas ? NOTAS : []), ...(banco ? BANCO : [])];
   if (!gerente) return [...CAIXA];

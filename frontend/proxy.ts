@@ -47,6 +47,11 @@ const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
 // de verdade continua sendo a API (IsSuperuser).
 const TELA_DA_PLATAFORMA = "/plataforma";
 
+// Comprovantes sao da gerencia, como o extrato (IsGerenteOrAdministrador no
+// backend). Precisa estar aqui mesmo assim: rota fora desta tabela cai no ramo
+// de "apelido de empresa", que e PUBLICO.
+const TELAS_DE_COMPROVANTES = ["/comprovantes"];
+
 // ATENCAO ao tirar uma rota daqui: esta tabela tambem alimenta a lista de
 // rotas conhecidas do app (ver ROTAS_DO_APP abaixo). Uma rota removida de
 // todos os papeis deixa de ser conhecida e cai no ramo de "apelido de
@@ -56,11 +61,11 @@ const TELA_DA_PLATAFORMA = "/plataforma";
 const ROLE_ROUTES: Record<string, string[]> = {
   // O painel de caixa e as mesmas telas para todo mundo que entra com login.
   // O que separa os papeis e o que existe ALEM delas.
-  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],
+  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
   Plataforma: [TELA_DA_PLATAFORMA],
   // So o gerente tem /empresa: codigo de acesso, lojas, quem retira dinheiro
   // e quem tem login.
-  Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO],
+  Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
   // O funcionario confere e corrige o caixa, e nao administra a empresa.
   Funcionario: PAINEL_DE_CAIXA,
 };
