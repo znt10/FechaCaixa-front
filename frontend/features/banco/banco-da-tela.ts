@@ -229,6 +229,8 @@ export type LinhaDoExtrato = {
   classificacao: string;
   /** "Transferência com Loja B", quando o sistema achou a outra ponta. */
   par: string | null;
+  /** O aviso da venda automática: é a que a gerente pode querer corrigir. */
+  automatica: string | null;
 };
 
 export const linhaDaTabela = (transacao: TransacaoBancaria): LinhaDoExtrato => ({
@@ -244,6 +246,7 @@ export const linhaDaTabela = (transacao: TransacaoBancaria): LinhaDoExtrato => (
         transacao.par.conta_bancaria,
       )})`
     : null,
+  automatica: transacao.automatica ? "Entrou como venda sozinha" : null,
 });
 
 // ---------- importação ----------
@@ -273,6 +276,11 @@ export const frasesDaImportacao = (importado: ExtratoImportado): string[] => {
       `${plural(importado.classificadas, "classificada", "classificadas")} pelo que você já tinha respondido`,
     );
   }
+  if (importado.vendas) {
+    frases.push(
+      `${plural(importado.vendas, "entrada marcada", "entradas marcadas")} como venda`,
+    );
+  }
   return frases;
 };
 
@@ -281,21 +289,23 @@ export const periodoDaImportacao = (importado: ExtratoImportado): string | null 
     ? `${emDataBrasileira(importado.periodo_de)} a ${emDataBrasileira(importado.periodo_ate)}`
     : null;
 
-/** Só OFX por enquanto. Separado antes do envio para o PDF solto por engano
- *  virar recado na hora, e não uma ida ao servidor. */
-export const separarOsOfx = <A extends { name: string }>(arquivos: A[]) => {
-  const ofx: A[] = [];
+/** OFX de qualquer banco, e CSV, que é o que o PicPay exporta. Separado antes
+ *  do envio para o PDF solto por engano virar recado na hora, e não uma ida
+ *  ao servidor. O CSV que não for do PicPay o servidor recusa com o motivo. */
+export const separarOsExtratos = <A extends { name: string }>(arquivos: A[]) => {
+  const extratos: A[] = [];
   const descartados: { arquivo: string; motivo: string }[] = [];
   for (const arquivo of arquivos) {
-    if (arquivo.name.toLowerCase().endsWith(".ofx")) ofx.push(arquivo);
+    const nome = arquivo.name.toLowerCase();
+    if (nome.endsWith(".ofx") || nome.endsWith(".csv")) extratos.push(arquivo);
     else
       descartados.push({
         arquivo: arquivo.name,
         motivo:
-          "Por enquanto o sistema lê extratos em OFX. No internet banking, exporte o extrato escolhendo o formato OFX.",
+          "O sistema lê extratos em OFX e o CSV do PicPay. No internet banking, exporte o extrato escolhendo o formato OFX.",
       });
   }
-  return { ofx, descartados };
+  return { extratos, descartados };
 };
 
 // ---------- resumo ----------
