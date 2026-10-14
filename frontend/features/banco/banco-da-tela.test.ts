@@ -3,14 +3,19 @@ import { describe, expect, it } from "vitest";
 import type { GrupoDeDespesa } from "@/features/admin/services/notas";
 
 import {
+  arvoreDoBloco,
+  avisoDePendentes,
   classificacaoDoValor,
-  ESCOLHAS_INICIAIS,
+  escolhasIniciais,
   filtroDoResumo,
   frasesDaImportacao,
+  intervaloDasEscolhas,
   linhaDaTabela,
   montarFiltroDoExtrato,
   mostrarAbasDoBanco,
   opcoesDaLinha,
+  rotuloDoSaldo,
+  saldoDoResumo,
   separarOsExtratos,
   trocarDeFiltro,
   valorComSinal,
@@ -71,25 +76,131 @@ const CATEGORIAS: CategoriaDeMovimento[] = [
   { id: "morta", tipo: "RECEBIMENTO", tipo_nome: "Recebimento", nome: "Aluguel de sala", ativo: false, entre_lojas: false },
 ];
 
+const INICIAIS = escolhasIniciais("2026-10-14");
+
 describe("filtros", () => {
-  it("abre na fila de trabalho, e a página 1 não manda page", () => {
-    expect(montarFiltroDoExtrato(ESCOLHAS_INICIAIS)).toEqual({ pendente: "true" });
+  it("abre no mês de hoje, na fila de trabalho, e a página 1 não manda page", () => {
+    expect(montarFiltroDoExtrato(INICIAIS)).toEqual({
+      de: "2026-10-01",
+      ate: "2026-10-31",
+      pendente: "true",
+    });
   });
 
   it("o resumo ignora a fila de trabalho e a página", () => {
-    const escolhas = { ...ESCOLHAS_INICIAIS, loja: "loja-a", de: "2026-10-01", pagina: 3 };
-    expect(filtroDoResumo(escolhas)).toEqual({ loja: "loja-a", de: "2026-10-01" });
+    const escolhas = { ...INICIAIS, loja: "loja-a", pagina: 3 };
+    expect(filtroDoResumo(escolhas)).toEqual({
+      loja: "loja-a",
+      de: "2026-10-01",
+      ate: "2026-10-31",
+    });
     expect(montarFiltroDoExtrato(escolhas)).toEqual({
       loja: "loja-a",
       de: "2026-10-01",
+      ate: "2026-10-31",
       pendente: "true",
       page: 3,
     });
   });
 
   it("trocar filtro volta para a primeira página", () => {
-    const naQuatro = { ...ESCOLHAS_INICIAIS, pagina: 4 };
+    const naQuatro = { ...INICIAIS, pagina: 4 };
     expect(trocarDeFiltro(naQuatro, { loja: "x" }).pagina).toBe(1);
+  });
+});
+
+describe("o período", () => {
+  it("dia é o próprio dia", () => {
+    expect(intervaloDasEscolhas({ ...INICIAIS, granularidade: "DIA" })).toEqual({
+      de: "2026-10-14",
+      ate: "2026-10-14",
+    });
+  });
+
+  it("semana vai de segunda a domingo", () => {
+    expect(intervaloDasEscolhas({ ...INICIAIS, granularidade: "SEMANA" })).toEqual({
+      de: "2026-10-12",
+      ate: "2026-10-18",
+    });
+  });
+
+  it("mês segue o mês escolhido, e não o dia", () => {
+    expect(intervaloDasEscolhas({ ...INICIAIS, mes: "2026-02" })).toEqual({
+      de: "2026-02-01",
+      ate: "2026-02-28",
+    });
+  });
+});
+
+describe("o total", () => {
+  it("o saldo é o que entrou menos o que saiu, sem erro de float", () => {
+    expect(saldoDoResumo({ entradas: "8245.16", saidas: "-8346.47" })).toBe(-101.31);
+  });
+
+  it("o rótulo acompanha o período", () => {
+    expect(rotuloDoSaldo("MES")).toBe("SALDO DO MÊS");
+    expect(rotuloDoSaldo("SEMANA")).toBe("SALDO DA SEMANA");
+  });
+
+  it("o aviso conta no singular e no plural", () => {
+    expect(avisoDePendentes(1)).toBe("1 movimentação para classificar");
+    expect(avisoDePendentes(78)).toBe("78 movimentações para classificar");
+  });
+});
+
+describe("a árvore do resumo", () => {
+  const categoria = (nome: string, valor: string, quantidade = 1) => ({
+    id: nome,
+    nome,
+    valor,
+    quantidade,
+  });
+
+  it("junta os elementos pelo grupo, com o total do grupo", () => {
+    const arvore = arvoreDoBloco({
+      categorias: [
+        categoria("Impostos > Simples Nacional", "-2436.60"),
+        categoria("Pessoal > Vale-transporte", "-470.21", 3),
+        categoria("Pessoal > Uniforme", "-217.54", 2),
+      ],
+    });
+    expect(arvore.map((no) => [no.nome, no.valor, no.quantidade])).toEqual([
+      ["Impostos", -2436.6, 1],
+      ["Pessoal", -687.75, 5],
+    ]);
+    expect(arvore[1].filhos.map((folha) => folha.nome)).toEqual(["Vale-transporte", "Uniforme"]);
+  });
+
+  it("ordena pelo tamanho, sem olhar o sinal", () => {
+    const entradas = arvoreDoBloco({
+      categorias: [categoria("Estorno", "12.00"), categoria("Vendas", "6939.19")],
+    });
+    expect(entradas.map((no) => no.nome)).toEqual(["Vendas", "Estorno"]);
+
+    const saidas = arvoreDoBloco({
+      categorias: [
+        categoria("Compras > Bebidas", "-77.52"),
+        categoria("Operacional > Aluguel", "-99.99"),
+      ],
+    });
+    expect(saidas.map((no) => no.nome)).toEqual(["Operacional", "Compras"]);
+  });
+
+  it("o que não tem grupo fica solto na raiz", () => {
+    const arvore = arvoreDoBloco({
+      categorias: [categoria("Sem categoria", "-10.00"), categoria("Pessoal > Uniforme", "-5.00")],
+    });
+    expect(arvore.map((no) => [no.nome, no.filhos.length])).toEqual([
+      ["Sem categoria", 0],
+      ["Pessoal", 1],
+    ]);
+  });
+
+  it("o total do grupo não acumula erro de float", () => {
+    const [grupo] = arvoreDoBloco({
+      categorias: [categoria("G > A", "0.10"), categoria("G > B", "0.20")],
+    });
+    expect(grupo.valor).toBe(0.3);
   });
 });
 
