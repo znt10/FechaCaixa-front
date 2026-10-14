@@ -6,6 +6,7 @@ import {
   escolhasIniciais,
   montarFiltro,
   type EscolhasDosComprovantes,
+  type Granularidade,
 } from "@/features/comprovantes/comprovantes-da-tela";
 import { DetalheDoComprovante } from "@/features/comprovantes/components/DetalheDoComprovante";
 import { EnviarComprovante } from "@/features/comprovantes/components/EnviarComprovante";
@@ -13,7 +14,32 @@ import { ListaDeComprovantes } from "@/features/comprovantes/components/ListaDeC
 import { ResumoDosComprovantes } from "@/features/comprovantes/components/ResumoDosComprovantes";
 import { useComprovantes } from "@/features/comprovantes/hooks/useComprovantes";
 import type { Comprovante } from "@/features/comprovantes/services/comprovantes";
+import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
+import { ChipDeLoja } from "@/features/fechamento/components/ChipDeLoja";
 import { useLojasDoPainel } from "@/features/fechamento/hooks/usePainel";
+import {
+  hojeISO,
+  inicioDaSemana,
+  mesDe,
+  rotuloDaSemana,
+  rotuloDoDia,
+  rotuloDoMes,
+  somarDias,
+  somarMeses,
+} from "@/features/fechamento/painel-dados";
+
+const GRANULARIDADES: { valor: Granularidade; rotulo: string }[] = [
+  { valor: "DIA", rotulo: "Dia" },
+  { valor: "SEMANA", rotulo: "Semana" },
+  { valor: "MES", rotulo: "Mês" },
+];
+
+const SITUACOES: { valor: EscolhasDosComprovantes["situacao"]; rotulo: string }[] = [
+  { valor: "", rotulo: "Todas" },
+  { valor: "OK", rotulo: "OK" },
+  { valor: "CONFERIR", rotulo: "Conferir" },
+  { valor: "DESCARTADO", rotulo: "Descartado" },
+];
 
 const CLASSE_FILTRO =
   "rounded-[10px] border border-caixa-border bg-caixa-surface px-[12px] py-[9px] text-[14px] leading-[1.4] text-caixa-ink outline-none transition focus:border-caixa-accent focus:ring-2 focus:ring-caixa-accent/15";
@@ -26,7 +52,7 @@ const CLASSE_FILTRO =
  */
 export default function ComprovantesPage() {
   const [escolhas, setEscolhas] = useState<EscolhasDosComprovantes>(() =>
-    escolhasIniciais(new Date()),
+    escolhasIniciais(hojeISO()),
   );
   const [aberto, setAberto] = useState<Comprovante | null>(null);
   const lojas = useLojasDoPainel();
@@ -39,19 +65,107 @@ export default function ComprovantesPage() {
 
   const dados = comprovantes.data;
 
+  // Mesma navegação dos Gráficos: as setas andam um dia, uma semana ou um mês.
+  const { granularidade, dia, mes } = escolhas;
+  const hoje = hojeISO();
+  const ehPeriodoAtual =
+    granularidade === "DIA"
+      ? dia === hoje
+      : granularidade === "SEMANA"
+        ? inicioDaSemana(dia) === inicioDaSemana(hoje)
+        : mes === mesDe(hoje);
+  const passo = (direcao: 1 | -1) =>
+    granularidade === "MES"
+      ? escolher({ mes: somarMeses(mes, direcao) })
+      : escolher({ dia: somarDias(dia, direcao * (granularidade === "SEMANA" ? 7 : 1)) });
+  // Os dois de uma vez: quem saltou para março vendo a semana e trocou para
+  // "Mês" esperava março.
+  const escolherPeriodo = (escolhido: string) =>
+    granularidade === "MES"
+      ? escolher({ mes: escolhido })
+      : escolher({ dia: escolhido, mes: mesDe(escolhido) });
+  const rotuloDoIntervalo =
+    granularidade === "DIA"
+      ? rotuloDoDia(dia)
+      : granularidade === "SEMANA"
+        ? rotuloDaSemana(dia)
+        : rotuloDoMes(mes);
+
   return (
     <main className="mx-auto max-w-[1440px] px-[16px] pb-[60px] md:px-[40px]">
-      <div className="flex flex-col gap-[12px] py-[28px] md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-[2px]">
-          <h1 className="text-[22px] font-bold leading-[1.2]">Comprovantes</h1>
-          <p className="text-[14px] leading-[1.4] text-caixa-muted">
-            O gasto sem nota: o que chega por e-mail e o que você envia aqui.
-          </p>
+      <div className="flex flex-wrap items-center justify-between gap-[16px] py-[28px]">
+        <div className="flex gap-[4px] rounded-[12px] border border-caixa-border bg-caixa-surface p-[4px]">
+          {GRANULARIDADES.map(({ valor, rotulo }) => (
+            <button
+              key={valor}
+              type="button"
+              aria-pressed={granularidade === valor}
+              onClick={() => escolher({ granularidade: valor })}
+              className={`rounded-[10px] px-[18px] py-[9px] text-[15px] font-medium transition ${
+                granularidade === valor
+                  ? "bg-caixa-accent-soft text-caixa-accent"
+                  : "text-caixa-muted hover:text-caixa-ink"
+              }`}
+            >
+              {rotulo}
+            </button>
+          ))}
         </div>
-        <EnviarComprovante onLido={setAberto} />
+
+        <BarraDoPeriodo
+          modo={granularidade}
+          valor={granularidade === "MES" ? mes : dia}
+          rotulo={rotuloDoIntervalo}
+          distintivo={ehPeriodoAtual ? "Atual" : null}
+          atalho={
+            ehPeriodoAtual
+              ? undefined
+              : { rotulo: "Voltar para hoje", aoClicar: () => escolher({ dia: hoje, mes: mesDe(hoje) }) }
+          }
+          aoAndar={passo}
+          aoEscolher={escolherPeriodo}
+        />
       </div>
 
       <div className="flex flex-col gap-[20px]">
+        {/* Lojas e situação no mesmo cartão dos Gráficos: no lugar do turno,
+            a situação, que é o recorte que esta tela tem. */}
+        <div className="cartao-caixa rounded-[12px] border border-caixa-border bg-caixa-surface p-[16px]">
+          <div className="flex flex-wrap gap-[8px]">
+            <ChipDeLoja rotulo="Todas as lojas" ativo={escolhas.loja === ""} aoClicar={() => escolher({ loja: "" })} />
+            {(lojas.data ?? []).map((loja) => (
+              <ChipDeLoja
+                key={loja.id}
+                rotulo={loja.nome_loja}
+                ativo={escolhas.loja === loja.id}
+                aoClicar={() => escolher({ loja: loja.id })}
+              />
+            ))}
+            <ChipDeLoja rotulo="Sem loja" ativo={escolhas.loja === "sem"} aoClicar={() => escolher({ loja: "sem" })} />
+          </div>
+
+          <div className="mt-[14px] flex flex-wrap items-center gap-[10px] border-t border-caixa-border pt-[14px]">
+            <span className="text-[13px] font-medium text-caixa-muted">Situação</span>
+            <div className="flex flex-wrap gap-[4px] rounded-[10px] bg-caixa-faixa p-[3px]">
+              {SITUACOES.map(({ valor, rotulo }) => (
+                <button
+                  key={rotulo}
+                  type="button"
+                  aria-pressed={escolhas.situacao === valor}
+                  onClick={() => escolher({ situacao: valor })}
+                  className={`rounded-[8px] px-[16px] py-[7px] text-[14px] font-medium transition ${
+                    escolhas.situacao === valor
+                      ? "bg-caixa-surface text-caixa-accent shadow-sm"
+                      : "text-caixa-muted hover:text-caixa-ink"
+                  }`}
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {dados && (
           <ResumoDosComprovantes
             totais={dados.totais}
@@ -59,29 +173,8 @@ export default function ComprovantesPage() {
           />
         )}
 
-        <div className="flex flex-wrap items-center gap-[12px]">
-          <input aria-label="De" type="date" className={CLASSE_FILTRO} value={escolhas.de} onChange={(e) => escolher({ de: e.target.value })} />
-          <input aria-label="Até" type="date" className={CLASSE_FILTRO} value={escolhas.ate} onChange={(e) => escolher({ ate: e.target.value })} />
-          <select aria-label="Loja" className={CLASSE_FILTRO} value={escolhas.loja} onChange={(e) => escolher({ loja: e.target.value })}>
-            <option value="">Todas as lojas</option>
-            <option value="sem">Sem loja</option>
-            {(lojas.data ?? []).map((loja) => (
-              <option key={loja.id} value={loja.id}>
-                {loja.nome_loja}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Situação"
-            className={CLASSE_FILTRO}
-            value={escolhas.situacao}
-            onChange={(e) => escolher({ situacao: e.target.value as EscolhasDosComprovantes["situacao"] })}
-          >
-            <option value="">Todas as situações</option>
-            <option value="OK">OK</option>
-            <option value="CONFERIR">Conferir</option>
-            <option value="DESCARTADO">Descartado</option>
-          </select>
+        <div className="flex justify-end">
+          <EnviarComprovante onLido={setAberto} />
         </div>
 
         {comprovantes.isError ? (

@@ -26,6 +26,7 @@ import {
   useLojasDoPainel,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
+import { ChipDeLoja } from "@/features/fechamento/components/ChipDeLoja";
 
 type Granularidade = "DIA" | "SEMANA" | "MES";
 
@@ -280,31 +281,6 @@ export default function GraficosPage() {
         </section>
       )}
     </main>
-  );
-}
-
-function ChipDeLoja({
-  rotulo,
-  ativo,
-  aoClicar,
-}: {
-  rotulo: string;
-  ativo: boolean;
-  aoClicar: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={ativo}
-      onClick={aoClicar}
-      className={`rounded-[8px] border px-[14px] py-[8px] text-[14px] font-medium transition ${
-        ativo
-          ? "border-caixa-accent bg-caixa-accent-soft text-caixa-accent"
-          : "border-caixa-border bg-caixa-surface text-caixa-muted hover:text-caixa-ink"
-      }`}
-    >
-      {rotulo}
-    </button>
   );
 }
 
