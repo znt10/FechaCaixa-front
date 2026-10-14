@@ -7,7 +7,9 @@ import {
   montarFiltro,
   mostrarAreaDeComprovantes,
   paraDataLocal,
+  intervaloDasEscolhas,
   rotuloDaSituacao,
+  type EscolhasDosComprovantes,
 } from "./comprovantes-da-tela";
 
 const gerente = (comprovantes: boolean) => ({
@@ -43,16 +45,48 @@ describe("mostrarAreaDeComprovantes", () => {
 });
 
 describe("escolhas e filtro", () => {
-  it("começa no mês atual", () => {
-    const escolhas = escolhasIniciais(new Date(2026, 9, 13));
-    expect(escolhas.de).toBe("2026-10-01");
-    expect(escolhas.ate).toBe("2026-10-31");
+  const escolhas = (mudanca: Partial<EscolhasDosComprovantes> = {}): EscolhasDosComprovantes => ({
+    ...escolhasIniciais("2026-10-15"),
+    ...mudanca,
   });
 
-  it("monta só o que foi escolhido", () => {
-    expect(
-      montarFiltro({ de: "2026-10-01", ate: "", loja: "sem", situacao: "", pagina: 2 }),
-    ).toEqual({ de: "2026-10-01", loja: "sem", page: 2 });
+  it("começa no mês atual, sem loja nem situação", () => {
+    expect(escolhasIniciais("2026-10-15")).toEqual({
+      granularidade: "MES",
+      dia: "2026-10-15",
+      mes: "2026-10",
+      loja: "",
+      situacao: "",
+      pagina: 1,
+    });
+  });
+
+  it("mês vira o mês inteiro", () => {
+    expect(intervaloDasEscolhas(escolhas())).toEqual({ de: "2026-10-01", ate: "2026-10-31" });
+  });
+
+  it("semana vai de segunda a domingo", () => {
+    // 15/10/2026 é uma quinta.
+    expect(intervaloDasEscolhas(escolhas({ granularidade: "SEMANA" }))).toEqual({
+      de: "2026-10-12",
+      ate: "2026-10-18",
+    });
+  });
+
+  it("dia é só o dia", () => {
+    expect(intervaloDasEscolhas(escolhas({ granularidade: "DIA" }))).toEqual({
+      de: "2026-10-15",
+      ate: "2026-10-15",
+    });
+  });
+
+  it("o filtro leva o período e só o resto que foi escolhido", () => {
+    expect(montarFiltro(escolhas({ loja: "sem", pagina: 2 }))).toEqual({
+      de: "2026-10-01",
+      ate: "2026-10-31",
+      loja: "sem",
+      page: 2,
+    });
   });
 });
 

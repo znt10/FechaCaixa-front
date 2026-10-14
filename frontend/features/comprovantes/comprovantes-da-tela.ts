@@ -1,3 +1,10 @@
+import {
+  fimDaSemana,
+  fimDoMes,
+  inicioDaSemana,
+  inicioDoMes,
+  mesDe,
+} from "@/features/fechamento/painel-dados";
 import type { UsuarioAtual } from "@/shared/services/auth";
 
 import type {
@@ -26,33 +33,39 @@ export const mostrarAreaDeComprovantes = (resposta: {
   return gerencia && resposta.usuario?.modulos?.comprovantes === true;
 };
 
+/** Os mesmos três recortes dos Gráficos e das Saídas: Dia, Semana, Mês. */
+export type Granularidade = "DIA" | "SEMANA" | "MES";
+
 export type EscolhasDosComprovantes = {
-  de: string;
-  ate: string;
+  granularidade: Granularidade;
+  /** Âncora do Dia e da Semana. */
+  dia: string;
+  /** "AAAA-MM", âncora do Mês. */
+  mes: string;
   loja: string;
   situacao: Situacao | "";
   pagina: number;
 };
 
-const doisDigitos = (numero: number) => String(numero).padStart(2, "0");
+export const escolhasIniciais = (hoje: string): EscolhasDosComprovantes => ({
+  granularidade: "MES",
+  dia: hoje,
+  mes: mesDe(hoje),
+  loja: "",
+  situacao: "",
+  pagina: 1,
+});
 
-export const escolhasIniciais = (hoje: Date): EscolhasDosComprovantes => {
-  const ano = hoje.getFullYear();
-  const mes = hoje.getMonth();
-  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
-  return {
-    de: `${ano}-${doisDigitos(mes + 1)}-01`,
-    ate: `${ano}-${doisDigitos(mes + 1)}-${doisDigitos(ultimoDia)}`,
-    loja: "",
-    situacao: "",
-    pagina: 1,
-  };
-};
+/** O recorte vira um intervalo só, que é o que a API entende. */
+export const intervaloDasEscolhas = ({ granularidade, dia, mes }: EscolhasDosComprovantes) =>
+  granularidade === "DIA"
+    ? { de: dia, ate: dia }
+    : granularidade === "SEMANA"
+      ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
+      : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
 export const montarFiltro = (escolhas: EscolhasDosComprovantes): FiltroDeComprovantes => {
-  const filtro: FiltroDeComprovantes = {};
-  if (escolhas.de) filtro.de = escolhas.de;
-  if (escolhas.ate) filtro.ate = escolhas.ate;
+  const filtro: FiltroDeComprovantes = { ...intervaloDasEscolhas(escolhas) };
   if (escolhas.loja) filtro.loja = escolhas.loja;
   if (escolhas.situacao) filtro.situacao = escolhas.situacao;
   if (escolhas.pagina > 1) filtro.page = escolhas.pagina;
