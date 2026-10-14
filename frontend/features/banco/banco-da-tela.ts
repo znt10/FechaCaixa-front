@@ -1,10 +1,18 @@
-import { emReais } from "@/features/fechamento/painel-dados";
+import {
+  emReais,
+  fimDaSemana,
+  fimDoMes,
+  inicioDaSemana,
+  inicioDoMes,
+  mesDe,
+} from "@/features/fechamento/painel-dados";
 
 import type { GrupoDeDespesa } from "@/features/admin/services/notas";
 import type { UsuarioAtual } from "@/shared/services/auth";
 
 import type {
   Banco,
+  BlocoDoResumo,
   CategoriaDeMovimento,
   Classificacao,
   ContaDaTransacao,
@@ -19,25 +27,46 @@ import type {
 // O que a tela do extrato calcula sozinha, fora do componente — mesmo caminho
 // de `notas-da-tela`: aqui dá para testar sem renderizar nada.
 
-/** O que a gerência escolheu na barra de filtros. */
+/** Os mesmos três recortes das Saídas, dos Gráficos e dos Comprovantes. */
+export type Granularidade = "DIA" | "SEMANA" | "MES";
+
+/** O que a gerência escolheu: o período em cima, as lojas logo abaixo. */
 export type EscolhasDoExtrato = {
   /** A fila de trabalho: o que ainda falta classificar. */
   soPendentes: boolean;
+  granularidade: Granularidade;
+  /** Âncora do Dia e da Semana. */
+  dia: string;
+  /** "AAAA-MM", âncora do Mês. */
+  mes: string;
   loja: string;
   contaBancaria: string;
-  de: string;
-  ate: string;
   pagina: number;
 };
 
-export const ESCOLHAS_INICIAIS: EscolhasDoExtrato = {
+/** Abre no mês: o extrato do banco se baixa e se fecha por mês, e é por mês
+ *  que a contabilidade pergunta. */
+export const escolhasIniciais = (hoje: string): EscolhasDoExtrato => ({
   soPendentes: true,
+  granularidade: "MES",
+  dia: hoje,
+  mes: mesDe(hoje),
   loja: "",
   contaBancaria: "",
-  de: "",
-  ate: "",
   pagina: 1,
-};
+});
+
+/** O recorte vira um intervalo só, que é o que a API entende. */
+export const intervaloDasEscolhas = ({
+  granularidade,
+  dia,
+  mes,
+}: Pick<EscolhasDoExtrato, "granularidade" | "dia" | "mes">) =>
+  granularidade === "DIA"
+    ? { de: dia, ate: dia }
+    : granularidade === "SEMANA"
+      ? { de: inicioDaSemana(dia), ate: fimDaSemana(dia) }
+      : { de: inicioDoMes(mes), ate: fimDoMes(mes) };
 
 /** Só entra o que a pessoa escolheu. A página 1 omite `page`, para a chave de
  *  cache ser a mesma da primeira abertura da tela. */
@@ -59,9 +88,7 @@ export const filtroDoResumo = (escolhas: EscolhasDoExtrato) => {
   const filtro: Pick<FiltroDeTransacoes, "loja" | "conta_bancaria" | "de" | "ate"> = {};
   if (escolhas.loja) filtro.loja = escolhas.loja;
   if (escolhas.contaBancaria) filtro.conta_bancaria = escolhas.contaBancaria;
-  if (escolhas.de) filtro.de = escolhas.de;
-  if (escolhas.ate) filtro.ate = escolhas.ate;
-  return filtro;
+  return { ...filtro, ...intervaloDasEscolhas(escolhas) };
 };
 
 /** Trocar qualquer filtro volta para a página 1: o filtro novo quase sempre
@@ -310,21 +337,89 @@ export const separarOsExtratos = <A extends { name: string }>(arquivos: A[]) => 
 
 // ---------- resumo ----------
 
-export type CartaoDoResumo = { rotulo: string; valor: string; destaque?: "alerta" };
+/** O rótulo do cartão do total, no mesmo tom do fechamento de caixa. */
+export const rotuloDoSaldo = (granularidade: Granularidade) =>
+  ({ DIA: "SALDO DO DIA", SEMANA: "SALDO DA SEMANA", MES: "SALDO DO MÊS" })[granularidade];
 
-export const cartoesDoResumo = (resumo: ResumoDoExtrato): CartaoDoResumo[] => {
-  const cartoes: CartaoDoResumo[] = [
-    { rotulo: "Entrou", valor: `R$ ${emReais(Number(resumo.entradas))}` },
-    { rotulo: "Saiu", valor: `R$ ${emReais(Math.abs(Number(resumo.saidas)))}` },
-  ];
-  if (resumo.pendentes.quantidade) {
-    cartoes.push({
-      rotulo: "Falta classificar",
-      valor: plural(resumo.pendentes.quantidade, "movimentação", "movimentações"),
-      destaque: "alerta",
+/** Entrou menos saiu, em centavos pelo mesmo motivo da árvore. */
+export const saldoDoResumo = (resumo: Pick<ResumoDoExtrato, "entradas" | "saidas">) =>
+  (Math.round(Number(resumo.entradas) * 100) + Math.round(Number(resumo.saidas) * 100)) / 100;
+
+/** O aviso em cima do total, no tom do "1 loja ainda não lançou". */
+export const avisoDePendentes = (quantas: number) =>
+  quantas === 1
+    ? "1 movimentação para classificar"
+    : `${quantas} movimentações para classificar`;
+
+// ---------- a árvore do resumo ----------
+
+/** Um galho (grupo do plano de contas) ou uma folha (o que foi escolhido na
+ *  linha). Folha tem `filhos` vazio. */
+export type NoDoResumo = {
+  chave: string;
+  nome: string;
+  valor: number;
+  quantidade: number;
+  filhos: NoDoResumo[];
+};
+
+/** Como o servidor junta grupo e elemento: "Pessoal > Uniforme". */
+const SEPARADOR_DO_GRUPO = " > ";
+
+/** Do maior para o menor em tamanho, sem olhar o sinal: a pergunta do bloco é
+ *  "onde foi a maior parte". O nome desempata, para a ordem não pular entre
+ *  uma abertura e outra. */
+const pelaGrandeza = (a: NoDoResumo, b: NoDoResumo) =>
+  Math.abs(b.valor) - Math.abs(a.valor) || a.nome.localeCompare(b.nome, "pt-BR");
+
+/**
+ * O bloco de um tipo como árvore: grupo, e dentro dele o que foi escolhido.
+ *
+ * A lista chegava plana e na ordem do servidor ("Impostos > Simples",
+ * "Pessoal > Vale", "Pessoal > Uniforme"...), que ordena pelo total COM
+ * sinal — em Recebimento, a menor entrada vinha primeiro. E o total de
+ * "Pessoal" não existia em lugar nenhum: era somar de cabeça.
+ *
+ * Transferência e recebimento não têm grupo e viram folhas soltas na raiz.
+ */
+export const arvoreDoBloco = (bloco: Pick<BlocoDoResumo, "categorias">): NoDoResumo[] => {
+  const raiz: NoDoResumo[] = [];
+  const grupos = new Map<string, NoDoResumo & { centavos: number }>();
+
+  for (const categoria of bloco.categorias) {
+    const valor = Number(categoria.valor);
+    const chave = `${categoria.id}-${categoria.nome}`;
+    const corte = categoria.nome.indexOf(SEPARADOR_DO_GRUPO);
+    if (corte < 0) {
+      raiz.push({ chave, nome: categoria.nome, valor, quantidade: categoria.quantidade, filhos: [] });
+      continue;
+    }
+
+    const nomeDoGrupo = categoria.nome.slice(0, corte);
+    let grupo = grupos.get(nomeDoGrupo);
+    if (!grupo) {
+      grupo = { chave: `grupo-${nomeDoGrupo}`, nome: nomeDoGrupo, valor: 0, centavos: 0, quantidade: 0, filhos: [] };
+      grupos.set(nomeDoGrupo, grupo);
+      raiz.push(grupo);
+    }
+    // Em centavos: somar 0.1 + 0.2 em float daria um total de grupo que não
+    // bate com a soma dos filhos na última casa.
+    grupo.centavos += Math.round(valor * 100);
+    grupo.valor = grupo.centavos / 100;
+    grupo.quantidade += categoria.quantidade;
+    grupo.filhos.push({
+      chave,
+      nome: categoria.nome.slice(corte + SEPARADOR_DO_GRUPO.length),
+      valor,
+      quantidade: categoria.quantidade,
+      filhos: [],
     });
   }
-  return cartoes;
+
+  for (const grupo of grupos.values()) grupo.filhos.sort(pelaGrandeza);
+  return raiz
+    .map((no) => ({ chave: no.chave, nome: no.nome, valor: no.valor, quantidade: no.quantidade, filhos: no.filhos }))
+    .sort(pelaGrandeza);
 };
 
 // ---------- paginação ----------

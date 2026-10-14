@@ -33,8 +33,10 @@ export function TabelaDeTransacoes({
   const opcoesProntas = plano.isSuccess && categorias.isSuccess;
   const opcoesFalharam = plano.isError || categorias.isError;
 
+  // Sem moldura própria: a tela põe a tabela no mesmo cartão das lojas e dos
+  // filtros, que são o cabeçalho dela.
   return (
-    <div className="cartao-caixa overflow-hidden rounded-[12px] border border-caixa-border bg-caixa-surface">
+    <div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <colgroup>
