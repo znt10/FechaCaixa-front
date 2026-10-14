@@ -4,15 +4,13 @@ import { linhasDoResumo } from "../comprovantes-da-tela";
 import type { TotaisDeComprovantes } from "../services/comprovantes";
 
 /** O total no mesmo cartão do fechamento de caixa: rótulo pequeno, valor
- *  grande, e à direita o que se divide dele — por loja e o que falta conferir. */
+ *  grande, e à direita o que se divide dele por loja. */
 export function ResumoDosComprovantes({
   rotulo,
   totais,
-  onVerConferir,
 }: {
   rotulo: string;
   totais: TotaisDeComprovantes;
-  onVerConferir: () => void;
 }) {
   const linhas = linhasDoResumo(totais);
   return (
@@ -25,7 +23,7 @@ export function ResumoDosComprovantes({
           </span>
         </div>
 
-        {(linhas.length > 0 || totais.conferir > 0) && (
+        {linhas.length > 0 && (
           <div className="flex w-full flex-col gap-[8px] md:w-[300px] md:border-l md:border-caixa-accent/20 md:pl-[28px]">
             {linhas.map((linha) => (
               <div key={linha.nome} className="flex justify-between gap-[8px] text-[14px]">
@@ -33,15 +31,6 @@ export function ResumoDosComprovantes({
                 <span className="font-semibold tabular-nums">R$ {emReais(Number(linha.valor))}</span>
               </div>
             ))}
-            {totais.conferir > 0 && (
-              <button
-                type="button"
-                onClick={onVerConferir}
-                className="mt-[4px] w-fit rounded-[10px] bg-amber-100 px-[14px] py-[8px] text-[14px] font-semibold text-amber-900"
-              >
-                {totais.conferir} para conferir
-              </button>
-            )}
           </div>
         )}
       </div>

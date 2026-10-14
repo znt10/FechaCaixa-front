@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useApagarRemetente, useCriarRemetente, useRemetentes } from "../hooks/useComprovantes";
+import { CartaoDeConfiguracao } from "./CartaoDeConfiguracao";
 
 export function ListaDeRemetentes() {
   const remetentes = useRemetentes();
@@ -18,13 +19,10 @@ export function ListaDeRemetentes() {
   };
 
   return (
-    <section className="flex flex-col gap-[12px]">
-      <div>
-        <h2 className="text-[16px] font-bold">Quem pode mandar</h2>
-        <p className="text-[13px] text-caixa-muted">
-          Só os e-mails desta lista. Mandado de outro e-mail, o comprovante não entra.
-        </p>
-      </div>
+    <CartaoDeConfiguracao
+      titulo="Quem pode mandar"
+      descricao="Só os e-mails desta lista. Mandado de outro e-mail, o comprovante não entra."
+    >
       <form onSubmit={adicionar} className="flex flex-wrap gap-[8px]">
         <input
           type="email"
@@ -51,6 +49,6 @@ export function ListaDeRemetentes() {
           <li className="px-[14px] py-[10px] text-[14px] text-caixa-muted">Nenhum e-mail ainda.</li>
         )}
       </ul>
-    </section>
+    </CartaoDeConfiguracao>
   );
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   acoesDoDetalhe,
+  avisoDeConferir,
   escolhasIniciais,
   linhasDoResumo,
   montarFiltro,
@@ -150,5 +151,12 @@ describe("rotuloDoTotal", () => {
     expect(rotuloDoTotal("DIA")).toBe("TOTAL DO DIA");
     expect(rotuloDoTotal("SEMANA")).toBe("TOTAL DA SEMANA");
     expect(rotuloDoTotal("MES")).toBe("TOTAL DO MÊS");
+  });
+});
+
+describe("avisoDeConferir", () => {
+  it("singular e plural, como o aviso das lojas no fechamento", () => {
+    expect(avisoDeConferir(1)).toBe("1 comprovante para conferir");
+    expect(avisoDeConferir(3)).toBe("3 comprovantes para conferir");
   });
 });

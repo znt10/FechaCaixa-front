@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { useGruposDeDespesa } from "@/features/admin/hooks/useNotas";
 import { apiV1 } from "@/shared/services/api";
+import { CartaoDeConfiguracao } from "./CartaoDeConfiguracao";
 
 export function CategoriasDosComprovantes() {
   const grupos = useGruposDeDespesa();
@@ -31,13 +32,10 @@ export function CategoriasDosComprovantes() {
   };
 
   return (
-    <section className="flex flex-col gap-[12px]">
-      <div>
-        <h2 className="text-[16px] font-bold">Categorias</h2>
-        <p className="text-[13px] text-caixa-muted">
-          As mesmas das notas fiscais: o aluguel pago por comprovante cai na mesma linha.
-        </p>
-      </div>
+    <CartaoDeConfiguracao
+      titulo="Categorias"
+      descricao="As mesmas das notas fiscais: o aluguel pago por comprovante cai na mesma linha."
+    >
       <ul className="grid gap-[12px] md:grid-cols-2">
         {(grupos.data ?? []).map((item) => (
           <li key={item.id} className="rounded-[12px] border border-caixa-border p-[12px]">
@@ -61,6 +59,6 @@ export function CategoriasDosComprovantes() {
         </button>
       </form>
       {erro && <p className="text-[13px] text-red-700">{erro}</p>}
-    </section>
+    </CartaoDeConfiguracao>
   );
 }
