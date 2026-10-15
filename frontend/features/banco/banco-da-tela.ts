@@ -12,6 +12,8 @@ import type { UsuarioAtual } from "@/shared/services/auth";
 
 import type {
   Banco,
+  ContaBancaria,
+  MudancaDaConta,
   BlocoDoResumo,
   CategoriaDeMovimento,
   Classificacao,
@@ -130,6 +132,77 @@ export const valorComSinal = (valor: string | number) => {
   const numero = Number(valor);
   const sinal = numero < 0 ? "− " : numero > 0 ? "+ " : "";
   return `${sinal}R$ ${emReais(Math.abs(numero))}`;
+};
+
+/** O que a edição de uma conta mudou de fato, já aparado. */
+export type RascunhoDaConta = Pick<ContaBancaria, "banco" | "agencia" | "numero" | "apelido">;
+
+/**
+ * Só o que mudou vai no PATCH; nada mudou, nada vai.
+ *
+ * O número não pode ficar vazio: é ele que confere se o extrato subido é
+ * mesmo desta conta, e sem ele qualquer arquivo entraria.
+ */
+export const mudancaDaConta = (
+  conta: RascunhoDaConta,
+  rascunho: RascunhoDaConta,
+): { mudanca: MudancaDaConta | null; erro: string | null } => {
+  const limpo = {
+    banco: rascunho.banco,
+    agencia: rascunho.agencia.trim(),
+    numero: rascunho.numero.trim(),
+    apelido: rascunho.apelido.trim(),
+  };
+  if (!limpo.numero) return { mudanca: null, erro: "O número da conta não pode ficar vazio." };
+
+  const mudanca: MudancaDaConta = {};
+  (Object.keys(limpo) as (keyof typeof limpo)[]).forEach((campo) => {
+    if (limpo[campo] !== conta[campo]) Object.assign(mudanca, { [campo]: limpo[campo] });
+  });
+  return { mudanca: Object.keys(mudanca).length ? mudanca : null, erro: null };
+};
+
+/** Uma loja e as contas dela, as ativas primeiro. */
+export type LojaComContas = { loja: { id: string; nome_loja: string }; contas: ContaBancaria[] };
+
+/**
+ * As contas agrupadas por loja, com TODAS as lojas — inclusive as que não têm
+ * conta nenhuma. É a loja sem conta que a tela precisa mostrar: sem as duas
+ * contas cadastradas, o extrato não acha a transferência entre lojas.
+ *
+ * A conta de uma loja que não está na lista (desativada, por exemplo) entra
+ * no fim, para nenhuma conta sumir da tela.
+ */
+export const contasPorLoja = (
+  lojas: { id: string; nome_loja: string }[],
+  contas: ContaBancaria[],
+): LojaComContas[] => {
+  const ativasPrimeiro = (a: ContaBancaria, b: ContaBancaria) => Number(b.ativo) - Number(a.ativo);
+  const linhas = lojas.map((loja) => ({
+    loja,
+    contas: contas.filter((conta) => conta.loja.id === loja.id).sort(ativasPrimeiro),
+  }));
+  const conhecidas = new Set(lojas.map((loja) => loja.id));
+  for (const conta of contas) {
+    if (conhecidas.has(conta.loja.id)) continue;
+    conhecidas.add(conta.loja.id);
+    linhas.push({
+      loja: conta.loja,
+      contas: contas.filter((outra) => outra.loja.id === conta.loja.id).sort(ativasPrimeiro),
+    });
+  }
+  return linhas;
+};
+
+/** "2 de 8 lojas com conta" — só conta a loja com conta ATIVA. */
+export const coberturaDasLojas = (linhas: LojaComContas[]) => {
+  const comConta = linhas.filter((linha) => linha.contas.some((conta) => conta.ativo)).length;
+  const total = linhas.length;
+  return {
+    comConta,
+    total,
+    texto: `${comConta} de ${total} ${total === 1 ? "loja" : "lojas"} com conta`,
+  };
 };
 
 // ---------- a classificação numa escolha só ----------

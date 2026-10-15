@@ -20,6 +20,7 @@ import {
   mudarCategoriaDeMovimento,
   mudarContaBancaria,
   type Classificacao,
+  type MudancaDaConta,
   type FiltroDeTransacoes,
   type NovaContaBancaria,
 } from "../services/banco";
@@ -93,8 +94,8 @@ export const useCriarContaBancaria = () => {
 export const useMudarContaBancaria = () => {
   const invalidar = useInvalidaOBanco();
   return useMutation({
-    mutationFn: ({ id, ativo }: { id: string; ativo: boolean }) =>
-      mudarContaBancaria(id, { ativo }),
+    mutationFn: ({ id, mudanca }: { id: string; mudanca: MudancaDaConta }) =>
+      mudarContaBancaria(id, mudanca),
     onSuccess: invalidar,
   });
 };
@@ -107,8 +108,8 @@ export const useCriarCategoriaDeMovimento = () => {
 export const useMudarCategoriaDeMovimento = () => {
   const invalidar = useInvalidaOBanco();
   return useMutation({
-    mutationFn: ({ id, ativo }: { id: string; ativo: boolean }) =>
-      mudarCategoriaDeMovimento(id, { ativo }),
+    mutationFn: ({ id, mudanca }: { id: string; mudanca: { nome?: string; ativo?: boolean } }) =>
+      mudarCategoriaDeMovimento(id, mudanca),
     onSuccess: invalidar,
   });
 };

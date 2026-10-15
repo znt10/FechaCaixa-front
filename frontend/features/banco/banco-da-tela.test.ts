@@ -11,7 +11,10 @@ import {
   filtroDoResumo,
   frasesDaImportacao,
   intervaloDasEscolhas,
+  coberturaDasLojas,
+  contasPorLoja,
   linhaDaTabela,
+  mudancaDaConta,
   montarFiltroDoExtrato,
   mostrarAbasDoBanco,
   opcoesDaLinha,
@@ -411,5 +414,68 @@ describe("a busca do seletor", () => {
 
   it("busca vazia devolve tudo", () => {
     expect(filtrarOpcoes(grupos, "  ")).toBe(grupos);
+  });
+});
+
+describe("editar uma conta", () => {
+  const conta = { banco: "PICPAY" as const, agencia: "", numero: "106531006", apelido: "" };
+
+  it("manda só o que mudou, aparado", () => {
+    expect(mudancaDaConta(conta, { ...conta, numero: " 106539100-5 " })).toEqual({
+      mudanca: { numero: "106539100-5" },
+      erro: null,
+    });
+  });
+
+  it("nada mudou, nada vai", () => {
+    expect(mudancaDaConta(conta, { ...conta, apelido: "  " })).toEqual({ mudanca: null, erro: null });
+  });
+
+  it("número vazio é recusado antes de ir ao servidor", () => {
+    expect(mudancaDaConta(conta, { ...conta, numero: "  " }).erro).toBe(
+      "O número da conta não pode ficar vazio.",
+    );
+  });
+});
+
+describe("contas por loja", () => {
+  const conta = (id: string, lojaId: string, ativo = true) => ({
+    id,
+    loja: { id: lojaId, nome_loja: lojaId },
+    banco: "NUBANK" as const,
+    banco_nome: "Nubank",
+    agencia: "",
+    numero: id,
+    apelido: "",
+    ativo,
+  });
+  const lojas = [
+    { id: "limao", nome_loja: "Limão" },
+    { id: "itaberaba", nome_loja: "Itaberaba" },
+    { id: "lapa", nome_loja: "Lapa" },
+  ];
+
+  it("mostra toda loja, inclusive a que não tem conta", () => {
+    const linhas = contasPorLoja(lojas, [conta("1", "limao")]);
+    expect(linhas.map((l) => [l.loja.nome_loja, l.contas.length])).toEqual([
+      ["Limão", 1],
+      ["Itaberaba", 0],
+      ["Lapa", 0],
+    ]);
+  });
+
+  it("a conta de uma loja fora da lista não some", () => {
+    const linhas = contasPorLoja(lojas, [conta("9", "fechada")]);
+    expect(linhas.at(-1)?.loja.id).toBe("fechada");
+  });
+
+  it("ativas primeiro dentro da loja", () => {
+    const [limao] = contasPorLoja(lojas, [conta("velha", "limao", false), conta("nova", "limao")]);
+    expect(limao.contas.map((c) => c.id)).toEqual(["nova", "velha"]);
+  });
+
+  it("a cobertura só conta conta ativa", () => {
+    const linhas = contasPorLoja(lojas, [conta("1", "limao"), conta("2", "itaberaba", false)]);
+    expect(coberturaDasLojas(linhas)).toEqual({ comConta: 1, total: 3, texto: "1 de 3 lojas com conta" });
   });
 });

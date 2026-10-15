@@ -7,7 +7,11 @@ import {
 
 import {
   classificarNota,
+  criarElementoDeDespesa,
+  criarGrupoDeDespesa,
   getGruposDeDespesa,
+  mudarElementoDeDespesa,
+  mudarGrupoDeDespesa,
   getNotas,
   importarNotas,
   type FiltroDeNotas,
@@ -29,6 +33,41 @@ export const useGruposDeDespesa = () =>
     queryKey: ["admin", "grupos-de-despesa"],
     queryFn: getGruposDeDespesa,
   });
+
+/** Tudo de novo depois de mexer no plano: o mesmo plano alimenta o seletor
+ *  das notas, o do extrato, o dos comprovantes e os nomes dos resumos. */
+const useInvalidaTudo = () => {
+  const cliente = useQueryClient();
+  return () => cliente.invalidateQueries();
+};
+
+type MudancaNoPlano = { id: string; mudanca: { nome?: string; ativo?: boolean } };
+
+export const useCriarGrupoDeDespesa = () => {
+  const invalidar = useInvalidaTudo();
+  return useMutation({ mutationFn: criarGrupoDeDespesa, onSuccess: invalidar });
+};
+
+export const useMudarGrupoDeDespesa = () => {
+  const invalidar = useInvalidaTudo();
+  return useMutation({
+    mutationFn: ({ id, mudanca }: MudancaNoPlano) => mudarGrupoDeDespesa(id, mudanca),
+    onSuccess: invalidar,
+  });
+};
+
+export const useCriarElementoDeDespesa = () => {
+  const invalidar = useInvalidaTudo();
+  return useMutation({ mutationFn: criarElementoDeDespesa, onSuccess: invalidar });
+};
+
+export const useMudarElementoDeDespesa = () => {
+  const invalidar = useInvalidaTudo();
+  return useMutation({
+    mutationFn: ({ id, mudanca }: MudancaNoPlano) => mudarElementoDeDespesa(id, mudanca),
+    onSuccess: invalidar,
+  });
+};
 
 export const useImportarNotas = () => {
   const cliente = useQueryClient();
