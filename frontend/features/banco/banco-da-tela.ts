@@ -245,10 +245,10 @@ const ROTULO_DO_TIPO: Record<TipoDeMovimento, string> = {
 /**
  * O que o seletor de uma linha oferece.
  *
- * A ordem acompanha o sentido do dinheiro: numa saída o mais provável é
- * pagamento, numa entrada é recebimento, e o que a pessoa procura vem
- * primeiro. Os outros tipos continuam na lista — estorno é pagamento que
- * entrou, e transferência vai e vem.
+ * Só o que cabe no sentido do dinheiro: numa saída, pagamento e
+ * transferência; numa entrada, recebimento e transferência. Com tudo junto, o
+ * "Vendas" aparecia no meio dos pagamentos de uma saída, e a lista de cada
+ * linha tinha o dobro do tamanho. Transferência fica nos dois — ela vai e vem.
  *
  * Só o que está ativo, mais o que já está lançado nesta linha: pela mesma
  * razão da tela de notas, sumir com a opção lançada faria o seletor cair no
@@ -291,10 +291,17 @@ export const opcoesDaLinha = (
     return opcoes.length ? [{ rotulo: ROTULO_DO_TIPO[tipo], opcoes }] : [];
   };
 
-  const grupos =
-    Number(transacao.valor) > 0
-      ? [...doTipo("RECEBIMENTO"), ...doTipo("TRANSFERENCIA"), ...pagamentos]
-      : [...pagamentos, ...doTipo("TRANSFERENCIA"), ...doTipo("RECEBIMENTO")];
+  const entrada = Number(transacao.valor) > 0;
+  const doSentido = entrada
+    ? [...doTipo("RECEBIMENTO"), ...doTipo("TRANSFERENCIA")]
+    : [...pagamentos, ...doTipo("TRANSFERENCIA")];
+  // O que já foi lançado num tipo do outro sentido (o estorno que alguém pôs
+  // em Pagamento) continua no seletor — só a opção lançada, no fim. Sem ela o
+  // seletor cairia no branco e a linha pareceria por classificar.
+  const lancadoNoOutroSentido = (entrada ? pagamentos : doTipo("RECEBIMENTO"))
+    .map((grupo) => ({ ...grupo, opcoes: grupo.opcoes.filter((opcao) => opcao.valor === atual) }))
+    .filter((grupo) => grupo.opcoes.length > 0);
+  const grupos = [...doSentido, ...lancadoNoOutroSentido];
 
   // A categoria foi apagada pelo /admin e a linha ficou só com o tipo: sem
   // esta opção o valor não casaria com nenhuma, o navegador mostraria a
@@ -316,6 +323,26 @@ export const opcoesDaLinha = (
   }
 
   return grupos;
+};
+
+/**
+ * As opções que batem com a busca do seletor, sem acento e sem caixa: quem
+ * digita "agua" acha "Água". O grupo que fica vazio sai; o nome do grupo
+ * também vale — "pessoal" traz o grupo inteiro.
+ */
+export const filtrarOpcoes = (grupos: GrupoDaLinha[], busca: string): GrupoDaLinha[] => {
+  const procurado = semAcento(busca.trim());
+  if (!procurado) return grupos;
+  return grupos
+    .map((grupo) =>
+      semAcento(grupo.rotulo).includes(procurado)
+        ? grupo
+        : {
+            ...grupo,
+            opcoes: grupo.opcoes.filter((opcao) => semAcento(opcao.nome).includes(procurado)),
+          },
+    )
+    .filter((grupo) => grupo.opcoes.length > 0);
 };
 
 /** Uma linha da tabela, já pronta para ser lida. */

@@ -6,6 +6,7 @@ import {
   arvoreDoBloco,
   avisoDePendentes,
   classificacaoDoValor,
+  filtrarOpcoes,
   escolhasIniciais,
   filtroDoResumo,
   frasesDaImportacao,
@@ -229,12 +230,28 @@ describe("a classificação num seletor só", () => {
     });
   });
 
-  it("numa saída, pagamento vem primeiro; numa entrada, recebimento", () => {
+  it("numa saída não aparece recebimento; numa entrada não aparece pagamento", () => {
     const rotulos = (valor: string) =>
       opcoesDaLinha(transacao({ valor }), PLANO, CATEGORIAS).map((grupo) => grupo.rotulo);
 
-    expect(rotulos("-10.00")).toEqual(["Pagamento · Operacional", "Transferência", "Recebimento"]);
-    expect(rotulos("10.00")).toEqual(["Recebimento", "Transferência", "Pagamento · Operacional"]);
+    expect(rotulos("-10.00")).toEqual(["Pagamento · Operacional", "Transferência"]);
+    expect(rotulos("10.00")).toEqual(["Recebimento", "Transferência"]);
+  });
+
+  it("o que já foi lançado no outro sentido continua, só ele, no fim", () => {
+    const estorno = transacao({
+      valor: "50.00",
+      tipo: "PAGAMENTO",
+      elemento: { id: "aluguel", nome: "Aluguel", grupo: "Operacional", ativo: true },
+    });
+    const grupos = opcoesDaLinha(estorno, PLANO, CATEGORIAS);
+
+    expect(grupos.map((grupo) => grupo.rotulo)).toEqual([
+      "Recebimento",
+      "Transferência",
+      "Pagamento · Operacional",
+    ]);
+    expect(grupos.at(-1)?.opcoes).toEqual([{ valor: "PAGAMENTO:aluguel", nome: "Aluguel" }]);
   });
 
   it("esconde o que foi desativado, menos o que já está lançado na linha", () => {
@@ -376,6 +393,27 @@ describe("quem vê as abas do banco", () => {
   it("carregando fica fora; falhou fica — quem barra é o servidor", () => {
     expect(mostrarAbasDoBanco({ carregando: true, falhou: false })).toBe(false);
     expect(mostrarAbasDoBanco({ carregando: false, falhou: true })).toBe(true);
+  });
+});
+
+describe("a busca do seletor", () => {
+  const grupos = [
+    { rotulo: "Pagamento · Operacional", opcoes: [{ valor: "P:agua", nome: "Água" }, { valor: "P:luz", nome: "Energia" }] },
+    { rotulo: "Pagamento · Pessoal", opcoes: [{ valor: "P:sal", nome: "Salário" }] },
+  ];
+
+  it("acha sem acento e sem caixa, e tira o grupo que ficou vazio", () => {
+    expect(filtrarOpcoes(grupos, "AGUA")).toEqual([
+      { rotulo: "Pagamento · Operacional", opcoes: [{ valor: "P:agua", nome: "Água" }] },
+    ]);
+  });
+
+  it("o nome do grupo traz o grupo inteiro", () => {
+    expect(filtrarOpcoes(grupos, "pessoal")).toEqual([grupos[1]]);
+  });
+
+  it("busca vazia devolve tudo", () => {
+    expect(filtrarOpcoes(grupos, "  ")).toBe(grupos);
   });
 });
 
