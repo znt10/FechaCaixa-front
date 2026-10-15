@@ -11,6 +11,7 @@ import {
   frasesDaImportacao,
   intervaloDasEscolhas,
   linhaDaTabela,
+  mudancaDaConta,
   montarFiltroDoExtrato,
   mostrarAbasDoBanco,
   opcoesDaLinha,
@@ -373,5 +374,26 @@ describe("quem vê as abas do banco", () => {
   it("carregando fica fora; falhou fica — quem barra é o servidor", () => {
     expect(mostrarAbasDoBanco({ carregando: true, falhou: false })).toBe(false);
     expect(mostrarAbasDoBanco({ carregando: false, falhou: true })).toBe(true);
+  });
+});
+
+describe("editar uma conta", () => {
+  const conta = { banco: "PICPAY" as const, agencia: "", numero: "106531006", apelido: "" };
+
+  it("manda só o que mudou, aparado", () => {
+    expect(mudancaDaConta(conta, { ...conta, numero: " 106539100-5 " })).toEqual({
+      mudanca: { numero: "106539100-5" },
+      erro: null,
+    });
+  });
+
+  it("nada mudou, nada vai", () => {
+    expect(mudancaDaConta(conta, { ...conta, apelido: "  " })).toEqual({ mudanca: null, erro: null });
+  });
+
+  it("número vazio é recusado antes de ir ao servidor", () => {
+    expect(mudancaDaConta(conta, { ...conta, numero: "  " }).erro).toBe(
+      "O número da conta não pode ficar vazio.",
+    );
   });
 });

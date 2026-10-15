@@ -12,6 +12,8 @@ import type { UsuarioAtual } from "@/shared/services/auth";
 
 import type {
   Banco,
+  ContaBancaria,
+  MudancaDaConta,
   BlocoDoResumo,
   CategoriaDeMovimento,
   Classificacao,
@@ -130,6 +132,34 @@ export const valorComSinal = (valor: string | number) => {
   const numero = Number(valor);
   const sinal = numero < 0 ? "− " : numero > 0 ? "+ " : "";
   return `${sinal}R$ ${emReais(Math.abs(numero))}`;
+};
+
+/** O que a edição de uma conta mudou de fato, já aparado. */
+export type RascunhoDaConta = Pick<ContaBancaria, "banco" | "agencia" | "numero" | "apelido">;
+
+/**
+ * Só o que mudou vai no PATCH; nada mudou, nada vai.
+ *
+ * O número não pode ficar vazio: é ele que confere se o extrato subido é
+ * mesmo desta conta, e sem ele qualquer arquivo entraria.
+ */
+export const mudancaDaConta = (
+  conta: RascunhoDaConta,
+  rascunho: RascunhoDaConta,
+): { mudanca: MudancaDaConta | null; erro: string | null } => {
+  const limpo = {
+    banco: rascunho.banco,
+    agencia: rascunho.agencia.trim(),
+    numero: rascunho.numero.trim(),
+    apelido: rascunho.apelido.trim(),
+  };
+  if (!limpo.numero) return { mudanca: null, erro: "O número da conta não pode ficar vazio." };
+
+  const mudanca: MudancaDaConta = {};
+  (Object.keys(limpo) as (keyof typeof limpo)[]).forEach((campo) => {
+    if (limpo[campo] !== conta[campo]) Object.assign(mudanca, { [campo]: limpo[campo] });
+  });
+  return { mudanca: Object.keys(mudanca).length ? mudanca : null, erro: null };
 };
 
 // ---------- a classificação numa escolha só ----------

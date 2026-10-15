@@ -182,9 +182,13 @@ export const criarContaBancaria = async (conta: NovaContaBancaria): Promise<Cont
   return res.json();
 };
 
+/** A loja fica de fora: o servidor recusa trocar a conta de loja, porque o
+ *  extrato ja importado e do CNPJ antigo. */
+export type MudancaDaConta = Partial<Omit<NovaContaBancaria, "loja_id">> & { ativo?: boolean };
+
 export const mudarContaBancaria = async (
   id: string,
-  mudanca: Partial<Omit<NovaContaBancaria, "loja_id">> & { ativo?: boolean },
+  mudanca: MudancaDaConta,
 ): Promise<ContaBancaria> => {
   const res = await apiV1(`/contas-bancarias/${id}/`, {
     method: "PATCH",
