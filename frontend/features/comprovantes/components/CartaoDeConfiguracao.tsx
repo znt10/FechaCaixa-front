@@ -5,17 +5,23 @@ import type { ReactNode } from "react";
 export function CartaoDeConfiguracao({
   titulo,
   descricao,
+  aoLado,
   children,
 }: {
   titulo: string;
   descricao: string;
+  /** O que fica à direita do título — o "2 de 8 lojas com conta". */
+  aoLado?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="cartao-caixa flex flex-col rounded-[12px] border border-caixa-border bg-caixa-surface">
-      <header className="flex flex-col gap-[3px] border-b border-caixa-border px-[16px] py-[16px] md:px-[24px] md:py-[18px]">
-        <h2 className="text-[17px] font-bold leading-[1.2]">{titulo}</h2>
-        <p className="max-w-[70ch] text-[13px] leading-[1.4] text-caixa-muted">{descricao}</p>
+      <header className="flex flex-wrap items-end justify-between gap-[14px] border-b border-caixa-border px-[16px] py-[16px] md:px-[24px] md:py-[18px]">
+        <div className="flex flex-col gap-[3px]">
+          <h2 className="text-[17px] font-bold leading-[1.2]">{titulo}</h2>
+          <p className="max-w-[70ch] text-[13px] leading-[1.4] text-caixa-muted">{descricao}</p>
+        </div>
+        {aoLado}
       </header>
       <div className="flex flex-col gap-[14px] px-[16px] py-[18px] md:px-[24px] md:py-[20px]">{children}</div>
     </section>

@@ -162,6 +162,49 @@ export const mudancaDaConta = (
   return { mudanca: Object.keys(mudanca).length ? mudanca : null, erro: null };
 };
 
+/** Uma loja e as contas dela, as ativas primeiro. */
+export type LojaComContas = { loja: { id: string; nome_loja: string }; contas: ContaBancaria[] };
+
+/**
+ * As contas agrupadas por loja, com TODAS as lojas — inclusive as que não têm
+ * conta nenhuma. É a loja sem conta que a tela precisa mostrar: sem as duas
+ * contas cadastradas, o extrato não acha a transferência entre lojas.
+ *
+ * A conta de uma loja que não está na lista (desativada, por exemplo) entra
+ * no fim, para nenhuma conta sumir da tela.
+ */
+export const contasPorLoja = (
+  lojas: { id: string; nome_loja: string }[],
+  contas: ContaBancaria[],
+): LojaComContas[] => {
+  const ativasPrimeiro = (a: ContaBancaria, b: ContaBancaria) => Number(b.ativo) - Number(a.ativo);
+  const linhas = lojas.map((loja) => ({
+    loja,
+    contas: contas.filter((conta) => conta.loja.id === loja.id).sort(ativasPrimeiro),
+  }));
+  const conhecidas = new Set(lojas.map((loja) => loja.id));
+  for (const conta of contas) {
+    if (conhecidas.has(conta.loja.id)) continue;
+    conhecidas.add(conta.loja.id);
+    linhas.push({
+      loja: conta.loja,
+      contas: contas.filter((outra) => outra.loja.id === conta.loja.id).sort(ativasPrimeiro),
+    });
+  }
+  return linhas;
+};
+
+/** "2 de 8 lojas com conta" — só conta a loja com conta ATIVA. */
+export const coberturaDasLojas = (linhas: LojaComContas[]) => {
+  const comConta = linhas.filter((linha) => linha.contas.some((conta) => conta.ativo)).length;
+  const total = linhas.length;
+  return {
+    comConta,
+    total,
+    texto: `${comConta} de ${total} ${total === 1 ? "loja" : "lojas"} com conta`,
+  };
+};
+
 // ---------- a classificação numa escolha só ----------
 //
 // Tipo e categoria são duas perguntas, mas na linha viram um <select> só: quem
