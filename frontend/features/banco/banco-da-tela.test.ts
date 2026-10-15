@@ -226,12 +226,28 @@ describe("a classificação num seletor só", () => {
     });
   });
 
-  it("numa saída, pagamento vem primeiro; numa entrada, recebimento", () => {
+  it("numa saída não aparece recebimento; numa entrada não aparece pagamento", () => {
     const rotulos = (valor: string) =>
       opcoesDaLinha(transacao({ valor }), PLANO, CATEGORIAS).map((grupo) => grupo.rotulo);
 
-    expect(rotulos("-10.00")).toEqual(["Pagamento · Operacional", "Transferência", "Recebimento"]);
-    expect(rotulos("10.00")).toEqual(["Recebimento", "Transferência", "Pagamento · Operacional"]);
+    expect(rotulos("-10.00")).toEqual(["Pagamento · Operacional", "Transferência"]);
+    expect(rotulos("10.00")).toEqual(["Recebimento", "Transferência"]);
+  });
+
+  it("o que já foi lançado no outro sentido continua, só ele, no fim", () => {
+    const estorno = transacao({
+      valor: "50.00",
+      tipo: "PAGAMENTO",
+      elemento: { id: "aluguel", nome: "Aluguel", grupo: "Operacional", ativo: true },
+    });
+    const grupos = opcoesDaLinha(estorno, PLANO, CATEGORIAS);
+
+    expect(grupos.map((grupo) => grupo.rotulo)).toEqual([
+      "Recebimento",
+      "Transferência",
+      "Pagamento · Operacional",
+    ]);
+    expect(grupos.at(-1)?.opcoes).toEqual([{ valor: "PAGAMENTO:aluguel", nome: "Aluguel" }]);
   });
 
   it("esconde o que foi desativado, menos o que já está lançado na linha", () => {
