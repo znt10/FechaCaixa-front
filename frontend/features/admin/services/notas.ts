@@ -123,3 +123,47 @@ export const getGruposDeDespesa = async (): Promise<GrupoDeDespesa[]> => {
   const dados = await res.json();
   return dados.results ?? dados;
 };
+
+// O plano de contas se mexe pela tela de Contas e categorias. Nada se apaga,
+// so se desativa: a nota e a transacao classificadas penduram no elemento.
+
+export const criarGrupoDeDespesa = async (nome: string): Promise<GrupoDeDespesa> => {
+  const res = await apiV1("/grupos-de-despesa/", {
+    method: "POST",
+    body: JSON.stringify({ nome }),
+  });
+  return res.json();
+};
+
+export const mudarGrupoDeDespesa = async (
+  id: string,
+  mudanca: { nome?: string; ativo?: boolean },
+): Promise<GrupoDeDespesa> => {
+  const res = await apiV1(`/grupos-de-despesa/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(mudanca),
+  });
+  return res.json();
+};
+
+export const criarElementoDeDespesa = async (elemento: {
+  grupoId: string;
+  nome: string;
+}): Promise<ElementoDeDespesa> => {
+  const res = await apiV1("/elementos-de-despesa/", {
+    method: "POST",
+    body: JSON.stringify({ nome: elemento.nome, grupo_id: elemento.grupoId }),
+  });
+  return res.json();
+};
+
+export const mudarElementoDeDespesa = async (
+  id: string,
+  mudanca: { nome?: string; ativo?: boolean },
+): Promise<ElementoDeDespesa> => {
+  const res = await apiV1(`/elementos-de-despesa/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(mudanca),
+  });
+  return res.json();
+};
