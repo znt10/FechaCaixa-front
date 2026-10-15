@@ -5,11 +5,12 @@ import { useGruposDeDespesa } from "@/features/admin/hooks/useNotas";
 import { classificacaoDoValor, linhaDaTabela, opcoesDaLinha } from "../banco-da-tela";
 import { useCategoriasDeMovimento, useClassificarTransacao } from "../hooks/useBanco";
 import type { TransacaoBancaria } from "../services/banco";
+import { SeletorDeClassificacao } from "./SeletorDeClassificacao";
 
 /**
  * As movimentações do extrato, com a classificação na própria linha.
  *
- * Um <select> por linha que salva sozinho, como a tela de notas: o trabalho é
+ * Um seletor por linha que salva sozinho, como a tela de notas: o trabalho é
  * passar por dezenas de linhas seguidas, e abrir uma tela por linha seria o
  * trabalho inteiro. Data, valor e descrição aparecem sem campo — vieram do
  * banco, e o arquivo original está guardado.
@@ -114,46 +115,30 @@ export function TabelaDeTransacoes({
                       {linha.valor}
                     </td>
                     <td className="py-[10px] pl-[24px] pr-[24px]">
-                      <select
-                        aria-label={`O que é — ${linha.descricao}, ${linha.data}, ${linha.valor}`}
-                        value={linha.classificacao}
-                        disabled={salvando || !opcoesProntas}
-                        onChange={(evento) =>
+                      <SeletorDeClassificacao
+                        rotulo={`O que é — ${linha.descricao}, ${linha.data}, ${linha.valor}`}
+                        valor={linha.classificacao}
+                        grupos={grupos}
+                        indisponivel={
+                          opcoesProntas
+                            ? null
+                            : opcoesFalharam
+                              ? "Não foi possível carregar as opções"
+                              : (transacao.elemento?.nome ??
+                                transacao.categoria?.nome ??
+                                "Carregando as opções...")
+                        }
+                        desabilitado={salvando || !opcoesProntas}
+                        aoEscolher={(valor) =>
                           classificar.mutate({
                             id: linha.id,
                             classificacao: {
-                              ...classificacaoDoValor(evento.target.value),
+                              ...classificacaoDoValor(valor),
                               aplicar_as_iguais: aplicarAsIguais,
                             },
                           })
                         }
-                        className={`w-full rounded-[10px] border bg-caixa-surface px-[12px] py-[9px] text-[14px] leading-[1.4] text-caixa-ink outline-none transition focus:border-caixa-accent focus:ring-2 focus:ring-caixa-accent/15 disabled:opacity-50 ${
-                          linha.classificacao
-                            ? "border-caixa-border"
-                            : "border-caixa-warn/45 bg-caixa-warn-soft"
-                        }`}
-                      >
-                        {opcoesProntas ? (
-                          <option value="">Ainda não classificada</option>
-                        ) : (
-                          <option value={linha.classificacao}>
-                            {opcoesFalharam
-                              ? "Não foi possível carregar as opções"
-                              : transacao.elemento?.nome ??
-                                transacao.categoria?.nome ??
-                                "Carregando as opções..."}
-                          </option>
-                        )}
-                        {grupos.map((grupo) => (
-                          <optgroup key={grupo.rotulo} label={grupo.rotulo}>
-                            {grupo.opcoes.map((opcao) => (
-                              <option key={opcao.valor} value={opcao.valor}>
-                                {opcao.nome}
-                              </option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
+                      />
                     </td>
                   </tr>
                 );

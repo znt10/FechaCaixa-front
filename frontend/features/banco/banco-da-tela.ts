@@ -252,6 +252,26 @@ export const opcoesDaLinha = (
   return grupos;
 };
 
+/**
+ * As opções que batem com a busca do seletor, sem acento e sem caixa: quem
+ * digita "agua" acha "Água". O grupo que fica vazio sai; o nome do grupo
+ * também vale — "pessoal" traz o grupo inteiro.
+ */
+export const filtrarOpcoes = (grupos: GrupoDaLinha[], busca: string): GrupoDaLinha[] => {
+  const procurado = semAcento(busca.trim());
+  if (!procurado) return grupos;
+  return grupos
+    .map((grupo) =>
+      semAcento(grupo.rotulo).includes(procurado)
+        ? grupo
+        : {
+            ...grupo,
+            opcoes: grupo.opcoes.filter((opcao) => semAcento(opcao.nome).includes(procurado)),
+          },
+    )
+    .filter((grupo) => grupo.opcoes.length > 0);
+};
+
 /** Uma linha da tabela, já pronta para ser lida. */
 export type LinhaDoExtrato = {
   id: string;
