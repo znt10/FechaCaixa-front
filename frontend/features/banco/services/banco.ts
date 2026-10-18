@@ -34,6 +34,9 @@ export type ContaBancaria = {
   numero: string;
   apelido: string;
   ativo: boolean;
+  origem: "PLUGGY" | "ARQUIVO";
+  /** Última busca da Pluggy que deu certo; só vem quando a origem é PLUGGY. */
+  atualizado_em: string | null;
 };
 
 export type NovaContaBancaria = {
