@@ -16,6 +16,7 @@ import {
   mudancaDaConta,
   type RascunhoDaConta,
 } from "@/features/banco/banco-da-tela";
+import { origemDaConta } from "@/features/pluggy/situacao-da-pluggy";
 import { CartaoDeCategorias } from "@/features/banco/components/CartaoDeCategorias";
 import {
   useCategoriasDeMovimento,
@@ -160,6 +161,7 @@ function ContasBancarias() {
                         {conta.numero}
                       </span>
                       {conta.apelido && <span className="text-caixa-muted">“{conta.apelido}”</span>}
+                      <span className="text-[12px] text-caixa-muted">{origemDaConta(conta, new Date())}</span>
                       {!conta.ativo && <span className="text-[12px]">desativada</span>}
                       <span className="ml-auto flex gap-[6px]">
                         <button

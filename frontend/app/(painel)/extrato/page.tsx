@@ -14,6 +14,7 @@ import {
   type EscolhasDoExtrato,
   type Granularidade,
 } from "@/features/banco/banco-da-tela";
+import { AvisoDeExtratoParado } from "@/features/banco/components/AvisoDeExtratoParado";
 import { ResumoDoExtrato } from "@/features/banco/components/ResumoDoExtrato";
 import { TabelaDeTransacoes } from "@/features/banco/components/TabelaDeTransacoes";
 import { UploadDeExtrato } from "@/features/banco/components/UploadDeExtrato";
@@ -110,6 +111,7 @@ export default function ExtratoPage() {
 
   return (
     <main className="mx-auto max-w-[1440px] px-[16px] pb-[60px] md:px-[40px]">
+      <AvisoDeExtratoParado />
       <div className="flex flex-wrap items-center justify-between gap-[16px] py-[28px]">
         <div className="flex gap-[4px] rounded-[12px] border border-caixa-border bg-caixa-surface p-[4px]">
           {GRANULARIDADES.map(({ valor, rotulo }) => (
