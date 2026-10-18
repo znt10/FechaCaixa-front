@@ -49,12 +49,13 @@ export type ResultadoDoTeste = {
 
 export type Vinculo = { pluggy_account_id: string; conta_bancaria_id: string };
 
+/** Nasce só com empresa e e-mail; as credenciais entram depois, na conexão aberta. */
 export type NovaConexao = {
   empresa_id: string;
-  client_id: string;
-  client_secret: string;
-  item_ids: string;
   email?: string;
+  client_id?: string;
+  client_secret?: string;
+  item_ids?: string;
 };
 
 export type MudancaDaConexao = Partial<{

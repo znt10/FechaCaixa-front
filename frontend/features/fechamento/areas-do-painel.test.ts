@@ -231,6 +231,16 @@ describe("a área Plataforma", () => {
       paginasDaArea("PLATAFORMA", { gerente: false, notas: false, plataforma: true }).map(
         (p) => p.rotulo,
       ),
-    ).toEqual(["Empresas"]);
+    ).toEqual(["Empresas", "Pluggy"]);
   });
+
+  it("a área Plataforma tem a página Pluggy", () =>
+    expect(
+      paginasDaArea("PLATAFORMA", { gerente: true, notas: false, plataforma: true }).map(
+        (p) => p.href,
+      ),
+    ).toContain("/plataforma/pluggy"));
+
+  it("a rota da Pluggy é da área Plataforma", () =>
+    expect(areaDaRota("/plataforma/pluggy")).toBe("PLATAFORMA"));
 });
