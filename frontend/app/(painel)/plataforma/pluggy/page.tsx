@@ -77,12 +77,13 @@ export default function PluggyPage() {
             </select>
           </label>
           <label className="flex min-w-[220px] flex-1 flex-col gap-[4px] text-caixa-muted">
-            E-mail do aviso
+            E-mail da conta na Pluggy
             <input
               type="email"
               required
               value={email}
               onChange={(evento) => setEmail(evento.target.value)}
+              placeholder="o mesmo do Meu Pluggy e do Dashboard"
               className={CAMPO}
             />
           </label>
