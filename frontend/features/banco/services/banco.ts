@@ -136,7 +136,8 @@ export type ResumoDoExtrato = {
   por_tipo: BlocoDoResumo[];
   /** Só os dias com movimento, em ordem; no consolidado, sem a transferência
    *  entre lojas. */
-  por_dia: { data: string; entradas: string; saidas: string }[];
+  /** Ausente em servidor anterior a este campo: a tela trata como vazio. */
+  por_dia?: { data: string; entradas: string; saidas: string }[];
 };
 
 export type ExtratoImportado = {

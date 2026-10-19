@@ -164,9 +164,9 @@ export default function ExtratoPage() {
             mesma loja, mesma conta de dinheiro. */}
         {resumo.data && !resumo.error && (
           <div
-            className={`grid gap-[20px] ${resumo.data.por_dia.length > 1 ? "lg:grid-cols-[3fr_2fr]" : ""}`}
+            className={`grid gap-[20px] ${(resumo.data.por_dia ?? []).length > 1 ? "lg:grid-cols-[3fr_2fr]" : ""}`}
           >
-            <GraficoDoFluxo pontos={serieDoFluxo(resumo.data.por_dia)} />
+            <GraficoDoFluxo pontos={serieDoFluxo(resumo.data.por_dia ?? [])} />
             <GastosPorGrupo
               gastos={gastosPorGrupo(
                 resumo.data.por_tipo.find((bloco) => bloco.tipo === "PAGAMENTO") ?? { categorias: [] },

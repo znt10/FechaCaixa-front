@@ -38,7 +38,7 @@ const segundaDe = (ms: number) => {
  * zero, senão o gráfico encosta a sexta na segunda e parece que o dinheiro
  * entrou todo dia. Em período longo (mais de dois meses), uma barra por semana.
  */
-export const serieDoFluxo = (porDia: ResumoDoExtrato["por_dia"]): PontoDoFluxo[] => {
+export const serieDoFluxo = (porDia: NonNullable<ResumoDoExtrato["por_dia"]>): PontoDoFluxo[] => {
   if (porDia.length === 0) return [];
 
   const primeiro = paraMs(porDia[0].data);
