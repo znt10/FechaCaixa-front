@@ -16,6 +16,9 @@ import {
 } from "@/features/banco/banco-da-tela";
 import { AvisoDeExtratoParado } from "@/features/banco/components/AvisoDeExtratoParado";
 import { ResumoDoExtrato } from "@/features/banco/components/ResumoDoExtrato";
+import { GastosPorGrupo } from "@/features/banco/components/GastosPorGrupo";
+import { GraficoDoFluxo } from "@/features/banco/components/GraficoDoFluxo";
+import { gastosPorGrupo, serieDoFluxo } from "@/features/banco/graficos-do-extrato";
 import { TabelaDeTransacoes } from "@/features/banco/components/TabelaDeTransacoes";
 import { UploadDeExtrato } from "@/features/banco/components/UploadDeExtrato";
 import {
@@ -155,6 +158,22 @@ export default function ExtratoPage() {
             rotulo={rotuloDoSaldo(granularidade)}
             onVerPendentes={escolhas.soPendentes ? undefined : () => escolher({ soPendentes: true })}
           />
+        )}
+
+        {/* Os gráficos olham o mesmo resumo do cartão de cima: mesmo período,
+            mesma loja, mesma conta de dinheiro. */}
+        {resumo.data && !resumo.error && (
+          <div
+            className={`grid gap-[20px] ${resumo.data.por_dia.length > 1 ? "lg:grid-cols-[3fr_2fr]" : ""}`}
+          >
+            <GraficoDoFluxo pontos={serieDoFluxo(resumo.data.por_dia)} />
+            <GastosPorGrupo
+              gastos={gastosPorGrupo(
+                resumo.data.por_tipo.find((bloco) => bloco.tipo === "PAGAMENTO") ?? { categorias: [] },
+              )}
+              pendentes={resumo.data.pendentes.quantidade}
+            />
+          </div>
         )}
 
         <UploadDeExtrato />
