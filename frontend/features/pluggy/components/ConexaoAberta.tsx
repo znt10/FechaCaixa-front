@@ -25,6 +25,7 @@ export function ConexaoAberta({ conexao }: { conexao: ConexaoPluggy }) {
   const vincular = useVincularContas();
   const buscar = useBuscarAgora();
 
+  const [email, setEmail] = useState(conexao.email);
   const [clientId, setClientId] = useState(conexao.client_id);
   const [segredo, setSegredo] = useState("");
   const [itemIds, setItemIds] = useState(conexao.item_ids);
@@ -41,7 +42,12 @@ export function ConexaoAberta({ conexao }: { conexao: ConexaoPluggy }) {
     mudar.mutate(
       {
         id: conexao.id,
-        mudanca: { client_id: clientId, item_ids: itemIds, ...(segredo ? { client_secret: segredo } : {}) },
+        mudanca: {
+          email,
+          client_id: clientId,
+          item_ids: itemIds,
+          ...(segredo ? { client_secret: segredo } : {}),
+        },
       },
       { onSuccess: () => setSegredo("") },
     );
@@ -71,6 +77,16 @@ export function ConexaoAberta({ conexao }: { conexao: ConexaoPluggy }) {
   return (
     <div className="flex flex-col gap-[14px] border-t border-caixa-border pt-[14px]">
       <form onSubmit={salvar} className="flex flex-wrap items-end gap-[10px] text-[14px]">
+        <label className="flex flex-col gap-[4px] text-caixa-muted">
+          E-mail da conta na Pluggy
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(evento) => setEmail(evento.target.value)}
+            className={`${CAMPO} w-[260px]`}
+          />
+        </label>
         <label className="flex flex-col gap-[4px] text-caixa-muted">
           Client ID
           <input
