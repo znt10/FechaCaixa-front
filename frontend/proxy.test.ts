@@ -138,7 +138,7 @@ describe("proxy: o que cada papel alcanca", () => {
   );
 
   // O banco e da gerencia, como no backend: o funcionario confere o caixa.
-  describe.each(["/extrato", "/contas-bancarias"])("a tela do banco %s", (rota) => {
+  describe.each(["/extrato", "/graficos-do-banco", "/contas-bancarias"])("a tela do banco %s", (rota) => {
     it.each(["Gerente", "Admin"])("%s entra", (papel) => {
       const resposta = pedirComo(papel, rota);
 
