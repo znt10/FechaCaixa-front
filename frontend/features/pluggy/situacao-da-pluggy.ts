@@ -22,12 +22,39 @@ export const origemDaConta = (conta: OrigemDaConta, agora: Date): string => {
   return `Automático (Pluggy)${quando}`;
 };
 
-/** A faixa do painel da Plataforma; `null` quando nenhuma conexão caiu. */
+/**
+ * A faixa do painel da Plataforma; `null` quando nenhuma conexão caiu.
+ *
+ * Conta empresas, e não conexões: a empresa com lojas de donos diferentes tem
+ * uma conexão por titular, e duas caídas dela ainda são "a Pluggy da X".
+ */
 export const textoDaFaixa = (painel: PainelDaPluggy): string | null => {
-  const caidas = painel.conexoes.filter((c) => c.estado === "COM_ERRO");
-  if (caidas.length === 0) return null;
-  if (caidas.length === 1) return `A Pluggy da ${caidas[0].empresa.nome} caiu — ver`;
-  return `A Pluggy de ${caidas.length} empresas caiu — ver`;
+  const empresas = new Map(
+    painel.conexoes
+      .filter((c) => c.estado === "COM_ERRO")
+      .map((c) => [c.empresa.id, c.empresa.nome]),
+  );
+  if (empresas.size === 0) return null;
+  if (empresas.size === 1) return `A Pluggy da ${[...empresas.values()][0]} caiu — ver`;
+  return `A Pluggy de ${empresas.size} empresas caiu — ver`;
+};
+
+// Peça por peça, e não o texto inteiro do toLocaleString: o separador entre
+// data e hora muda conforme a versão do ICU. h23 para a meia-noite ser 00.
+const DIA_E_HORA = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+const diaEHora = (data: Date) => {
+  const parte = Object.fromEntries(
+    DIA_E_HORA.formatToParts(data).map(({ type, value }) => [type, value]),
+  );
+  return { dia: `${parte.day}/${parte.month}`, hora: `${parte.hour}:${parte.minute}` };
 };
 
 /** Aviso do extrato: a conta Pluggy mais antiga parada há mais de 48 h. */
@@ -38,15 +65,6 @@ export const avisoDeParado = (contas: OrigemDaConta[], agora: Date): string | nu
     .sort((a, b) => a.getTime() - b.getTime());
   const maisAntiga = datas[0];
   if (!maisAntiga || agora.getTime() - maisAntiga.getTime() <= LIMITE_DE_DADO_PARADO) return null;
-  const [dia, hora] = maisAntiga
-    .toLocaleString("pt-BR", {
-      timeZone: "America/Sao_Paulo",
-      day: "2-digit",
-      month: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    })
-    .split(", ");
+  const { dia, hora } = diaEHora(maisAntiga);
   return `A conexão com o banco não atualiza desde ${dia} às ${hora}`;
 };

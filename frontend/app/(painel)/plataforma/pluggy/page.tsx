@@ -15,6 +15,8 @@ import { usePainelDaPlataforma } from "@/features/mensalidade/hooks/usePlataform
  */
 export default function PluggyPage() {
   const painel = usePainelDaPluggy({ habilitado: true });
+  // Todas, mesmo as já conectadas: a empresa com lojas de donos diferentes
+  // ganha uma conexão por titular.
   const empresas = usePainelDaPlataforma().data?.empresas ?? [];
   const criar = useCriarConexao();
 
@@ -24,8 +26,6 @@ export default function PluggyPage() {
 
   const contadores = painel.data?.contadores;
   const conexoes = painel.data?.conexoes ?? [];
-  // Uma empresa já conectada não aparece de novo na escolha.
-  const livres = empresas.filter((e) => !conexoes.some((c) => c.empresa.id === e.id));
 
   const salvar = (evento: React.FormEvent) => {
     evento.preventDefault();
@@ -69,7 +69,7 @@ export default function PluggyPage() {
               className={CAMPO}
             >
               <option value="">Escolha</option>
-              {livres.map((empresa) => (
+              {empresas.map((empresa) => (
                 <option key={empresa.id} value={empresa.id}>
                   {empresa.nome}
                 </option>

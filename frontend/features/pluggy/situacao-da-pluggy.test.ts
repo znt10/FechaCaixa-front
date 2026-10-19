@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   avisoDeParado,
@@ -56,6 +56,18 @@ describe("textoDaFaixa", () => {
     ).toBe("A Pluggy de 2 empresas caiu — ver");
     expect(textoDaFaixa(painel([conexao("A", "ATIVA")]))).toBeNull();
   });
+
+  it("conta empresas, e não conexões: duas caídas da mesma empresa são uma", () => {
+    const outraDaMesma = { ...conexao("Delícias Salgados", "COM_ERRO"), id: "segunda" };
+    expect(
+      textoDaFaixa(painel([conexao("Delícias Salgados", "COM_ERRO"), outraDaMesma])),
+    ).toBe("A Pluggy da Delícias Salgados caiu — ver");
+    expect(
+      textoDaFaixa(
+        painel([conexao("Delícias Salgados", "COM_ERRO"), outraDaMesma, conexao("B", "COM_ERRO")]),
+      ),
+    ).toBe("A Pluggy de 2 empresas caiu — ver");
+  });
 });
 
 describe("avisoDeParado", () => {
@@ -81,5 +93,24 @@ describe("avisoDeParado", () => {
     ).toBe("A conexão com o banco não atualiza desde 16/10 às 14:05");
     expect(avisoDeParado([conta("2026-10-01T00:00:00Z", "ARQUIVO")], agora)).toBeNull();
     expect(avisoDeParado([], agora)).toBeNull();
+  });
+
+  it("escreve meia-noite como 00, e não 24", () => {
+    // 03:05 UTC é 00:05 em Brasília.
+    expect(avisoDeParado([conta("2026-10-16T03:05:00Z")], new Date("2026-10-18T18:06:00Z"))).toBe(
+      "A conexão com o banco não atualiza desde 16/10 às 00:05",
+    );
+  });
+
+  it("não depende do separador que o navegador põe entre a data e a hora", () => {
+    // Há versões do ICU que escrevem "16/10 14:05", sem a vírgula.
+    const semVirgula = vi.spyOn(Date.prototype, "toLocaleString").mockReturnValue("16/10 14:05");
+    try {
+      expect(
+        avisoDeParado([conta("2026-10-16T17:05:00Z")], new Date("2026-10-18T18:06:00Z")),
+      ).toBe("A conexão com o banco não atualiza desde 16/10 às 14:05");
+    } finally {
+      semVirgula.mockRestore();
+    }
   });
 });
