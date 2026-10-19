@@ -43,6 +43,7 @@ const NOTAS: Pagina[] = [{ href: "/notas-fiscais", rotulo: "Notas fiscais" }];
 // pagamentos do extrato ate usam o mesmo plano de contas das notas.
 const BANCO: Pagina[] = [
   { href: "/extrato", rotulo: "Extrato" },
+  { href: "/graficos-do-banco", rotulo: "Gráficos" },
   { href: "/contas-bancarias", rotulo: "Contas e categorias" },
 ];
 
