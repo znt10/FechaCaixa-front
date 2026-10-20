@@ -73,7 +73,11 @@ export const areasDisponiveis = ({
   banco: boolean;
   plataforma?: boolean;
 }) =>
-  AREAS.filter(
+  // O dono da plataforma so administra as empresas: o caixa e as despesas que
+  // ele via eram os de todas as empresas juntas, que nao sao trabalho dele.
+  plataforma
+    ? AREAS.filter((area) => area.id === "PLATAFORMA")
+    : AREAS.filter(
     (area) =>
       area.id === "CAIXA" ||
       (area.id === "DESPESAS" && (notas || banco)) ||

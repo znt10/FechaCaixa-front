@@ -103,7 +103,7 @@ export function TopbarPainel() {
               pelo overflow-x escondido do body. */}
           <div className="flex items-center gap-[10px] md:hidden">
             <Conta usuario={usuario} className="flex" />
-            <BotaoDeExportar />
+            {!plataforma && <BotaoDeExportar />}
           </div>
         </div>
 
@@ -145,7 +145,9 @@ export function TopbarPainel() {
         {/* No desktop a acao vem antes da identidade: a conta fecha a barra,
             como em toda topbar. */}
         <div className="hidden items-center gap-[16px] md:flex">
-          <BotaoDeExportar />
+          {/* A planilha e do caixa de uma empresa; o dono da plataforma nao
+              fecha caixa de ninguem. */}
+          {!plataforma && <BotaoDeExportar />}
           <Conta usuario={usuario} className="flex" />
         </div>
       </div>

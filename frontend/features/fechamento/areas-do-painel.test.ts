@@ -183,10 +183,16 @@ describe("a área Plataforma", () => {
       areasDisponiveis(opcoes).map((area) => area.id);
 
     expect(ids({ notas: true, banco: true })).toEqual(["CAIXA", "DESPESAS"]);
-    expect(ids({ notas: false, banco: false, plataforma: true })).toEqual([
-      "CAIXA",
-      "PLATAFORMA",
-    ]);
+  });
+
+  it("o dono da plataforma só vê a Plataforma", () => {
+    // Ele não fecha caixa nem lança despesa: administra as empresas. O caixa
+    // e as despesas que ele via eram os de todas as empresas juntas.
+    const ids = areasDisponiveis({ notas: true, banco: true, plataforma: true }).map(
+      (area) => area.id,
+    );
+
+    expect(ids).toEqual(["PLATAFORMA"]);
   });
 
   it("tem a aba Empresas só com a opção ligada", () => {
