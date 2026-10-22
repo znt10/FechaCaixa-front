@@ -3,6 +3,7 @@
 import React, { useId, useState } from "react";
 
 import { Secao } from "@/features/admin/components/Secao";
+import { SeletorDeClassificacao } from "@/features/banco/components/SeletorDeClassificacao";
 import {
   DIAS_PARA_REPOR,
   dentroDaJanela,
@@ -615,24 +616,23 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
                 {/* Select por categoria, e o valor e o id: "Coxinha" existe em
                     Salgados grande e em Salgados mini. */}
                 <Campo rotulo="Item" htmlFor={`${id}-desperdicio-${linha.chave}`}>
-                  <CampoSelecao
+                  {/* O seletor do extrato: o <select> nativo escolhia sozinho
+                      no mesmo clique que abria a lista. */}
+                  <SeletorDeClassificacao
                     id={`${id}-desperdicio-${linha.chave}`}
+                    rotulo="Item do desperdício"
                     valor={linha.salgadoId}
-                    onChange={(salgadoId) => atualizar({ ...linha, salgadoId })}
-                  >
-                    <option value="">
-                      {salgados.isPending ? "Carregando..." : "Escolha o item"}
-                    </option>
-                    {porCategoria(catalogoAtivo).map((grupo) => (
-                      <optgroup key={grupo.categoria} label={grupo.categoria}>
-                        {grupo.itens.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.nome}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </CampoSelecao>
+                    grupos={porCategoria(catalogoAtivo).map((grupo) => ({
+                      rotulo: grupo.categoria,
+                      opcoes: grupo.itens.map((item) => ({ valor: item.id, nome: item.nome })),
+                    }))}
+                    indisponivel={salgados.isPending ? "Carregando..." : null}
+                    desabilitado={false}
+                    aoEscolher={(salgadoId) => atualizar({ ...linha, salgadoId })}
+                    semValor="Escolha o item"
+                    procurar="Procurar item"
+                    nadaEncontrado="Nenhum item com esse nome."
+                  />
                 </Campo>
                 <Campo
                   rotulo="Quantidade (unidades)"

@@ -53,6 +53,7 @@ import {
   useTurnosDoDia,
 } from "@/features/fechamento/hooks/useFechamento";
 import { ehDomingo, hojeISO } from "@/features/fechamento/painel-dados";
+import { SeletorDeClassificacao } from "@/features/banco/components/SeletorDeClassificacao";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
 import { contaDoCaixa } from "@/features/fechamento/conta-do-caixa";
 import {
@@ -1249,26 +1250,26 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                       rotulo="ITEM"
                       htmlFor={`desperdicio-item-${linha.chave}`}
                     >
-                      <CampoSelecao
+                      {/* O seletor do extrato, e nao o <select> nativo: no
+                          Chrome do Linux a lista abria por cima do ponteiro e o
+                          mesmo clique que abria ja escolhia um item. */}
+                      <SeletorDeClassificacao
                         id={`desperdicio-item-${linha.chave}`}
+                        rotulo={`Item ${indice + 1} do desperdício`}
                         valor={linha.salgadoId}
-                        onChange={(salgadoId) => mudarDesperdicio(linha.chave, { salgadoId })}
-                      >
-                        <option value="" disabled>
-                          {salgados.isPending ? "Carregando..." : "Selecione o item"}
-                        </option>
-                        {agruparPorCategoria(opcoesDoSeletor(linha.salgadoId)).map(
-                          (grupo) => (
-                            <optgroup key={grupo.categoria} label={grupo.categoria}>
-                              {grupo.itens.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.nome}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ),
+                        grupos={agruparPorCategoria(opcoesDoSeletor(linha.salgadoId)).map(
+                          (grupo) => ({
+                            rotulo: grupo.categoria,
+                            opcoes: grupo.itens.map((item) => ({ valor: item.id, nome: item.nome })),
+                          }),
                         )}
-                      </CampoSelecao>
+                        indisponivel={salgados.isPending ? "Carregando..." : null}
+                        desabilitado={false}
+                        aoEscolher={(salgadoId) => mudarDesperdicio(linha.chave, { salgadoId })}
+                        semValor="Selecione o item"
+                        procurar="Procurar item"
+                        nadaEncontrado="Nenhum item com esse nome."
+                      />
                     </Campo>
 
                     <Campo
