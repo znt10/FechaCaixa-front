@@ -68,10 +68,14 @@ import type {
 } from "@/features/fechamento/services/fechamentos";
 import type { Empresa } from "@/features/fechamento/services/acesso";
 import {
-  mostraVendas,
   perguntaDePerda,
   perguntasVisiveis,
+  mostraVendas,
 } from "@/features/fechamento/formulario-da-empresa";
+import {
+  montarVendasDoTurno,
+  quantidadesDasVendas,
+} from "@/features/fechamento/vendas-do-turno";
 
 const PERIODOS: { valor: Periodo; rotulo: string }[] = [
   { valor: "MANHA", rotulo: "Manhã" },
@@ -176,6 +180,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const catalogoAtivo = catalogo.filter(
     (item) => item.ativo && item.categoria_ativo,
   );
+  // Os itens que a loja conta venda: os das categorias marcadas no catalogo
+  // (os bolos, e nao os salgados). Viram uma lista fixa, um campo por item.
+  const itensDeVenda = catalogoAtivo.filter((item) => item.categoria_conta_vendas);
   const opcoesDoSeletor = (salgadoIdDaLinha: string): Salgado[] => {
     if (!salgadoIdDaLinha || catalogoAtivo.some((item) => item.id === salgadoIdDaLinha)) {
       return catalogoAtivo;
@@ -183,15 +190,21 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     const jaEscolhido = catalogo.find((item) => item.id === salgadoIdDaLinha);
     return jaEscolhido ? [...catalogoAtivo, jaEscolhido] : catalogoAtivo;
   };
-  // O seletor de vendas: so as categorias marcadas para contar venda. Mesma
-  // regra de `opcoesDoSeletor` para o item ja escolhido numa correcao.
-  const catalogoDeVendas = catalogoAtivo.filter((item) => item.categoria_conta_vendas);
-  const opcoesDeVenda = (salgadoIdDaLinha: string): Salgado[] => {
-    if (!salgadoIdDaLinha || catalogoDeVendas.some((item) => item.id === salgadoIdDaLinha)) {
-      return catalogoDeVendas;
+  // Agrupado por categoria e nao por uma lista so: e o dois-niveis do
+  // catalogo (categoria > item) que faz "Coxinha" de "Salgados grande" e de
+  // "Salgados mini" serem escolhas diferentes, e o <optgroup> e o que mostra
+  // isso na tela em vez de duas linhas "Coxinha" indistinguiveis.
+  const agruparPorCategoria = (itens: Salgado[]) => {
+    const grupos: { categoria: string; itens: Salgado[] }[] = [];
+    for (const item of itens) {
+      let grupo = grupos.find((g) => g.categoria === item.categoria_nome);
+      if (!grupo) {
+        grupo = { categoria: item.categoria_nome, itens: [] };
+        grupos.push(grupo);
+      }
+      grupo.itens.push(item);
     }
-    const jaEscolhido = catalogo.find((item) => item.id === salgadoIdDaLinha);
-    return jaEscolhido ? [...catalogoDeVendas, jaEscolhido] : catalogoDeVendas;
+    return grupos;
   };
 
   const [pix, setPix] = useState("");
@@ -226,10 +239,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   // unidades, e nao dinheiro — o catalogo nao tem preco.
   const [houveDesperdicioDeItem, setHouveDesperdicioDeItem] = useState(false);
   const [desperdicios, setDesperdicios] = useState<LinhaDeDesperdicio[]>([]);
-  // As vendas do turno, item a item, das categorias marcadas no catalogo.
-  // Mesma pergunta de sim/nao do desperdicio: tem turno em que nao se conta.
-  const [houveVendas, setHouveVendas] = useState(false);
-  const [vendas, setVendas] = useState<LinhaDeDesperdicio[]>([]);
+  // Quantos de cada item a loja vendeu no turno, pelo id do item. Campo
+  // vazio e "nao vendeu" — nao precisa de pergunta de sim/nao antes.
+  const [vendas, setVendas] = useState<Record<string, string>>({});
 
   // Uma linha por pessoa: quem lanca o caixa e o gerente, e ele registra o
   // que cada um comeu no turno. Antes era um valor so, sempre de quem estava
@@ -263,7 +275,6 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     salgadoId,
     quantidade,
   });
-
 
   const alternarRetirada = (houve: boolean) => {
     setHouveRetirada(houve);
@@ -329,18 +340,6 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const removerDesperdicio = (chave: number) =>
     setDesperdicios((linhas) => linhas.filter((linha) => linha.chave !== chave));
 
-  const alternarVendas = (houve: boolean) => {
-    setHouveVendas(houve);
-    setVendas(houve && vendas.length === 0 ? [novaLinhaDeDesperdicio()] : vendas);
-  };
-
-  const mudarVenda = (chave: number, campos: Partial<LinhaDeDesperdicio>) =>
-    setVendas((linhas) =>
-      linhas.map((linha) => (linha.chave === chave ? { ...linha, ...campos } : linha)),
-    );
-  const removerVenda = (chave: number) =>
-    setVendas((linhas) => linhas.filter((linha) => linha.chave !== chave));
-
   // Quais perguntas opcionais esta empresa responde. O "houve" de cada uma
   // entra junto porque a correcao de um turno antigo reidrata o "sim": uma
   // pergunta desligada depois do envio continua na tela, senao o envio da
@@ -353,17 +352,18 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     perda: houveDesperdicioDeItem,
   });
   const mostraPerda = visiveis.perda && catalogo.length > 0;
-  // Sem categoria marcada nao ha o que escolher; numa correcao com vendas a
-  // secao fica, para nao apagar o que a loja contou.
-  const mostraSecaoDeVendas =
-    mostraVendas(empresa, houveVendas) && (catalogoDeVendas.length > 0 || houveVendas);
   const algumaPergunta =
-    visiveis.retirada ||
-    visiveis.despesa ||
-    visiveis.devolucao ||
-    visiveis.consumo ||
-    mostraPerda ||
-    mostraSecaoDeVendas;
+    visiveis.retirada || visiveis.despesa || visiveis.devolucao || visiveis.consumo || mostraPerda;
+  // Numa correcao, o item que ja tem venda fica na lista mesmo que a
+  // categoria tenha sido desmarcada depois — senao a correcao o apagaria.
+  const itensNaTela = [
+    ...itensDeVenda,
+    ...catalogo.filter(
+      (item) => vendas[item.id] && !itensDeVenda.some((v) => v.id === item.id),
+    ),
+  ];
+  const mostraSecaoDeVendas =
+    mostraVendas(empresa, Object.values(vendas).some(Boolean)) && itensNaTela.length > 0;
 
   const [erro, setErro] = useState<string | null>(null);
 
@@ -434,8 +434,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     setDevolucaoValor("");
     setHouveDesperdicioDeItem(false);
     setDesperdicios([]);
-    setHouveVendas(false);
-    setVendas([]);
+    setVendas({});
     setHouveConsumo(false);
     setConsumos([]);
   };
@@ -489,12 +488,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
         linhaEditavelDoDesperdicio(linha, proximaChave.current++),
       ),
     );
-    setHouveVendas((lancamento.vendas ?? []).length > 0);
-    setVendas(
-      (lancamento.vendas ?? []).map((linha) =>
-        linhaEditavelDoDesperdicio(linha, proximaChave.current++),
-      ),
-    );
+    setVendas(quantidadesDasVendas(lancamento.vendas ?? []));
   };
 
   /** Guarda a confirmacao e (re)abre a contagem com o prazo que o servidor
@@ -624,17 +618,6 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
       return;
     }
 
-    const vendasDoTurno = montarDesperdiciosDoTurno(
-      houveVendas ? vendas : [],
-      catalogo,
-      empresa,
-      "vendidos",
-    );
-    if (!vendasDoTurno.ok) {
-      setErro(vendasDoTurno.erro);
-      return;
-    }
-
     const payload = {
       loja,
       lancado_por: quemLancou.id,
@@ -659,9 +642,8 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
       // Sempre presente, mesmo vazia, pela mesma razao do consumo: numa
       // correcao a lista enviada substitui a anterior.
       desperdicios: perdas.desperdicios,
-      // So vai com a secao na tela: a empresa que nao conta venda nao manda a
-      // chave, e ausente e "nao mexi" para o servidor.
-      ...(mostraSecaoDeVendas ? { vendas: vendasDoTurno.desperdicios } : {}),
+      // So vai com a secao na tela: ausente e "nao mexi" para o servidor.
+      ...(mostraSecaoDeVendas ? { vendas: montarVendasDoTurno(vendas) } : {}),
       // Sempre presente, mesmo vazia: numa correcao a lista enviada substitui
       // a anterior, e omiti-la e o que diz "nao mexi no consumo".
       consumos: consumoDoTurno.consumos,
@@ -946,7 +928,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
             {/* Tambem fora do mockup: sao as perguntas que a gerencia pediu e
                 que o backend valida (retirada, despesa, devolucao,
                 desperdicio). As tres de dinheiro vem juntas. */}
-            {algumaPergunta && <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>}
+            {(algumaPergunta || mostraSecaoDeVendas) && (
+              <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>
+            )}
 
             {visiveis.retirada && (
               <Pergunta
@@ -1198,36 +1182,119 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                 valor={houveDesperdicioDeItem}
                 onChange={alternarDesperdicioDeItem}
               >
-                <LinhasDeItens
-                  prefixo="desperdicio"
-                  linhas={desperdicios}
-                  opcoes={opcoesDoSeletor}
-                  mudar={mudarDesperdicio}
-                  remover={removerDesperdicio}
-                  adicionar={() => setDesperdicios([...desperdicios, novaLinhaDeDesperdicio()])}
-                  carregando={salgados.isPending}
-                />
+                {desperdicios.map((linha, indice) => (
+                  <div
+                    key={linha.chave}
+                    className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
+                  >
+                    <div className="flex w-full items-center justify-between gap-3">
+                      <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
+                        Item {indice + 1}
+                      </span>
+                      {/* A primeira linha nao some: sem nenhuma, a resposta
+                          "sim" ficaria sem o que preencher. */}
+                      {desperdicios.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removerDesperdicio(linha.chave)}
+                          className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
+                        >
+                          Remover
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Select por categoria, e nao o campo digitavel com lista
+                        que o resto do formulario usa: o catalogo tem dois
+                        niveis (categoria > item) precisamente porque o nome
+                        repete — "Coxinha" existe em "Salgados grande" e em
+                        "Salgados mini". Um campo de texto so devolveria o
+                        nome, e quem resolvesse por nome so acharia o
+                        primeiro — a familia "mini" nunca seria alcancada. O
+                        <optgroup> mostra a categoria junto do nome, e o valor
+                        que sai daqui e sempre o id do item, nunca o texto. */}
+                    <Campo
+                      rotulo="ITEM"
+                      htmlFor={`desperdicio-item-${linha.chave}`}
+                    >
+                      <CampoSelecao
+                        id={`desperdicio-item-${linha.chave}`}
+                        valor={linha.salgadoId}
+                        onChange={(salgadoId) => mudarDesperdicio(linha.chave, { salgadoId })}
+                      >
+                        <option value="" disabled>
+                          {salgados.isPending ? "Carregando..." : "Selecione o item"}
+                        </option>
+                        {agruparPorCategoria(opcoesDoSeletor(linha.salgadoId)).map(
+                          (grupo) => (
+                            <optgroup key={grupo.categoria} label={grupo.categoria}>
+                              {grupo.itens.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                  {item.nome}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ),
+                        )}
+                      </CampoSelecao>
+                    </Campo>
+
+                    <Campo
+                      rotulo="QUANTIDADE (UNIDADES)"
+                      htmlFor={`desperdicio-quantidade-${linha.chave}`}
+                    >
+                      <CampoTexto
+                        id={`desperdicio-quantidade-${linha.chave}`}
+                        inputMode="numeric"
+                        valor={linha.quantidade}
+                        onChange={(quantidade) =>
+                          mudarDesperdicio(linha.chave, {
+                            quantidade: quantidade.replace(/\D/g, ""),
+                          })
+                        }
+                        placeholder="Ex.: 8"
+                      />
+                    </Campo>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setDesperdicios([...desperdicios, novaLinhaDeDesperdicio()])}
+                  className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
+                >
+                  + Adicionar item
+                </button>
               </Pergunta>
             )}
 
-            {/* So para a empresa que conta venda, e so com categoria marcada
-                no catalogo — "Bolos", e nao os salgados. */}
             {mostraSecaoDeVendas && (
-              <Pergunta
-                rotulo="Contar as vendas do turno?"
-                valor={houveVendas}
-                onChange={alternarVendas}
-              >
-                <LinhasDeItens
-                  prefixo="venda"
-                  linhas={vendas}
-                  opcoes={opcoesDeVenda}
-                  mudar={mudarVenda}
-                  remover={removerVenda}
-                  adicionar={() => setVendas([...vendas, novaLinhaDeDesperdicio()])}
-                  carregando={salgados.isPending}
-                />
-              </Pergunta>
+              <div className="flex w-full flex-col gap-[10px]">
+                <span className="text-[15px] leading-[1.4] text-caixa-ink">
+                  Quantos vendeu de cada um?
+                </span>
+                <div className="flex w-full flex-col gap-[8px] rounded-[10px] bg-caixa-bg p-[14px]">
+                  {itensNaTela.map((item) => (
+                    <label
+                      key={item.id}
+                      htmlFor={`venda-${item.id}`}
+                      className="flex w-full items-center justify-between gap-3"
+                    >
+                      <span className="text-[15px] text-caixa-ink">{item.nome}</span>
+                      <input
+                        id={`venda-${item.id}`}
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={vendas[item.id] ?? ""}
+                        onChange={(e) =>
+                          setVendas({ ...vendas, [item.id]: e.target.value.replace(/\D/g, "") })
+                        }
+                        className="w-[80px] rounded-[8px] border border-caixa-border bg-caixa-surface px-[10px] py-[8px] text-right text-[15px] font-medium text-caixa-ink outline-none focus:border-caixa-accent"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Este bloco e o que ensina a conta: o campo la em cima se chama
@@ -1324,131 +1391,5 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
         )}
       </div>
     </div>
-  );
-}
-
-// Agrupado por categoria e nao por uma lista so: e o dois-niveis do
-// catalogo (categoria > item) que faz "Coxinha" de "Salgados grande" e de
-// "Salgados mini" serem escolhas diferentes, e o <optgroup> e o que mostra
-// isso na tela em vez de duas linhas "Coxinha" indistinguiveis.
-const agruparPorCategoria = (itens: Salgado[]) => {
-  const grupos: { categoria: string; itens: Salgado[] }[] = [];
-  for (const item of itens) {
-    let grupo = grupos.find((g) => g.categoria === item.categoria_nome);
-    if (!grupo) {
-      grupo = { categoria: item.categoria_nome, itens: [] };
-      grupos.push(grupo);
-    }
-    grupo.itens.push(item);
-  }
-  return grupos;
-};
-
-// As linhas de item + quantidade, iguais no desperdicio e nas vendas: so
-// muda de qual lista elas sao e o que o seletor oferece. Fora do formulario
-// para nao ser redefinido (e remontar os campos, perdendo o foco) a cada tecla.
-function LinhasDeItens({
-  prefixo,
-  linhas,
-  opcoes,
-  mudar,
-  remover,
-  adicionar,
-  carregando,
-}: {
-  prefixo: string;
-  linhas: LinhaDeDesperdicio[];
-  opcoes: (salgadoIdDaLinha: string) => Salgado[];
-  mudar: (chave: number, campos: Partial<LinhaDeDesperdicio>) => void;
-  remover: (chave: number) => void;
-  adicionar: () => void;
-  carregando: boolean;
-}) {
-  return (
-    <>
-      {linhas.map((linha, indice) => (
-        <div
-          key={linha.chave}
-          className="flex w-full flex-col gap-[12px] rounded-[10px] border border-caixa-border bg-caixa-surface p-[14px]"
-        >
-          <div className="flex w-full items-center justify-between gap-3">
-            <span className="text-[12px] font-semibold uppercase tracking-[0.06em] text-caixa-muted">
-              Item {indice + 1}
-            </span>
-            {/* A primeira linha nao some: sem nenhuma, a resposta
-                "sim" ficaria sem o que preencher. */}
-            {linhas.length > 1 && (
-              <button
-                type="button"
-                onClick={() => remover(linha.chave)}
-                className="text-[13px] font-medium text-caixa-muted underline underline-offset-2"
-              >
-                Remover
-              </button>
-            )}
-          </div>
-
-          {/* Select por categoria, e nao o campo digitavel com lista
-              que o resto do formulario usa: o catalogo tem dois
-              niveis (categoria > item) precisamente porque o nome
-              repete — "Coxinha" existe em "Salgados grande" e em
-              "Salgados mini". Um campo de texto so devolveria o
-              nome, e quem resolvesse por nome so acharia o
-              primeiro — a familia "mini" nunca seria alcancada. O
-              <optgroup> mostra a categoria junto do nome, e o valor
-              que sai daqui e sempre o id do item, nunca o texto. */}
-          <Campo
-            rotulo="ITEM"
-            htmlFor={`${prefixo}-item-${linha.chave}`}
-          >
-            <CampoSelecao
-              id={`${prefixo}-item-${linha.chave}`}
-              valor={linha.salgadoId}
-              onChange={(salgadoId) => mudar(linha.chave, { salgadoId })}
-            >
-              <option value="" disabled>
-                {carregando ? "Carregando..." : "Selecione o item"}
-              </option>
-              {agruparPorCategoria(opcoes(linha.salgadoId)).map(
-                (grupo) => (
-                  <optgroup key={grupo.categoria} label={grupo.categoria}>
-                    {grupo.itens.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.nome}
-                      </option>
-                    ))}
-                  </optgroup>
-                ),
-              )}
-            </CampoSelecao>
-          </Campo>
-
-          <Campo
-            rotulo="QUANTIDADE (UNIDADES)"
-            htmlFor={`${prefixo}-quantidade-${linha.chave}`}
-          >
-            <CampoTexto
-              id={`${prefixo}-quantidade-${linha.chave}`}
-              inputMode="numeric"
-              valor={linha.quantidade}
-              onChange={(quantidade) =>
-                mudar(linha.chave, {
-                  quantidade: quantidade.replace(/\D/g, ""),
-                })
-              }
-              placeholder="Ex.: 8"
-            />
-          </Campo>
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={adicionar}
-        className="w-full rounded-[10px] border border-dashed border-caixa-accent px-[16px] py-[12px] text-[14px] font-semibold text-caixa-accent transition active:scale-[0.99]"
-      >
-        + Adicionar item
-      </button>
-    </>
   );
 }

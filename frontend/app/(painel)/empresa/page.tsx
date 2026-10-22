@@ -891,9 +891,8 @@ function OFormularioDaLoja() {
                 Contar vendas por item
               </span>
               <span className="text-[13px] leading-[1.4] text-caixa-muted">
-                O formulário pergunta quantos de cada item a loja vendeu no
-                turno. Só entram as categorias marcadas com &ldquo;Contar
-                vendas&rdquo; no Catálogo. Não mexe no valor do caixa.
+                No fechamento, a loja diz quantos vendeu de cada item. Escolha
+                os itens no Catálogo, em &ldquo;Contar vendas&rdquo;.
               </span>
             </span>
           </label>
