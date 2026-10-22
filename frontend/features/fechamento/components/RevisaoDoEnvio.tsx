@@ -73,9 +73,11 @@ export function RevisaoDoEnvio({
               <span className="text-caixa-muted">{linha.rotulo}</span>
               {linha.valor && (
                 <span className="font-medium tabular-nums">
-                  {/* Desperdício é a única linha em unidades, não em dinheiro
+                  {/* Desperdício e vendas são as linhas em unidades, não em dinheiro
                       — prefixar "R$" leria 8 coxinhas como oito reais. */}
-                  {bloco.titulo === "Desperdício" ? linha.valor : `R$ ${linha.valor}`}
+                  {bloco.titulo === "Desperdício" || bloco.titulo === "Vendas"
+                    ? linha.valor
+                    : `R$ ${linha.valor}`}
                 </span>
               )}
             </div>

@@ -18,6 +18,9 @@ export type ConfiguracaoDoFormulario = {
   pergunta_devolucao?: boolean;
   pergunta_consumo?: boolean;
   catalogo_ativo?: boolean;
+  /** A secao de vendas por item. Ao contrario das perguntas, ausente conta
+   *  como DESLIGADA: e coisa nova, e o backend de antes nao conta venda. */
+  vendas_ativas?: boolean;
   /** No plural: entra no meio de frase ("Houve perda de pães?"). */
   nome_dos_itens?: string;
 };
@@ -136,3 +139,14 @@ export const resumoDoFormulario = (config: ConfiguracaoDoFormulario): string => 
 
   return `${quantas} · ${catalogo}`;
 };
+
+/**
+ * O formulário mostra a seção de vendas?
+ *
+ * Precisa da empresa ligada E do catálogo ligado — a venda se conta por item
+ * do catálogo. `jaTemVendas` segura a seção na tela na correção de um turno
+ * que já tem vendas, pelo mesmo motivo de `perguntasVisiveis`: escondida, a
+ * correção iria sem ela e apagaria o que a loja contou.
+ */
+export const mostraVendas = (config: ConfiguracaoDoFormulario, jaTemVendas: boolean) =>
+  jaTemVendas || (config.vendas_ativas === true && config.catalogo_ativo !== false);

@@ -13,9 +13,12 @@ export type TipoDeSaidaEmDinheiro = "DESPESA" | "RETIRADA" | "CONSUMO" | "DEVOLU
  *  catalogo nao tem preco e ninguem pagou nada. Ele se conta em unidades, e
  *  por isso fica fora de `porTipo` e de `totais.tudo` — juntar os dois num
  *  mesmo numero somaria 8 coxinhas com R$ 8,00. */
-export type TipoDeSaida = TipoDeSaidaEmDinheiro | "DESPERDICIO";
+export type TipoDeSaida = TipoDeSaidaEmDinheiro | "DESPERDICIO" | "VENDA";
 
-/** "TODAS" e o estado inicial da tela: os cinco tipos juntos. */
+/** "TODAS" e o estado inicial da tela: os cinco tipos juntos. A venda fica
+ *  fora dele: nao saiu nada, e a contagem que a loja faz do que vendeu. Ela
+ *  mora nesta tela so por ser contada do mesmo jeito que o desperdicio, item a
+ *  item, em unidades. */
 export type FiltroDeSaida = TipoDeSaida | "TODAS";
 
 /**
@@ -44,10 +47,10 @@ export type Saida = {
   /** So no consumo: o cadastro de quem comeu, que e por onde o total do mes
    *  agrupa. A pessoa nao e fixa numa loja, e o nome pode ser corrigido. */
   pessoaId?: string;
-  /** So no desperdicio: unidades perdidas. Nos outros tipos o que vale e
+  /** So no desperdicio e na venda: unidades. Nos outros tipos o que vale e
    *  `valor`, e aqui ele e sempre 0. */
   quantidade?: number;
-  /** So no desperdicio: o item do catalogo e a familia dele. O nome sozinho
+  /** So no desperdicio e na venda: o item do catalogo e a familia dele. O nome sozinho
    *  nao identifica — "Coxinha" existe em Salgados grande e em Salgados mini. */
   salgadoId?: string;
   categoria?: string;
@@ -105,8 +108,9 @@ export type ResumoDeSaidas = {
     retiradas: number;
     devolucoes: number;
     consumo: number;
-    /** Em UNIDADES, nao em reais — o unico campo deste objeto que nao e R$. */
+    /** Em UNIDADES, nao em reais — como `vendas`, os unicos que nao sao R$. */
     desperdicio: number;
+    vendas: number;
   };
 };
 
@@ -129,6 +133,7 @@ const ORDEM_DOS_TIPOS = {
   DEVOLUCAO: 2,
   CONSUMO: 3,
   DESPERDICIO: 4,
+  VENDA: 5,
 } as const;
 
 const maisRecentePrimeiro = (a: Saida, b: Saida) =>
@@ -233,6 +238,21 @@ const saidasDoTurno = (fechamento: FechamentoLido): Saida[] => {
     });
   }
 
+  // A venda contada por item, no mesmo formato do desperdicio.
+  for (const venda of fechamento.vendas ?? []) {
+    if (venda.quantidade <= 0) continue;
+    saidas.push({
+      ...comum,
+      id: venda.id,
+      tipo: "VENDA",
+      descricao: venda.nome,
+      valor: 0,
+      quantidade: venda.quantidade,
+      salgadoId: venda.salgado,
+      categoria: venda.categoria_nome,
+    });
+  }
+
   return saidas;
 };
 
@@ -293,16 +313,19 @@ export const montarConsumoPorPessoa = (
  * consumo por pessoa, e agrupa pelo item, nao pelo nome: "Coxinha" grande e
  * "Coxinha" mini sao itens diferentes, e somar as duas esconderia qual delas
  * se perde.
+ *
+ * Serve tambem para a venda (`tipo` "VENDA"): a mesma soma por item.
  */
 export const montarDesperdicioPorSalgado = (
   fechamentos: FechamentoLido[],
   ordem: OrdemDaLista = "VALOR",
+  tipo: "DESPERDICIO" | "VENDA" = "DESPERDICIO",
 ): LinhaDeDesperdicio[] => {
   const porSalgado = new Map<string, LinhaDeDesperdicio>();
 
   for (const fechamento of fechamentos) {
     for (const perda of saidasDoTurno(fechamento)) {
-      if (perda.tipo !== "DESPERDICIO" || !perda.salgadoId) continue;
+      if (perda.tipo !== tipo || !perda.salgadoId) continue;
 
       const linha = porSalgado.get(perda.salgadoId) ?? {
         salgadoId: perda.salgadoId,
@@ -349,7 +372,11 @@ export const montarSaidas = (
   const linhas = lojas
     .map((loja) => {
       const saidas = todas
-        .filter((s) => s.lojaId === loja.id && (filtro === "TODAS" || s.tipo === filtro))
+        .filter(
+          (s) =>
+            s.lojaId === loja.id &&
+            (filtro === "TODAS" ? s.tipo !== "VENDA" : s.tipo === filtro),
+        )
         .sort(maisRecentePrimeiro);
       return {
         lojaId: loja.id,
@@ -394,6 +421,7 @@ export const montarSaidas = (
       // Em unidades, nao em reais: o desperdicio nao tem preco no catalogo, e
       // por isso fica fora de "tudo" — ali e so o que a empresa perdeu em R$.
       desperdicio: somarUnidades(doTipo("DESPERDICIO")),
+      vendas: somarUnidades(doTipo("VENDA")),
     },
   };
 };

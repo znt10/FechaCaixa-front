@@ -876,6 +876,29 @@ function OFormularioDaLoja() {
           </span>
         </label>
 
+        {/* Depende do catalogo: a venda se conta por item dele. */}
+        {config.catalogo_ativo !== false && (
+          <label className="flex items-start gap-[10px] pl-[26px]">
+            <input
+              type="checkbox"
+              checked={config.vendas_ativas === true}
+              disabled={editar.isPending}
+              onChange={(evento) => editar.mutate({ vendas_ativas: evento.target.checked })}
+              className="mt-[3px] h-[16px] w-[16px] accent-caixa-accent"
+            />
+            <span className="flex flex-col gap-[1px]">
+              <span className="text-[15px] leading-[1.35]">
+                Contar vendas por item
+              </span>
+              <span className="text-[13px] leading-[1.4] text-caixa-muted">
+                O formulário pergunta quantos de cada item a loja vendeu no
+                turno. Só entram as categorias marcadas com &ldquo;Contar
+                vendas&rdquo; no Catálogo. Não mexe no valor do caixa.
+              </span>
+            </span>
+          </label>
+        )}
+
         <div className="flex flex-col gap-[6px] border-t border-caixa-border pt-[14px]">
           <label
             htmlFor="nome-dos-itens"

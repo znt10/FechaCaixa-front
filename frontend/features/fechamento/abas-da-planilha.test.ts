@@ -10,7 +10,7 @@ import { ABAS_DA_PLANILHA, enderecoDaPlanilha } from "./abas-da-planilha";
  * backend (app/api/v1/views/planilha.py) escreve so elas.
  */
 describe("as abas da planilha", () => {
-  it("sao as cinco do arquivo, na ordem dele", () => {
+  it("sao as seis do arquivo, na ordem dele", () => {
     // Espelha ABAS do backend: uma aba nova la sem entrar aqui nunca chega a
     // ser escolhida, e um nome errado aqui some do arquivo sem erro nenhum.
     expect(ABAS_DA_PLANILHA.map((aba) => aba.chave)).toEqual([
@@ -19,6 +19,7 @@ describe("as abas da planilha", () => {
       "consumo_por_pessoa",
       "consumo",
       "desperdicio",
+      "vendas",
     ]);
   });
 

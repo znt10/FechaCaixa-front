@@ -10,6 +10,9 @@ export type CategoriaDeSalgado = {
   nome: string;
   ordem: number;
   ativo: boolean;
+  /** Se os itens desta categoria entram na contagem de vendas do formulario.
+   *  Ausente no backend antigo. */
+  conta_vendas?: boolean;
 };
 
 const json = async (res: Response) => {
@@ -38,7 +41,7 @@ export const criarSalgado = async (nome: string, categoria: string) =>
 
 export const atualizarCategoria = async (
   id: string,
-  campos: Partial<Pick<CategoriaDeSalgado, "nome" | "ativo" | "ordem">>,
+  campos: Partial<Pick<CategoriaDeSalgado, "nome" | "ativo" | "ordem" | "conta_vendas">>,
 ) =>
   json(await apiV1(`/categorias-de-salgado/${id}/`, {
     method: "PATCH",

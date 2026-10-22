@@ -134,6 +134,16 @@ export const montarRevisao = (
     });
   }
 
+  if (payload.vendas?.length) {
+    blocos.push({
+      titulo: "Vendas",
+      linhas: payload.vendas.map((linha) => {
+        const item = (contexto.catalogo ?? []).find((s) => s.id === linha.salgado);
+        return { rotulo: item?.nome ?? SEM_NOME, valor: `${linha.quantidade} un` };
+      }),
+    });
+  }
+
   return {
     loja: loja?.nome_loja ?? SEM_NOME,
     turno: rotuloDoTurno(payload.periodo),

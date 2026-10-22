@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { montarSaidas } from "./saidas-dados";
+import { montarDesperdicioPorSalgado, montarSaidas } from "./saidas-dados";
 import type { FechamentoLido, LojaDoPainel } from "./services/painel";
 
 // Os testes do backend (app/tests/test_fechamento_caixa.py) montam o payload
@@ -199,6 +199,7 @@ describe("montarSaidas", () => {
       devolucoes: 0,
       consumo: 0,
       desperdicio: 0,
+      vendas: 0,
     });
   });
 });
@@ -489,5 +490,45 @@ describe("o desperdicio nas saidas", () => {
 
     expect(resumo.totais.desperdicio).toBe(0);
     expect(resumo.linhas[0].saidas.some((s) => s.tipo === "DESPERDICIO")).toBe(false);
+  });
+});
+
+describe("as vendas contadas por item", () => {
+  const venda = (salgado: string, nome: string, quantidade: number) => ({
+    id: `v-${salgado}-${quantidade}`,
+    salgado,
+    nome,
+    categoria_nome: "Bolos",
+    quantidade,
+  });
+
+  const turnos = [
+    fechamento({ vendas: [venda("s-nata", "Nata", 10), venda("s-form", "Formigueiro", 4)] }),
+    fechamento({ vendas: [venda("s-nata", "Nata", 3)], ...{ data: "2026-08-23" } }),
+    comDespesa("50.00"),
+  ];
+
+  it("ficam fora do Todas, que e so o que saiu", () => {
+    const resumo = montarSaidas([CENTRO], turnos);
+
+    expect(resumo.linhas[0].saidas.map((s) => s.tipo)).toEqual(["DESPESA"]);
+    expect(resumo.totais.tudo).toBe(50);
+  });
+
+  it("somam em unidades no total proprio", () => {
+    expect(montarSaidas([CENTRO], turnos).totais.vendas).toBe(17);
+  });
+
+  it("viram uma lista por item com o filtro de vendas", () => {
+    const itens = montarDesperdicioPorSalgado(turnos, "VALOR", "VENDA");
+
+    expect(itens.map((i) => [i.nome, i.total])).toEqual([
+      ["Nata", 13],
+      ["Formigueiro", 4],
+    ]);
+  });
+
+  it("nao entram na lista do desperdicio", () => {
+    expect(montarDesperdicioPorSalgado(turnos)).toEqual([]);
   });
 });

@@ -8,6 +8,7 @@ import {
   perguntaDePerda,
   perguntasVisiveis,
   tituloDoCatalogo,
+  mostraVendas,
 } from "./formulario-da-empresa";
 
 const nenhumaRespondida = {
@@ -169,5 +170,23 @@ describe("resumoDoFormulario", () => {
         catalogo_ativo: false,
       }),
     ).toBe("nenhuma pergunta · sem catálogo");
+  });
+});
+
+describe("a secao de vendas", () => {
+  it("nasce desligada: o backend antigo nao manda o campo", () => {
+    expect(mostraVendas({}, false)).toBe(false);
+  });
+
+  it("aparece com a empresa ligada", () => {
+    expect(mostraVendas({ vendas_ativas: true }, false)).toBe(true);
+  });
+
+  it("some sem catalogo, porque a venda se conta por item dele", () => {
+    expect(mostraVendas({ vendas_ativas: true, catalogo_ativo: false }, false)).toBe(false);
+  });
+
+  it("fica na correcao de um turno que ja tem vendas", () => {
+    expect(mostraVendas({ vendas_ativas: false }, true)).toBe(true);
   });
 });

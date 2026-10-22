@@ -47,6 +47,8 @@ export const montarDesperdiciosDoTurno = (
   // falar de salgado para quem vende pão. Vazio conta como "salgados", que é
   // o texto de antes.
   configuracao: ConfiguracaoDoFormulario = {},
+  // As vendas usam esta mesma montagem; so a mensagem muda.
+  verbo: "perdidos" | "vendidos" = "perdidos",
 ): Resultado => {
   const desperdicios: DesperdicioDoTurno[] = [];
 
@@ -73,7 +75,7 @@ export const montarDesperdiciosDoTurno = (
     if (!Number.isInteger(quantidade) || quantidade <= 0) {
       return {
         ok: false,
-        erro: `Informe quantos ${item.nome} foram perdidos, em um número inteiro.`,
+        erro: `Informe quantos ${item.nome} foram ${verbo}, em um número inteiro.`,
       };
     }
 
