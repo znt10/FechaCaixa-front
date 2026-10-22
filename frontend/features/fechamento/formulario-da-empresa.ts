@@ -70,10 +70,14 @@ export const perguntasVisiveis = (
 export const nomeDosItens = (config: ConfiguracaoDoFormulario) =>
   config.nome_dos_itens?.trim() || "salgados";
 
-/** "Houve perda de ...", e não "Perdeu algum ...": com um nome só, no plural,
+/** Fixa, sem o nome dos itens: "Houve perda de bolos?" logo acima de
+ *  "Quantos vendeu de cada um?" misturava o que se perde com o que se vende.
+ *  A configuração continua no parâmetro para quem já chama assim.
+ *
+ *  Antes era "Houve perda de ...", e não "Perdeu algum ...": com um nome só, no plural,
  *  não dá para saber se é "algum" ou "alguma". */
-export const perguntaDePerda = (config: ConfiguracaoDoFormulario) =>
-  `Houve perda de ${nomeDosItens(config)}?`;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const perguntaDePerda = (_config: ConfiguracaoDoFormulario) => "Houve desperdício?";
 
 export const tituloDoCatalogo = (config: ConfiguracaoDoFormulario) =>
   `Catálogo de ${nomeDosItens(config)}`;

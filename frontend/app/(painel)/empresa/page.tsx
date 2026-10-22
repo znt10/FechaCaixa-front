@@ -931,7 +931,7 @@ function OFormularioDaLoja() {
             )}
           </div>
           <p className="text-[13px] leading-[1.4] text-caixa-muted">
-            No plural, como entra na frase: &quot;Houve perda de {nomeSalvo}?&quot;.
+            No plural, como aparece no título: &quot;Catálogo de {nomeSalvo}&quot;.
           </p>
         </div>
 

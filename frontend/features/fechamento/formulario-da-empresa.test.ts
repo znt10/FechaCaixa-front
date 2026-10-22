@@ -78,7 +78,6 @@ describe("textos com o nome dos itens", () => {
   it("usa o nome que a empresa deu", () => {
     const padaria = { nome_dos_itens: "pães" };
 
-    expect(perguntaDePerda(padaria)).toBe("Houve perda de pães?");
     expect(tituloDoCatalogo(padaria)).toBe("Catálogo de pães");
     expect(avisoDeCatalogoVazio(padaria)).toBe(
       "O catálogo de pães está vazio. Cadastre os itens na tela Catálogo.",
@@ -90,11 +89,10 @@ describe("textos com o nome dos itens", () => {
     // no formulário seria pior do que o texto de antes.
     expect(nomeDosItens({})).toBe("salgados");
     expect(nomeDosItens({ nome_dos_itens: "   " })).toBe("salgados");
-    expect(perguntaDePerda({})).toBe("Houve perda de salgados?");
   });
 
-  it("tira o espaço em volta do nome", () => {
-    expect(perguntaDePerda({ nome_dos_itens: " tortas " })).toBe("Houve perda de tortas?");
+  it("a pergunta de perda e fixa, sem o nome dos itens", () => {
+    expect(perguntaDePerda({ nome_dos_itens: "bolos" })).toBe("Houve desperdício?");
   });
 });
 

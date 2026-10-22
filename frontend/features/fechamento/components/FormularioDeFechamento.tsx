@@ -925,12 +925,44 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
               />
             </Campo>
 
+            {/* Secao propria, longe do desperdicio: perto dele, "quantos
+                vendeu" e "houve perda" se confundiam. */}
+            {mostraSecaoDeVendas && (
+              <TituloSecao>VENDAS DO TURNO</TituloSecao>
+            )}
+            {mostraSecaoDeVendas && (
+              <div className="flex w-full flex-col gap-[10px]">
+                <span className="text-[15px] leading-[1.4] text-caixa-ink">
+                  Quantos vendeu de cada um?
+                </span>
+                <div className="flex w-full flex-col gap-[8px] rounded-[10px] bg-caixa-bg p-[14px]">
+                  {itensNaTela.map((item) => (
+                    <label
+                      key={item.id}
+                      htmlFor={`venda-${item.id}`}
+                      className="flex w-full items-center justify-between gap-3"
+                    >
+                      <span className="text-[15px] text-caixa-ink">{item.nome}</span>
+                      <input
+                        id={`venda-${item.id}`}
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={vendas[item.id] ?? ""}
+                        onChange={(e) =>
+                          setVendas({ ...vendas, [item.id]: e.target.value.replace(/\D/g, "") })
+                        }
+                        className="w-[80px] rounded-[8px] border border-caixa-border bg-caixa-surface px-[10px] py-[8px] text-right text-[15px] font-medium text-caixa-ink outline-none focus:border-caixa-accent"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Tambem fora do mockup: sao as perguntas que a gerencia pediu e
                 que o backend valida (retirada, despesa, devolucao,
                 desperdicio). As tres de dinheiro vem juntas. */}
-            {(algumaPergunta || mostraSecaoDeVendas) && (
-              <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>
-            )}
+            {algumaPergunta && <TituloSecao>OUTRAS INFORMAÇÕES</TituloSecao>}
 
             {visiveis.retirada && (
               <Pergunta
@@ -1266,35 +1298,6 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                   + Adicionar item
                 </button>
               </Pergunta>
-            )}
-
-            {mostraSecaoDeVendas && (
-              <div className="flex w-full flex-col gap-[10px]">
-                <span className="text-[15px] leading-[1.4] text-caixa-ink">
-                  Quantos vendeu de cada um?
-                </span>
-                <div className="flex w-full flex-col gap-[8px] rounded-[10px] bg-caixa-bg p-[14px]">
-                  {itensNaTela.map((item) => (
-                    <label
-                      key={item.id}
-                      htmlFor={`venda-${item.id}`}
-                      className="flex w-full items-center justify-between gap-3"
-                    >
-                      <span className="text-[15px] text-caixa-ink">{item.nome}</span>
-                      <input
-                        id={`venda-${item.id}`}
-                        inputMode="numeric"
-                        placeholder="0"
-                        value={vendas[item.id] ?? ""}
-                        onChange={(e) =>
-                          setVendas({ ...vendas, [item.id]: e.target.value.replace(/\D/g, "") })
-                        }
-                        className="w-[80px] rounded-[8px] border border-caixa-border bg-caixa-surface px-[10px] py-[8px] text-right text-[15px] font-medium text-caixa-ink outline-none focus:border-caixa-accent"
-                      />
-                    </label>
-                  ))}
-                </div>
-              </div>
             )}
 
             {/* Este bloco e o que ensina a conta: o campo la em cima se chama
