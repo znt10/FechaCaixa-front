@@ -102,10 +102,16 @@ export default function SaidasPage() {
 
   // "Desperdicio" tambem troca a lista, agora de loja para salgado: por loja
   // ela so dizia "Limão · 13 un", e a pergunta e qual item vai para o lixo.
-  const porSalgado = filtro === "DESPERDICIO";
+  // A venda usa a mesma lista por item: a pergunta e qual bolo saiu mais.
+  const porSalgado = filtro === "DESPERDICIO" || filtro === "VENDA";
   const salgados = useMemo(
-    () => montarDesperdicioPorSalgado(fechamentos.data ?? [], ordem),
-    [fechamentos.data, ordem],
+    () =>
+      montarDesperdicioPorSalgado(
+        fechamentos.data ?? [],
+        ordem,
+        filtro === "VENDA" ? "VENDA" : "DESPERDICIO",
+      ),
+    [fechamentos.data, ordem, filtro],
   );
 
   const itensDaLista = porPessoa ? pessoas : porSalgado ? salgados : resumo.linhas;
@@ -293,6 +299,25 @@ export default function SaidasPage() {
                 </p>
               </>
             )}
+
+            {/* Venda nao e saida: aparece aqui so por ser contada do mesmo
+                jeito, item a item. Some quando o periodo nao tem nenhuma,
+                para a empresa que nao conta vendas nao ver um zero a mais. */}
+            {catalogoAtivo && (resumo.totais.vendas > 0 || filtro === "VENDA") && (
+              <>
+                <ItemDaComposicao
+                  tipo="VENDA"
+                  rotulo="Vendas"
+                  valor={resumo.totais.vendas}
+                  formato="UNIDADES"
+                  filtro={filtro}
+                  aoFiltrar={setFiltro}
+                />
+                <p className="mt-[-4px] pl-[19px] text-[12px] leading-[1.4] text-caixa-muted">
+                  Quantos de cada item a loja vendeu — não entra nas saídas.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -313,6 +338,8 @@ export default function SaidasPage() {
                   ? "Ninguém consumiu neste período."
                   : filtro === "DESPERDICIO"
                     ? "Nenhum desperdício neste período."
+                    : filtro === "VENDA"
+                      ? "Nenhuma venda contada neste período."
                     : "Nada saiu da gaveta neste período."}{" "}
           Despesa, retirada, devolução, consumo e desperdício são lançados
           pela loja no formulário de fechamento.
@@ -326,9 +353,13 @@ export default function SaidasPage() {
                   ? "1 pessoa consumiu"
                   : `${pessoas.length} pessoas consumiram`
                 : porSalgado
-                  ? salgados.length === 1
-                    ? "1 item desperdiçado"
-                    : `${salgados.length} itens desperdiçados`
+                  ? filtro === "VENDA"
+                    ? salgados.length === 1
+                      ? "1 item vendido"
+                      : `${salgados.length} itens vendidos`
+                    : salgados.length === 1
+                      ? "1 item desperdiçado"
+                      : `${salgados.length} itens desperdiçados`
                 : resumo.linhas.length === 1
                   ? "1 loja com saída"
                   : `${resumo.linhas.length} lojas com saída`}
@@ -372,6 +403,7 @@ export default function SaidasPage() {
                     <LinhaDoSalgado
                       key={linha.salgadoId}
                       linha={linha}
+                      tipo={filtro === "VENDA" ? "VENDA" : "DESPERDICIO"}
                       maiorTotal={maiorTotal}
                       aberta={abertas.includes(linha.salgadoId)}
                       aoAlternar={() => alternar(linha.salgadoId)}
@@ -404,6 +436,8 @@ const COR_DO_TIPO: Record<TipoDeSaida, string> = {
   // Nem cor de dinheiro perdido, nem cor de dinheiro a salvo: o desperdicio e
   // outra grandeza (unidades), e a cor neutra marca essa diferenca.
   DESPERDICIO: "bg-caixa-muted",
+  // Venda em verde: e a unica coisa boa desta tela.
+  VENDA: "bg-caixa-accent",
 };
 
 const ROTULO_DO_FILTRO: Record<Exclude<FiltroDeSaida, "TODAS">, string> = {
@@ -412,6 +446,7 @@ const ROTULO_DO_FILTRO: Record<Exclude<FiltroDeSaida, "TODAS">, string> = {
   DEVOLUCAO: "devoluções",
   CONSUMO: "consumo",
   DESPERDICIO: "desperdício",
+  VENDA: "vendas",
 };
 
 /**
@@ -661,11 +696,13 @@ function LinhaDaPessoa({
  */
 function LinhaDoSalgado({
   linha,
+  tipo,
   maiorTotal,
   aberta,
   aoAlternar,
 }: {
   linha: LinhaDeDesperdicio;
+  tipo: "DESPERDICIO" | "VENDA";
   maiorTotal: number;
   aberta: boolean;
   aoAlternar: () => void;
@@ -720,7 +757,7 @@ function LinhaDoSalgado({
           className="order-3 h-[10px] w-full shrink-0 overflow-hidden rounded-full bg-caixa-faixa md:order-none md:w-[200px] lg:w-[220px]"
         >
           <span
-            className={`block h-full rounded-full ${COR_DO_TIPO.DESPERDICIO}`}
+            className={`block h-full rounded-full ${COR_DO_TIPO[tipo]}`}
             style={{
               width: `${maiorTotal > 0 ? (linha.total / maiorTotal) * 100 : 0}%`,
             }}
@@ -901,7 +938,9 @@ function LinhaDaLoja({
                       ? "Devolução"
                       : saida.tipo === "CONSUMO"
                         ? "Consumo"
-                        : "Desperdício"}
+                        : saida.tipo === "VENDA"
+                          ? "Venda"
+                          : "Desperdício"}
               </span>
               <span className="order-last min-w-0 flex-[1_0_100%] leading-[1.4] md:order-none md:flex-1">
                 {saida.descricao}
@@ -913,7 +952,7 @@ function LinhaDaLoja({
                   tipo, ao lado, e quem diz o que aconteceu. O desperdicio nao
                   e R$: e a unica linha que mostra unidades, nunca moeda. */}
               <span className="ml-auto shrink-0 font-medium tabular-nums text-caixa-ink md:ml-0">
-                {saida.tipo === "DESPERDICIO"
+                {saida.tipo === "DESPERDICIO" || saida.tipo === "VENDA"
                   ? `${saida.quantidade} un`
                   : `R$ ${emReais(saida.valor)}`}
               </span>

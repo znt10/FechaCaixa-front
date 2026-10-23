@@ -82,6 +82,9 @@ export type FechamentoLido = {
     categoria_nome: string;
     quantidade: number;
   }[];
+  /** O que a loja vendeu no turno, item a item, no mesmo formato. Opcional:
+   *  o backend de antes nao manda. */
+  vendas?: FechamentoLido["desperdicios"];
   conferido: boolean;
   conferido_em: string | null;
   conferido_por_nome: string | null;

@@ -65,7 +65,7 @@ function useAtualizarCategoria() {
       campos,
     }: {
       id: string;
-      campos: Partial<Pick<CategoriaDeSalgado, "nome" | "ativo" | "ordem">>;
+      campos: Partial<Pick<CategoriaDeSalgado, "nome" | "ativo" | "ordem" | "conta_vendas">>;
     }) => atualizarCategoria(id, campos),
     onSuccess: invalidar,
   });
@@ -423,7 +423,28 @@ function LinhaDaCategoria({
         </span>
 
         {!editando && (
-          <div className="flex flex-wrap gap-[8px]">
+          <div className="flex flex-wrap items-center gap-[8px]">
+            {/* Na categoria e nao no item: marcar "Bolos" uma vez ja inclui o
+                bolo cadastrado amanha. So vale com "Contar vendas por item"
+                ligado na tela Empresa. */}
+            <label
+              title="Os itens desta categoria aparecem na contagem de vendas do formulário (precisa estar ligado na tela Empresa)."
+              className="flex items-center gap-[6px] px-[4px] text-[13px] text-caixa-muted"
+            >
+              <input
+                type="checkbox"
+                checked={categoria.conta_vendas === true}
+                disabled={definirAtivo.isPending}
+                onChange={(evento) =>
+                  definirAtivo.mutate({
+                    id: categoria.id,
+                    campos: { conta_vendas: evento.target.checked },
+                  })
+                }
+                className="h-[15px] w-[15px] accent-caixa-accent"
+              />
+              Contar vendas
+            </label>
             <button
               type="button"
               onClick={() => setEditando(true)}

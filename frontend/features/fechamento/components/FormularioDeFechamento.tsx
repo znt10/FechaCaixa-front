@@ -53,6 +53,7 @@ import {
   useTurnosDoDia,
 } from "@/features/fechamento/hooks/useFechamento";
 import { ehDomingo, hojeISO } from "@/features/fechamento/painel-dados";
+import { SeletorDeClassificacao } from "@/features/banco/components/SeletorDeClassificacao";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
 import { contaDoCaixa } from "@/features/fechamento/conta-do-caixa";
 import {
@@ -70,7 +71,12 @@ import type { Empresa } from "@/features/fechamento/services/acesso";
 import {
   perguntaDePerda,
   perguntasVisiveis,
+  mostraVendas,
 } from "@/features/fechamento/formulario-da-empresa";
+import {
+  montarVendasDoTurno,
+  quantidadesDasVendas,
+} from "@/features/fechamento/vendas-do-turno";
 
 const PERIODOS: { valor: Periodo; rotulo: string }[] = [
   { valor: "MANHA", rotulo: "Manhã" },
@@ -175,6 +181,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const catalogoAtivo = catalogo.filter(
     (item) => item.ativo && item.categoria_ativo,
   );
+  // Os itens que a loja conta venda: os das categorias marcadas no catalogo
+  // (os bolos, e nao os salgados). Viram uma lista fixa, um campo por item.
+  const itensDeVenda = catalogoAtivo.filter((item) => item.categoria_conta_vendas);
   const opcoesDoSeletor = (salgadoIdDaLinha: string): Salgado[] => {
     if (!salgadoIdDaLinha || catalogoAtivo.some((item) => item.id === salgadoIdDaLinha)) {
       return catalogoAtivo;
@@ -231,6 +240,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   // unidades, e nao dinheiro — o catalogo nao tem preco.
   const [houveDesperdicioDeItem, setHouveDesperdicioDeItem] = useState(false);
   const [desperdicios, setDesperdicios] = useState<LinhaDeDesperdicio[]>([]);
+  // Quantos de cada item a loja vendeu no turno, pelo id do item. Campo
+  // vazio e "nao vendeu" — nao precisa de pergunta de sim/nao antes.
+  const [vendas, setVendas] = useState<Record<string, string>>({});
 
   // Uma linha por pessoa: quem lanca o caixa e o gerente, e ele registra o
   // que cada um comeu no turno. Antes era um valor so, sempre de quem estava
@@ -343,6 +355,16 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const mostraPerda = visiveis.perda && catalogo.length > 0;
   const algumaPergunta =
     visiveis.retirada || visiveis.despesa || visiveis.devolucao || visiveis.consumo || mostraPerda;
+  // Numa correcao, o item que ja tem venda fica na lista mesmo que a
+  // categoria tenha sido desmarcada depois — senao a correcao o apagaria.
+  const itensNaTela = [
+    ...itensDeVenda,
+    ...catalogo.filter(
+      (item) => vendas[item.id] && !itensDeVenda.some((v) => v.id === item.id),
+    ),
+  ];
+  const mostraSecaoDeVendas =
+    mostraVendas(empresa, Object.values(vendas).some(Boolean)) && itensNaTela.length > 0;
 
   const [erro, setErro] = useState<string | null>(null);
 
@@ -413,6 +435,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     setDevolucaoValor("");
     setHouveDesperdicioDeItem(false);
     setDesperdicios([]);
+    setVendas({});
     setHouveConsumo(false);
     setConsumos([]);
   };
@@ -466,6 +489,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
         linhaEditavelDoDesperdicio(linha, proximaChave.current++),
       ),
     );
+    setVendas(quantidadesDasVendas(lancamento.vendas ?? []));
   };
 
   /** Guarda a confirmacao e (re)abre a contagem com o prazo que o servidor
@@ -619,6 +643,8 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
       // Sempre presente, mesmo vazia, pela mesma razao do consumo: numa
       // correcao a lista enviada substitui a anterior.
       desperdicios: perdas.desperdicios,
+      // So vai com a secao na tela: ausente e "nao mexi" para o servidor.
+      ...(mostraSecaoDeVendas ? { vendas: montarVendasDoTurno(vendas) } : {}),
       // Sempre presente, mesmo vazia: numa correcao a lista enviada substitui
       // a anterior, e omiti-la e o que diz "nao mexi no consumo".
       consumos: consumoDoTurno.consumos,
@@ -899,6 +925,40 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                 onChange={setLinkPagamento}
               />
             </Campo>
+
+            {/* Secao propria, longe do desperdicio: perto dele, "quantos
+                vendeu" e "houve perda" se confundiam. */}
+            {mostraSecaoDeVendas && (
+              <TituloSecao>VENDAS DO TURNO</TituloSecao>
+            )}
+            {mostraSecaoDeVendas && (
+              <div className="flex w-full flex-col gap-[10px]">
+                <span className="text-[15px] leading-[1.4] text-caixa-ink">
+                  Quantos vendeu de cada um?
+                </span>
+                <div className="flex w-full flex-col gap-[8px] rounded-[10px] bg-caixa-bg p-[14px]">
+                  {itensNaTela.map((item) => (
+                    <label
+                      key={item.id}
+                      htmlFor={`venda-${item.id}`}
+                      className="flex w-full items-center justify-between gap-3"
+                    >
+                      <span className="text-[15px] text-caixa-ink">{item.nome}</span>
+                      <input
+                        id={`venda-${item.id}`}
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={vendas[item.id] ?? ""}
+                        onChange={(e) =>
+                          setVendas({ ...vendas, [item.id]: e.target.value.replace(/\D/g, "") })
+                        }
+                        className="w-[80px] rounded-[8px] border border-caixa-border bg-caixa-surface px-[10px] py-[8px] text-right text-[15px] font-medium text-caixa-ink outline-none focus:border-caixa-accent"
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Tambem fora do mockup: sao as perguntas que a gerencia pediu e
                 que o backend valida (retirada, despesa, devolucao,
@@ -1190,26 +1250,26 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                       rotulo="ITEM"
                       htmlFor={`desperdicio-item-${linha.chave}`}
                     >
-                      <CampoSelecao
+                      {/* O seletor do extrato, e nao o <select> nativo: no
+                          Chrome do Linux a lista abria por cima do ponteiro e o
+                          mesmo clique que abria ja escolhia um item. */}
+                      <SeletorDeClassificacao
                         id={`desperdicio-item-${linha.chave}`}
+                        rotulo={`Item ${indice + 1} do desperdício`}
                         valor={linha.salgadoId}
-                        onChange={(salgadoId) => mudarDesperdicio(linha.chave, { salgadoId })}
-                      >
-                        <option value="" disabled>
-                          {salgados.isPending ? "Carregando..." : "Selecione o item"}
-                        </option>
-                        {agruparPorCategoria(opcoesDoSeletor(linha.salgadoId)).map(
-                          (grupo) => (
-                            <optgroup key={grupo.categoria} label={grupo.categoria}>
-                              {grupo.itens.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.nome}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ),
+                        grupos={agruparPorCategoria(opcoesDoSeletor(linha.salgadoId)).map(
+                          (grupo) => ({
+                            rotulo: grupo.categoria,
+                            opcoes: grupo.itens.map((item) => ({ valor: item.id, nome: item.nome })),
+                          }),
                         )}
-                      </CampoSelecao>
+                        indisponivel={salgados.isPending ? "Carregando..." : null}
+                        desabilitado={false}
+                        aoEscolher={(salgadoId) => mudarDesperdicio(linha.chave, { salgadoId })}
+                        semValor="Selecione o item"
+                        procurar="Procurar item"
+                        nadaEncontrado="Nenhum item com esse nome."
+                      />
                     </Campo>
 
                     <Campo

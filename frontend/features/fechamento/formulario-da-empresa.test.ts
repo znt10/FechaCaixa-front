@@ -8,6 +8,7 @@ import {
   perguntaDePerda,
   perguntasVisiveis,
   tituloDoCatalogo,
+  mostraVendas,
 } from "./formulario-da-empresa";
 
 const nenhumaRespondida = {
@@ -77,7 +78,6 @@ describe("textos com o nome dos itens", () => {
   it("usa o nome que a empresa deu", () => {
     const padaria = { nome_dos_itens: "pães" };
 
-    expect(perguntaDePerda(padaria)).toBe("Houve perda de pães?");
     expect(tituloDoCatalogo(padaria)).toBe("Catálogo de pães");
     expect(avisoDeCatalogoVazio(padaria)).toBe(
       "O catálogo de pães está vazio. Cadastre os itens na tela Catálogo.",
@@ -89,11 +89,10 @@ describe("textos com o nome dos itens", () => {
     // no formulário seria pior do que o texto de antes.
     expect(nomeDosItens({})).toBe("salgados");
     expect(nomeDosItens({ nome_dos_itens: "   " })).toBe("salgados");
-    expect(perguntaDePerda({})).toBe("Houve perda de salgados?");
   });
 
-  it("tira o espaço em volta do nome", () => {
-    expect(perguntaDePerda({ nome_dos_itens: " tortas " })).toBe("Houve perda de tortas?");
+  it("a pergunta de perda e fixa, sem o nome dos itens", () => {
+    expect(perguntaDePerda({ nome_dos_itens: "bolos" })).toBe("Houve desperdício?");
   });
 });
 
@@ -169,5 +168,23 @@ describe("resumoDoFormulario", () => {
         catalogo_ativo: false,
       }),
     ).toBe("nenhuma pergunta · sem catálogo");
+  });
+});
+
+describe("a secao de vendas", () => {
+  it("nasce desligada: o backend antigo nao manda o campo", () => {
+    expect(mostraVendas({}, false)).toBe(false);
+  });
+
+  it("aparece com a empresa ligada", () => {
+    expect(mostraVendas({ vendas_ativas: true }, false)).toBe(true);
+  });
+
+  it("some sem catalogo, porque a venda se conta por item dele", () => {
+    expect(mostraVendas({ vendas_ativas: true, catalogo_ativo: false }, false)).toBe(false);
+  });
+
+  it("fica na correcao de um turno que ja tem vendas", () => {
+    expect(mostraVendas({ vendas_ativas: false }, true)).toBe(true);
   });
 });

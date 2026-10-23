@@ -48,13 +48,19 @@ const posicaoJuntoAo = (botao: HTMLElement): Posicao => {
  * opção. E ganhou busca: o plano de contas passa de vinte opções.
  */
 export function SeletorDeClassificacao({
+  id,
   rotulo,
   valor,
   grupos,
   indisponivel,
   desabilitado,
   aoEscolher,
+  semValor = "Ainda não classificada",
+  procurar = "Procurar categoria",
+  nadaEncontrado = "Nenhuma categoria com esse nome.",
 }: {
+  /** Para um <label htmlFor> apontar para o botão. */
+  id?: string;
   /** O nome acessível: a linha que este seletor classifica. */
   rotulo: string;
   valor: string;
@@ -63,6 +69,11 @@ export function SeletorDeClassificacao({
   indisponivel: string | null;
   desabilitado: boolean;
   aoEscolher: (valor: string) => void;
+  /** Os textos falam de categoria do extrato; o item do desperdício usa o
+   *  mesmo seletor com os dele. */
+  semValor?: string;
+  procurar?: string;
+  nadaEncontrado?: string;
 }) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
@@ -74,13 +85,13 @@ export function SeletorDeClassificacao({
   const nomeAtual = grupos
     .flatMap((grupo) => grupo.opcoes)
     .find((opcao) => opcao.valor === valor)?.nome;
-  const texto = indisponivel ?? nomeAtual ?? "Ainda não classificada";
+  const texto = indisponivel ?? nomeAtual ?? semValor;
 
   const filtrados = filtrarOpcoes(grupos, busca);
   // A lista plana na ordem da tela, para as setas andarem por ela. "Ainda não
   // classificada" (desfazer) só aparece sem busca, no topo.
   const planas = [
-    ...(busca.trim() ? [] : [{ valor: "", nome: "Ainda não classificada" }]),
+    ...(busca.trim() ? [] : [{ valor: "", nome: semValor }]),
     ...filtrados.flatMap((grupo) => grupo.opcoes),
   ];
 
@@ -156,6 +167,7 @@ export function SeletorDeClassificacao({
     <>
       <button
         ref={botao}
+        id={id}
         type="button"
         aria-label={rotulo}
         aria-haspopup="listbox"
@@ -189,8 +201,8 @@ export function SeletorDeClassificacao({
             <div className="border-b border-caixa-border p-[8px]">
               <input
                 autoFocus
-                aria-label="Procurar categoria"
-                placeholder="Procurar categoria"
+                aria-label={procurar}
+                placeholder={procurar}
                 value={busca}
                 onChange={(evento) => {
                   setBusca(evento.target.value);
@@ -205,7 +217,7 @@ export function SeletorDeClassificacao({
               {!busca.trim() && (
                 <Opcao
                   indice={0}
-                  nome="Ainda não classificada"
+                  nome={semValor}
                   escolhida={valor === ""}
                   ativa={ativa === 0}
                   apagada
@@ -235,7 +247,7 @@ export function SeletorDeClassificacao({
 
               {planas.length === 0 && (
                 <p className="px-[12px] py-[10px] text-[14px] text-caixa-muted">
-                  Nenhuma categoria com esse nome.
+                  {nadaEncontrado}
                 </p>
               )}
             </div>

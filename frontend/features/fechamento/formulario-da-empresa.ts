@@ -18,6 +18,9 @@ export type ConfiguracaoDoFormulario = {
   pergunta_devolucao?: boolean;
   pergunta_consumo?: boolean;
   catalogo_ativo?: boolean;
+  /** A secao de vendas por item. Ao contrario das perguntas, ausente conta
+   *  como DESLIGADA: e coisa nova, e o backend de antes nao conta venda. */
+  vendas_ativas?: boolean;
   /** No plural: entra no meio de frase ("Houve perda de pães?"). */
   nome_dos_itens?: string;
 };
@@ -67,10 +70,14 @@ export const perguntasVisiveis = (
 export const nomeDosItens = (config: ConfiguracaoDoFormulario) =>
   config.nome_dos_itens?.trim() || "salgados";
 
-/** "Houve perda de ...", e não "Perdeu algum ...": com um nome só, no plural,
+/** Fixa, sem o nome dos itens: "Houve perda de bolos?" logo acima de
+ *  "Quantos vendeu de cada um?" misturava o que se perde com o que se vende.
+ *  A configuração continua no parâmetro para quem já chama assim.
+ *
+ *  Antes era "Houve perda de ...", e não "Perdeu algum ...": com um nome só, no plural,
  *  não dá para saber se é "algum" ou "alguma". */
-export const perguntaDePerda = (config: ConfiguracaoDoFormulario) =>
-  `Houve perda de ${nomeDosItens(config)}?`;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export const perguntaDePerda = (_config: ConfiguracaoDoFormulario) => "Houve desperdício?";
 
 export const tituloDoCatalogo = (config: ConfiguracaoDoFormulario) =>
   `Catálogo de ${nomeDosItens(config)}`;
@@ -136,3 +143,14 @@ export const resumoDoFormulario = (config: ConfiguracaoDoFormulario): string => 
 
   return `${quantas} · ${catalogo}`;
 };
+
+/**
+ * O formulário mostra a seção de vendas?
+ *
+ * Precisa da empresa ligada E do catálogo ligado — a venda se conta por item
+ * do catálogo. `jaTemVendas` segura a seção na tela na correção de um turno
+ * que já tem vendas, pelo mesmo motivo de `perguntasVisiveis`: escondida, a
+ * correção iria sem ela e apagaria o que a loja contou.
+ */
+export const mostraVendas = (config: ConfiguracaoDoFormulario, jaTemVendas: boolean) =>
+  jaTemVendas || (config.vendas_ativas === true && config.catalogo_ativo !== false);

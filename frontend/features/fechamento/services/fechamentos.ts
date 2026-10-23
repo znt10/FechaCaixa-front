@@ -82,11 +82,16 @@ export type Salgado = {
    *  reidratar — entao e este campo que diz ao seletor do formulario o que
    *  ele pode oferecer para uma linha nova. */
   categoria_ativo: boolean;
+  /** Se a categoria entra na contagem de vendas. Ausente no backend antigo. */
+  categoria_conta_vendas?: boolean;
 };
 
 /** Uma linha de desperdicio no envio: quantidade em unidades, sem valor —
  *  o catalogo nao tem preco, e nenhum dinheiro deixou a gaveta. */
 export type DesperdicioDoTurno = { salgado: string; quantidade: number };
+
+/** Uma linha de venda no envio, no mesmo formato: quantidade, sem valor. */
+export type VendaDoTurno = DesperdicioDoTurno;
 
 
 /** Manha e tarde na empresa de dois fechamentos; DIA em quem fecha o caixa uma
@@ -129,6 +134,9 @@ export type FechamentoPayload = {
   /** O desperdicio do turno, uma linha por item do catalogo perdido. Ausente
    *  ou vazio quando nao houve nada a apontar. */
   desperdicios?: DesperdicioDoTurno[];
+  /** O que a loja vendeu no turno, item a item. Ausente quando a empresa nao
+   *  conta vendas — e ausente e "nao mexi" numa correcao. */
+  vendas?: VendaDoTurno[];
   /** O consumo de cada pessoa no turno, uma linha por pessoa. Vazio quando
    *  ninguem comeu. Numa correcao, a lista enviada substitui a anterior. */
   consumos: ConsumoDoTurno[];
@@ -186,6 +194,8 @@ export type FechamentoParaCorrigir = {
    *  razao do consumo: sem o servidor devolver isto, corrigir outro campo do
    *  lancamento mandaria a lista vazia de volta e apagaria o desperdicio. */
   desperdicios: DesperdicioLancado[];
+  /** Ausente no backend antigo. */
+  vendas?: DesperdicioLancado[];
   consumos: ConsumoLancado[];
   segundos_para_corrigir: number;
 };

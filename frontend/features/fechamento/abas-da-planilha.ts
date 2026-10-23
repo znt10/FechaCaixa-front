@@ -11,6 +11,7 @@ export const ABAS_DA_PLANILHA = [
   { chave: "consumo_por_pessoa", rotulo: "Consumo por pessoa" },
   { chave: "consumo", rotulo: "Consumo" },
   { chave: "desperdicio", rotulo: "Desperdício" },
+  { chave: "vendas", rotulo: "Vendas" },
 ] as const;
 
 export type ChaveDaAba = (typeof ABAS_DA_PLANILHA)[number]["chave"];
