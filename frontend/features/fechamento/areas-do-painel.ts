@@ -43,6 +43,7 @@ const NOTAS: Pagina[] = [{ href: "/notas-fiscais", rotulo: "Notas fiscais" }];
 // pagamentos do extrato ate usam o mesmo plano de contas das notas.
 const BANCO: Pagina[] = [
   { href: "/extrato", rotulo: "Extrato" },
+  { href: "/graficos-do-banco", rotulo: "Gráficos" },
   { href: "/contas-bancarias", rotulo: "Contas e categorias" },
 ];
 
@@ -56,7 +57,10 @@ const COMPROVANTES: Pagina[] = [
 
 // So o dono da plataforma: as empresas clientes, quem pagou, quem esta
 // bloqueado. Nao e de nenhuma empresa, por isso area propria.
-const PLATAFORMA: Pagina[] = [{ href: "/plataforma", rotulo: "Empresas" }];
+const PLATAFORMA: Pagina[] = [
+  { href: "/plataforma", rotulo: "Empresas" },
+  { href: "/plataforma/pluggy", rotulo: "Pluggy" },
+];
 
 /** As áreas do seletor, na ordem em que aparecem, e por onde cada uma começa. */
 export const AREAS: { id: Area; rotulo: string; inicio: string }[] = [

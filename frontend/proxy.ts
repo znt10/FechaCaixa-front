@@ -39,7 +39,7 @@ const PAINEL_DE_CAIXA = [
 // (IsGerenteOrAdministrador): o funcionario confere o caixa, nao o banco da
 // empresa. Aqui, ao contrario das notas, o papel decide — porque la tambem
 // decide, e as duas regras sao a mesma.
-const TELAS_DO_BANCO = ["/extrato", "/contas-bancarias"];
+const TELAS_DO_BANCO = ["/extrato", "/graficos-do-banco", "/contas-bancarias"];
 
 // A tela Plataforma e do dono da plataforma, que entra com papel proprio
 // ("Plataforma", o superusuario no backend). Ele so alcanca ela: nao fecha
@@ -221,7 +221,12 @@ export default function proxy(request: NextRequest) {
   }
 
   const allowedRoutes = ROLE_ROUTES[role];
-  const isAllowed = allowedRoutes.some((route) => pathname.startsWith(route));
+  // A rota inteira ou uma subpasta dela, e nao qualquer comeco de nome: com
+  // startsWith puro, o "/graficos" do caixa liberava "/graficos-do-banco"
+  // para o funcionario.
+  const isAllowed = allowedRoutes.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
   if (!isAllowed) {
     return NextResponse.redirect(new URL(ROLE_HOME[role], request.url));

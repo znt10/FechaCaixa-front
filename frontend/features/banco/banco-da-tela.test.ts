@@ -448,6 +448,8 @@ describe("contas por loja", () => {
     numero: id,
     apelido: "",
     ativo,
+    origem: "ARQUIVO" as const,
+    atualizado_em: null,
   });
   const lojas = [
     { id: "limao", nome_loja: "Limão" },

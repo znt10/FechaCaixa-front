@@ -34,6 +34,9 @@ export type ContaBancaria = {
   numero: string;
   apelido: string;
   ativo: boolean;
+  origem: "PLUGGY" | "ARQUIVO";
+  /** Última busca da Pluggy que deu certo; só vem quando a origem é PLUGGY. */
+  atualizado_em: string | null;
 };
 
 export type NovaContaBancaria = {
@@ -131,6 +134,10 @@ export type ResumoDoExtrato = {
   saidas: string;
   pendentes: { quantidade: number; valor: string };
   por_tipo: BlocoDoResumo[];
+  /** Só os dias com movimento, em ordem; no consolidado, sem a transferência
+   *  entre lojas. */
+  /** Ausente em servidor anterior a este campo: a tela trata como vazio. */
+  por_dia?: { data: string; entradas: string; saidas: string }[];
 };
 
 export type ExtratoImportado = {

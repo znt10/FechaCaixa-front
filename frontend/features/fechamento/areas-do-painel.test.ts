@@ -139,6 +139,7 @@ describe("o extrato mora em Despesas, com as notas", () => {
   it("extrato e contas são Despesas", () => {
     expect(areaDaRota("/extrato")).toBe("DESPESAS");
     expect(areaDaRota("/contas-bancarias")).toBe("DESPESAS");
+    expect(areaDaRota("/graficos-do-banco")).toBe("DESPESAS");
   });
 
   it("não confunde uma rota que só começa parecido", () => {
@@ -153,9 +154,10 @@ describe("o extrato mora em Despesas, com as notas", () => {
     expect(abas({ notas: true, banco: true })).toEqual([
       "Notas fiscais",
       "Extrato",
+      "Gráficos",
       "Contas e categorias",
     ]);
-    expect(abas({ notas: false, banco: true })).toEqual(["Extrato", "Contas e categorias"]);
+    expect(abas({ notas: false, banco: true })).toEqual(["Extrato", "Gráficos", "Contas e categorias"]);
   });
 
   it("Despesas entra no seletor com as notas ou com o banco", () => {
@@ -231,6 +233,16 @@ describe("a área Plataforma", () => {
       paginasDaArea("PLATAFORMA", { gerente: false, notas: false, plataforma: true }).map(
         (p) => p.rotulo,
       ),
-    ).toEqual(["Empresas"]);
+    ).toEqual(["Empresas", "Pluggy"]);
   });
+
+  it("a área Plataforma tem a página Pluggy", () =>
+    expect(
+      paginasDaArea("PLATAFORMA", { gerente: true, notas: false, plataforma: true }).map(
+        (p) => p.href,
+      ),
+    ).toContain("/plataforma/pluggy"));
+
+  it("a rota da Pluggy é da área Plataforma", () =>
+    expect(areaDaRota("/plataforma/pluggy")).toBe("PLATAFORMA"));
 });
