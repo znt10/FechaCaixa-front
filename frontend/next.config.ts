@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
   // Sem isto tudo o que vem de /public sai com "max-age=0, must-revalidate", e
   // o navegador revalida a cada navegacao. Nas telas do painel isso aparecia
-  // como um par manifest.webmanifest + icone-192.png se repetindo a cada
+  // como um par manifest.webmanifest + fechacaixa-192.png se repetindo a cada
   // clique no menu: o Next reemite a tag <link rel="manifest"> ao navegar, o
   // Chrome vai reler o manifest, e ao reler o manifest vai atras do icone.
   // Respondia 304, mas 304 tambem e ida e volta.

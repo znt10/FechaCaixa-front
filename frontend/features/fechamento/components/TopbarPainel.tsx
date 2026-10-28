@@ -18,6 +18,7 @@ import {
   type Area,
 } from "@/features/fechamento/areas-do-painel";
 import { mostrarPlataforma } from "@/features/mensalidade/mensalidade-da-tela";
+import { MarcaFechaCaixa } from "@/shared/components/MarcaFechaCaixa";
 import { useUsuarioAtual } from "@/shared/hooks/useUsuarioAtual";
 import { logout } from "@/shared/services/auth";
 import { esquecerSessaoAnterior } from "@/shared/services/cache-da-sessao";
@@ -75,11 +76,18 @@ export function TopbarPainel() {
         <div className="flex items-center justify-between gap-[16px] md:justify-start md:gap-[36px]">
           <div className="flex flex-col gap-[2px]">
             {/* Contraste de peso entre as duas metades, e nao de cor: o verde
-                ja tem trabalho nesta barra (marcar onde voce esta), e usa-lo
-                tambem na marca faria a marca competir com a navegacao. */}
-            <span className="text-[17px] leading-[1.25] tracking-[-0.02em] md:text-[20px]">
-              <span className="font-medium">Fecha</span>
-              <span className="font-bold">Caixa</span>
+                ja tem trabalho nesta barra (marcar onde voce esta), e pintar o
+                nome tambem faria a marca competir com a navegacao. O verde da
+                marca fica so no simbolo, pequeno, ao lado do nome. */}
+            <span className="flex items-center gap-[6px] text-[17px] leading-[1.25] tracking-[-0.02em] md:text-[20px]">
+              <MarcaFechaCaixa
+                forma="simbolo"
+                className="h-[20px] w-[20px] shrink-0 md:h-[24px] md:w-[24px]"
+              />
+              <span>
+                <span className="font-medium">Fecha</span>
+                <span className="font-bold">Caixa</span>
+              </span>
             </span>
             {/* O seletor toma o lugar do antigo "Painel de gestao": aquela
                 linha nao informava nada — a pessoa esta olhando para o painel.
