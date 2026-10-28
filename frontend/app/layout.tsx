@@ -13,17 +13,24 @@ export const metadata: Metadata = {
   title: "FechaCaixa",
   description: "Fechamento de caixa das lojas: lancamento, conferencia e correcao.",
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
+    // Nomes novos, e nao os arquivos antigos sobrescritos: /icones/ e o
+    // /favicon.ico vao com cache de uma semana (next.config.ts), e o navegador
+    // continuaria mostrando a marca velha na aba. O SVG fica nitido em
+    // qualquer tamanho; o .ico e para quem nao le SVG na aba.
+    icon: [
+      { url: "/icones/fechacaixa.svg", type: "image/svg+xml" },
+      { url: "/icones/fechacaixa.ico", sizes: "48x48" },
+    ],
+    shortcut: "/icones/fechacaixa.ico",
     // O iOS ignora os icones do manifest e so olha para esta.
-    apple: "/icones/apple-touch-icon.png",
+    apple: "/icones/fechacaixa-apple-touch.png",
   },
   // O Safari nao implementa o manifest inteiro: sem isto, "Adicionar a Tela
   // de Inicio" abre o formulario dentro do navegador, com barra de endereco.
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Caixa",
+    title: "FechaCaixa",
   },
 };
 

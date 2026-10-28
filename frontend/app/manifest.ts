@@ -16,9 +16,11 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Fechamento de Caixa",
-    // Cabe embaixo do icone na tela inicial sem virar reticencias.
-    short_name: "Caixa",
+    // O mesmo nome da aba e da topbar: o app instalado e o painel aberto no
+    // navegador sao a mesma marca. Dez letras ainda cabem embaixo do icone na
+    // tela inicial sem virar reticencias.
+    name: "FechaCaixa",
+    short_name: "FechaCaixa",
     description:
       "Lançamento do fechamento de caixa da loja: vendas, saídas e retiradas.",
     start_url: "/fechamento",
@@ -33,19 +35,19 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#e6ece7",
     icons: [
       {
-        src: "/icones/icone-192.png",
+        src: "/icones/fechacaixa-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icones/icone-512.png",
+        src: "/icones/fechacaixa-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "any",
       },
       {
-        src: "/icones/icone-maskable-512.png",
+        src: "/icones/fechacaixa-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
