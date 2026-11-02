@@ -188,3 +188,14 @@ describe("a secao de vendas", () => {
     expect(mostraVendas({ vendas_ativas: false }, true)).toBe(true);
   });
 });
+
+describe("resumoDoFormulario com boletos", () => {
+  it("cita os boletos só quando a empresa ligou", () => {
+    expect(resumoDoFormulario({ boletos_ativos: true })).toBe(
+      "todas as perguntas · catálogo de salgados · boletos a pagar",
+    );
+    expect(resumoDoFormulario({ boletos_ativos: false })).toBe(
+      "todas as perguntas · catálogo de salgados",
+    );
+  });
+});

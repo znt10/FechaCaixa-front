@@ -1,4 +1,6 @@
-import type { ResumoDosBoletos } from "./services/boletos";
+import { decimalParaDigitos, formatarMoeda } from "@/features/fechamento/components/campos";
+
+import type { Boleto, ResumoDosBoletos } from "./services/boletos";
 
 /** O tom da etiqueta: vermelho pede ação hoje, amarelo pede atenção logo. */
 export type TomDoPrazo = "alerta" | "aviso" | "neutro";
@@ -54,4 +56,20 @@ export const hojeLocal = () => {
   const agora = new Date();
   const doisDigitos = (n: number) => String(n).padStart(2, "0");
   return `${agora.getFullYear()}-${doisDigitos(agora.getMonth() + 1)}-${doisDigitos(agora.getDate())}`;
+};
+
+/** "20/11", do AAAA-MM-DD do servidor. */
+export const diaEMes = (data: string) => {
+  const [, mes, dia] = data.split("-");
+  return `${dia}/${mes}`;
+};
+
+/** A linha que fica no formulário depois de salvar: a loja vê que foi. */
+export const resumoDoBoletoSalvo = ({
+  vencimento,
+  valor,
+}: Pick<Boleto, "vencimento" | "valor">) => {
+  const partes = ["Boleto salvo", vencimento ? `vence ${diaEMes(vencimento)}` : "sem data"];
+  if (valor) partes.push(`R$ ${formatarMoeda(decimalParaDigitos(valor))}`);
+  return partes.join(" · ");
 };

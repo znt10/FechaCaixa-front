@@ -23,6 +23,9 @@ export type ConfiguracaoDoFormulario = {
   vendas_ativas?: boolean;
   /** No plural: entra no meio de frase ("Houve perda de pães?"). */
   nome_dos_itens?: string;
+  /** Boletos a pagar: a pergunta no formulário e a aba Boletos. Ausente conta
+   *  como DESLIGADO, como as vendas: é coisa nova. */
+  boletos_ativos?: boolean;
 };
 
 export type PerguntaOpcional = "retirada" | "despesa" | "devolucao" | "consumo" | "perda";
@@ -141,7 +144,9 @@ export const resumoDoFormulario = (config: ConfiguracaoDoFormulario): string => 
   const catalogo =
     config.catalogo_ativo === false ? "sem catálogo" : `catálogo de ${nomeDosItens(config)}`;
 
-  return `${quantas} · ${catalogo}`;
+  const partes = [quantas, catalogo];
+  if (config.boletos_ativos === true) partes.push("boletos a pagar");
+  return partes.join(" · ");
 };
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { prazoDoBoleto, textoDaFaixa } from "./prazo-do-boleto";
+import { prazoDoBoleto, resumoDoBoletoSalvo, textoDaFaixa } from "./prazo-do-boleto";
 
 const hoje = "2026-11-02";
 const zero = { sem_data: 0, vencidos: 0, hoje: 0, em_3_dias: 0, em_7_dias: 0, aviso: 0 };
@@ -37,5 +37,14 @@ describe("textoDaFaixa", () => {
     expect(textoDaFaixa({ ...zero, vencidos: 3, hoje: 1, aviso: 4 })).toBe(
       "Boletos: 3 vencidos · 1 vence hoje",
     );
+  });
+});
+
+describe("resumoDoBoletoSalvo", () => {
+  it("diz o vencimento e o valor do que a loja acabou de salvar", () => {
+    expect(resumoDoBoletoSalvo({ vencimento: "2026-11-20", valor: "230.00" })).toBe(
+      "Boleto salvo · vence 20/11 · R$ 230,00",
+    );
+    expect(resumoDoBoletoSalvo({ vencimento: null, valor: null })).toBe("Boleto salvo · sem data");
   });
 });

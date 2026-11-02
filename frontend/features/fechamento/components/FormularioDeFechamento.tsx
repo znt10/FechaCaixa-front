@@ -54,6 +54,7 @@ import {
 } from "@/features/fechamento/hooks/useFechamento";
 import { ehDomingo, hojeISO } from "@/features/fechamento/painel-dados";
 import { SeletorDeClassificacao } from "@/features/banco/components/SeletorDeClassificacao";
+import { SecaoDeBoletos } from "@/features/boletos/components/SecaoDeBoletos";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
 import { contaDoCaixa } from "@/features/fechamento/conta-do-caixa";
 import {
@@ -1300,6 +1301,12 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                 </button>
               </Pergunta>
             )}
+
+            {/* Boletos e contas que chegaram para pagar depois: secao e envio
+                proprios, fora do turno. Nao entram na conta do bloco verde
+                logo abaixo — o boleto e um lembrete com foto, nao dinheiro
+                que saiu da gaveta. */}
+            {empresa.boletos_ativos === true && <SecaoDeBoletos loja={loja} />}
 
             {/* Este bloco e o que ensina a conta: o campo la em cima se chama
                 so "DINHEIRO", e e o que sobrou na gaveta. Mostrar a retirada
