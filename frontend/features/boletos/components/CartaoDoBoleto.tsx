@@ -2,13 +2,9 @@
 
 import { useState } from "react";
 
-import {
-  Campo,
-  CampoMoeda,
-  CampoTexto,
-  digitosParaDecimal,
-} from "@/features/fechamento/components/campos";
+import { Campo, CampoMoeda, CampoTexto } from "@/features/fechamento/components/campos";
 
+import { valorDoCampo } from "../boletos-do-formulario";
 import type { Boleto, NovoBoleto } from "../services/boletos";
 
 /**
@@ -78,8 +74,8 @@ export function CartaoDoBoletoVista({
       </Campo>
       {pedindoData && (
         <p className="text-[13px] leading-[1.45] text-caixa-warn">
-          Sem a data, o boleto chega para o dono como “sem data”. Se a data estiver no papel,
-          digite acima.
+          Sem a data digitada, o sistema tenta ler da foto. Se não conseguir, o boleto chega
+          para o dono como “sem data”. Se a data estiver no papel, digite acima.
         </p>
       )}
 
@@ -117,12 +113,15 @@ export function CartaoDoBoleto({
   semLoja = false,
   enviar,
   aoSalvar,
+  aoMudarPendente,
 }: {
   id: string;
   loja?: string;
   semLoja?: boolean;
   enviar: (novo: NovoBoleto) => Promise<Boleto>;
   aoSalvar: (boleto: Boleto) => void;
+  /** Avisa quem está em volta que há foto escolhida e ainda não salva. */
+  aoMudarPendente?: (pendente: boolean) => void;
 }) {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [vencimento, setVencimento] = useState("");
@@ -149,8 +148,9 @@ export function CartaoDoBoleto({
         arquivo,
         loja,
         vencimento: vencimento || undefined,
-        valor: valorDigitos ? digitosParaDecimal(valorDigitos) : undefined,
+        valor: valorDoCampo(valorDigitos),
       });
+      aoMudarPendente?.(false);
       aoSalvar(boleto);
     } catch (falha) {
       // Os campos ficam como estavam: tentar de novo não pede tudo outra vez.
@@ -173,6 +173,7 @@ export function CartaoDoBoleto({
       aoEscolherArquivo={(escolhido) => {
         setArquivo(escolhido);
         setErro(null);
+        aoMudarPendente?.(escolhido !== null);
       }}
       aoMudarVencimento={setVencimento}
       aoMudarValor={setValorDigitos}

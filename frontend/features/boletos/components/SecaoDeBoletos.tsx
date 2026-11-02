@@ -4,8 +4,9 @@ import { useState } from "react";
 
 import { Pergunta, TituloSecao } from "@/features/fechamento/components/campos";
 
+import type { BoletosDoTurno } from "../boletos-do-formulario";
 import { resumoDoBoletoSalvo } from "../prazo-do-boleto";
-import { enviarBoletoDaLoja, type Boleto } from "../services/boletos";
+import { enviarBoletoDaLoja } from "../services/boletos";
 import { CartaoDoBoleto } from "./CartaoDoBoleto";
 
 /**
@@ -13,25 +14,32 @@ import { CartaoDoBoleto } from "./CartaoDoBoleto";
  *
  * Seção própria e envio próprio, fora do envio do turno: o boleto fica
  * guardado na hora, mesmo que o turno não seja enviado, e não entra em conta
- * nenhuma do caixa. Desligar a pergunta só esconde o cartão — o que já foi
- * salvo está no servidor.
+ * nenhuma do caixa. O estado mora no formulário (`boletos`): a revisão do
+ * envio tira esta seção da tela, e voltar dela não pode sumir com o que já foi
+ * salvo nem deixar mandar o mesmo boleto de novo.
  */
-export function SecaoDeBoletos({ loja }: { loja: string }) {
-  const [houve, setHouve] = useState(false);
-  const [salvos, setSalvos] = useState<Boleto[]>([]);
+export function SecaoDeBoletos({
+  loja,
+  boletos,
+  aoMudar,
+}: {
+  loja: string;
+  boletos: BoletosDoTurno;
+  aoMudar: (mudar: (atual: BoletosDoTurno) => BoletosDoTurno) => void;
+}) {
   // A chave remonta o cartão vazio para o próximo boleto.
   const [chave, setChave] = useState(0);
-  const [cartaoAberto, setCartaoAberto] = useState(true);
+  const [cartaoAberto, setCartaoAberto] = useState(boletos.salvos.length === 0);
 
   return (
     <>
       <TituloSecao>BOLETOS E CONTAS</TituloSecao>
       <Pergunta
         rotulo="Chegou boleto ou conta para pagar depois?"
-        valor={houve}
-        onChange={setHouve}
+        valor={boletos.houve}
+        onChange={(houve) => aoMudar((atual) => ({ ...atual, houve }))}
       >
-        {salvos.map((boleto) => (
+        {boletos.salvos.map((boleto) => (
           <p key={boleto.id} className="text-[14px] font-medium leading-[1.4] text-caixa-accent">
             ✓ {resumoDoBoletoSalvo(boleto)}
           </p>
@@ -44,8 +52,9 @@ export function SecaoDeBoletos({ loja }: { loja: string }) {
             loja={loja || undefined}
             semLoja={!loja}
             enviar={enviarBoletoDaLoja}
+            aoMudarPendente={(pendente) => aoMudar((atual) => ({ ...atual, pendente }))}
             aoSalvar={(boleto) => {
-              setSalvos((anteriores) => [...anteriores, boleto]);
+              aoMudar((atual) => ({ ...atual, salvos: [...atual.salvos, boleto], pendente: false }));
               setCartaoAberto(false);
             }}
           />

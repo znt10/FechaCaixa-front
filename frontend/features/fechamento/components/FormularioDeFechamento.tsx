@@ -54,6 +54,11 @@ import {
 } from "@/features/fechamento/hooks/useFechamento";
 import { ehDomingo, hojeISO } from "@/features/fechamento/painel-dados";
 import { SeletorDeClassificacao } from "@/features/banco/components/SeletorDeClassificacao";
+import {
+  avisoDeBoletoNaoSalvo,
+  SEM_BOLETOS,
+  type BoletosDoTurno,
+} from "@/features/boletos/boletos-do-formulario";
 import { SecaoDeBoletos } from "@/features/boletos/components/SecaoDeBoletos";
 import { RevisaoDoEnvio } from "@/features/fechamento/components/RevisaoDoEnvio";
 import { contaDoCaixa } from "@/features/fechamento/conta-do-caixa";
@@ -244,6 +249,9 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   // Quantos de cada item a loja vendeu no turno, pelo id do item. Campo
   // vazio e "nao vendeu" — nao precisa de pergunta de sim/nao antes.
   const [vendas, setVendas] = useState<Record<string, string>>({});
+  // Os boletos que chegaram no turno. Moram aqui, e nao na secao: a revisao
+  // do envio tira a secao da tela, e voltar dela nao pode sumir com eles.
+  const [boletosDoTurno, setBoletosDoTurno] = useState<BoletosDoTurno>(SEM_BOLETOS);
 
   // Uma linha por pessoa: quem lanca o caixa e o gerente, e ele registra o
   // que cada um comeu no turno. Antes era um valor so, sempre de quem estava
@@ -437,6 +445,7 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
     setHouveDesperdicioDeItem(false);
     setDesperdicios([]);
     setVendas({});
+    setBoletosDoTurno(SEM_BOLETOS);
     setHouveConsumo(false);
     setConsumos([]);
   };
@@ -567,6 +576,14 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErro(null);
+
+    // A revisao tira o cartao do boleto da tela: uma foto escolhida e nao
+    // salva se perderia calada.
+    const boletoNaoSalvo = avisoDeBoletoNaoSalvo(boletosDoTurno);
+    if (boletoNaoSalvo) {
+      setErro(boletoNaoSalvo);
+      return;
+    }
 
     // O campo e digitavel, entao o que chega e texto. Quem vai no payload e a
     // pessoa do cadastro — e recusar aqui e melhor que deixar o backend
@@ -1306,7 +1323,13 @@ export function FormularioDeFechamento({ empresa }: { empresa: Empresa }) {
                 proprios, fora do turno. Nao entram na conta do bloco verde
                 logo abaixo — o boleto e um lembrete com foto, nao dinheiro
                 que saiu da gaveta. */}
-            {empresa.boletos_ativos === true && <SecaoDeBoletos loja={loja} />}
+            {empresa.boletos_ativos === true && (
+              <SecaoDeBoletos
+                loja={loja}
+                boletos={boletosDoTurno}
+                aoMudar={setBoletosDoTurno}
+              />
+            )}
 
             {/* Este bloco e o que ensina a conta: o campo la em cima se chama
                 so "DINHEIRO", e e o que sobrou na gaveta. Mostrar a retirada

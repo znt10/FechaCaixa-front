@@ -52,6 +52,9 @@ const TELA_DA_PLATAFORMA = "/plataforma";
 // de "apelido de empresa", que e PUBLICO.
 const TELAS_DE_COMPROVANTES = ["/comprovantes"];
 
+// Os boletos a pagar: quem paga e a gerencia (IsGerenteOrAdministrador).
+const TELAS_DE_BOLETOS = ["/boletos"];
+
 // ATENCAO ao tirar uma rota daqui: esta tabela tambem alimenta a lista de
 // rotas conhecidas do app (ver ROTAS_DO_APP abaixo). Uma rota removida de
 // todos os papeis deixa de ser conhecida e cai no ramo de "apelido de
@@ -61,11 +64,17 @@ const TELAS_DE_COMPROVANTES = ["/comprovantes"];
 const ROLE_ROUTES: Record<string, string[]> = {
   // O painel de caixa e as mesmas telas para todo mundo que entra com login.
   // O que separa os papeis e o que existe ALEM delas.
-  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
+  Admin: [...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES, ...TELAS_DE_BOLETOS],
   Plataforma: [TELA_DA_PLATAFORMA],
   // So o gerente tem /empresa: codigo de acesso, lojas, quem retira dinheiro
   // e quem tem login.
-  Gerente: ["/empresa", ...PAINEL_DE_CAIXA, ...TELAS_DO_BANCO, ...TELAS_DE_COMPROVANTES],
+  Gerente: [
+    "/empresa",
+    ...PAINEL_DE_CAIXA,
+    ...TELAS_DO_BANCO,
+    ...TELAS_DE_COMPROVANTES,
+    ...TELAS_DE_BOLETOS,
+  ],
   // O funcionario confere e corrige o caixa, e nao administra a empresa.
   Funcionario: PAINEL_DE_CAIXA,
 };

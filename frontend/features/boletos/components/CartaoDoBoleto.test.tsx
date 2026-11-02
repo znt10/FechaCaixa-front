@@ -33,7 +33,11 @@ describe("CartaoDoBoletoVista", () => {
 
   it("sem a data, avisa e troca o botão", () => {
     const saida = html({ pedindoData: true });
-    expect(saida).toContain("Sem a data, o boleto chega para o dono como “sem data”.");
+    // O servidor ainda tenta ler a data da foto: o aviso não pode dizer que o
+    // boleto já chega "sem data".
+    expect(saida).toContain(
+      "Sem a data digitada, o sistema tenta ler da foto. Se não conseguir, o boleto chega para o dono como “sem data”.",
+    );
     expect(saida).toContain(">Salvar sem data</button>");
   });
 

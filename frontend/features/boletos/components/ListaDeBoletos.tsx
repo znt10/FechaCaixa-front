@@ -8,11 +8,11 @@ import {
   CampoSelecao,
   CampoTexto,
   decimalParaDigitos,
-  digitosParaDecimal,
 } from "@/features/fechamento/components/campos";
 import { useLojasDoPainel } from "@/features/fechamento/hooks/usePainel";
 import { emReais } from "@/features/fechamento/painel-dados";
 
+import { valorDoCampo } from "../boletos-do-formulario";
 import {
   useBoletos,
   useDescartarBoleto,
@@ -188,7 +188,7 @@ function EdicaoDoBoleto({ boleto, aoFechar }: { boleto: Boleto; aoFechar: () => 
         id: boleto.id,
         edicao: {
           vencimento: vencimento || null,
-          valor: valorDigitos ? digitosParaDecimal(valorDigitos) : null,
+          valor: valorDoCampo(valorDigitos) ?? null,
           beneficiario_nome: quemCobra,
           descricao,
           loja: loja || null,
