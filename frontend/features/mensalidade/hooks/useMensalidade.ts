@@ -1,6 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getMinhaMensalidade, informarPagamento } from "../services/mensalidade";
+import {
+  gerarLinkDePagamento,
+  getMinhaMensalidade,
+  informarPagamento,
+} from "../services/mensalidade";
 
 export const useMinhaMensalidade = () =>
   useQuery({
@@ -22,5 +26,14 @@ export const useInformarPagamento = () => {
       // O aviso destrava o painel: as telas que falharam com 402 buscam de novo.
       cliente.invalidateQueries();
     },
+  });
+};
+
+/** O "Pagar mensalidade": o retrato volta já com o `link`. */
+export const useGerarLink = () => {
+  const cliente = useQueryClient();
+  return useMutation({
+    mutationFn: gerarLinkDePagamento,
+    onSuccess: (mensalidade) => cliente.setQueryData(["mensalidade"], mensalidade),
   });
 };
