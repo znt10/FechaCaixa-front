@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import { filtrarOpcoes, type GrupoDaLinha } from "../banco-da-tela";
@@ -9,6 +9,23 @@ import { filtrarOpcoes, type GrupoDaLinha } from "../banco-da-tela";
 const ALTURA_MAXIMA = 360;
 const LARGURA_MINIMA = 280;
 const FOLGA = 8;
+
+/** Celular e tablet: o dedo é o ponteiro principal. */
+const TOQUE = "(pointer: coarse)";
+
+const assinarToque = (aviso: () => void) => {
+  const consulta = window.matchMedia(TOQUE);
+  consulta.addEventListener("change", aviso);
+  return () => consulta.removeEventListener("change", aviso);
+};
+
+/** No servidor não há tela: renderiza a lista própria, e o aparelho troca. */
+const useTelaDeToque = () =>
+  useSyncExternalStore(
+    assinarToque,
+    () => window.matchMedia(TOQUE).matches,
+    () => false,
+  );
 
 type Posicao = { left: number; width: number; maxHeight: number } & (
   | { top: number }
@@ -46,8 +63,82 @@ const posicaoJuntoAo = (botao: HTMLElement): Posicao => {
  *
  * Aqui a lista abre no clique e só escolhe com outro clique inteiro numa
  * opção. E ganhou busca: o plano de contas passa de vinte opções.
+ *
+ * Na tela de toque volta o <select> nativo (`SeletorNativo`). Lá a lista
+ * própria não abria: a busca pegava o foco, o teclado subia e rolava a tela,
+ * e a lista se fechava sozinha com a rolagem. O defeito do Chrome do Linux é
+ * de mouse, e o seletor do aparelho não tem.
  */
-export function SeletorDeClassificacao({
+export function SeletorDeClassificacao(props: PropsDoSeletor) {
+  const toque = useTelaDeToque();
+  return toque ? <SeletorNativo {...props} /> : <ListaPropria {...props} />;
+}
+
+type PropsDoSeletor = {
+  /** Para um <label htmlFor> apontar para o campo. */
+  id?: string;
+  /** O nome acessível: a linha que este seletor classifica. */
+  rotulo: string;
+  valor: string;
+  grupos: GrupoDaLinha[];
+  /** O texto do campo enquanto as opções não chegaram (ou falharam). */
+  indisponivel: string | null;
+  desabilitado: boolean;
+  aoEscolher: (valor: string) => void;
+  /** Os textos falam de categoria do extrato; o item do desperdício usa o
+   *  mesmo seletor com os dele. */
+  semValor?: string;
+  procurar?: string;
+  nadaEncontrado?: string;
+};
+
+/** O seletor do aparelho, separado por categoria como a lista própria. */
+export function SeletorNativo({
+  id,
+  rotulo,
+  valor,
+  grupos,
+  indisponivel,
+  desabilitado,
+  aoEscolher,
+  semValor = "Ainda não classificada",
+}: PropsDoSeletor) {
+  return (
+    <div className="relative w-full">
+      {/* 16px e não os 14 da lista própria: abaixo disso o Safari do iPhone
+          dá zoom na tela ao tocar no campo. */}
+      <select
+        id={id}
+        aria-label={rotulo}
+        value={valor}
+        disabled={desabilitado}
+        onChange={(evento) => aoEscolher(evento.target.value)}
+        className={`w-full appearance-none truncate rounded-[10px] border py-[9px] pl-[12px] pr-[32px] text-[16px] leading-[1.4] text-caixa-ink outline-none transition focus:border-caixa-accent focus:ring-2 focus:ring-caixa-accent/15 disabled:opacity-50 ${
+          valor ? "border-caixa-border bg-caixa-surface" : "border-caixa-warn/45 bg-caixa-warn-soft"
+        }`}
+      >
+        <option value="">{indisponivel ?? semValor}</option>
+        {grupos.map((grupo) => (
+          <optgroup key={grupo.rotulo} label={grupo.rotulo}>
+            {grupo.opcoes.map((opcao) => (
+              <option key={opcao.valor} value={opcao.valor}>
+                {opcao.nome}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-[12px] top-1/2 -translate-y-1/2 text-[11px] text-caixa-muted"
+      >
+        ▾
+      </span>
+    </div>
+  );
+}
+
+function ListaPropria({
   id,
   rotulo,
   valor,
@@ -58,23 +149,7 @@ export function SeletorDeClassificacao({
   semValor = "Ainda não classificada",
   procurar = "Procurar categoria",
   nadaEncontrado = "Nenhuma categoria com esse nome.",
-}: {
-  /** Para um <label htmlFor> apontar para o botão. */
-  id?: string;
-  /** O nome acessível: a linha que este seletor classifica. */
-  rotulo: string;
-  valor: string;
-  grupos: GrupoDaLinha[];
-  /** O texto do botão enquanto as opções não chegaram (ou falharam). */
-  indisponivel: string | null;
-  desabilitado: boolean;
-  aoEscolher: (valor: string) => void;
-  /** Os textos falam de categoria do extrato; o item do desperdício usa o
-   *  mesmo seletor com os dele. */
-  semValor?: string;
-  procurar?: string;
-  nadaEncontrado?: string;
-}) {
+}: PropsDoSeletor) {
   const [aberto, setAberto] = useState(false);
   const [busca, setBusca] = useState("");
   const [ativa, setAtiva] = useState(0);
