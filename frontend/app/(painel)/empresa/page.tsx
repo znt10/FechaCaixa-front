@@ -935,6 +935,25 @@ function OFormularioDaLoja() {
           </p>
         </div>
 
+        {/* Os boletos no fim, sozinhos: nao dependem do catalogo, e nascem
+            desligados porque nem toda empresa recebe boleto na loja. */}
+        <label className="flex items-start gap-[10px] border-t border-caixa-border pt-[14px]">
+          <input
+            type="checkbox"
+            checked={config.boletos_ativos === true}
+            disabled={editar.isPending}
+            onChange={(evento) => editar.mutate({ boletos_ativos: evento.target.checked })}
+            className="mt-[3px] h-[16px] w-[16px] accent-caixa-accent"
+          />
+          <span className="flex flex-col gap-[1px]">
+            <span className="text-[15px] leading-[1.35]">Usa boletos a pagar</span>
+            <span className="text-[13px] leading-[1.4] text-caixa-muted">
+              A loja fotografa no fechamento os boletos e contas que chegam, e a
+              gerência vê os vencimentos na aba Boletos.
+            </span>
+          </span>
+        </label>
+
         {editar.error && (
           <p className="text-[14px] font-medium text-caixa-alerta">
             {editar.error instanceof Error

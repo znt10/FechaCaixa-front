@@ -1,4 +1,5 @@
 import { TopbarPainel } from "@/features/fechamento/components/TopbarPainel";
+import { FaixaDeBoletos } from "@/features/boletos/components/FaixaDeBoletos";
 import { FaixaDaPluggy } from "@/features/pluggy/components/FaixaDaPluggy";
 import { PortaoDaMensalidade } from "@/features/mensalidade/components/PortaoDaMensalidade";
 
@@ -33,6 +34,7 @@ export default function LayoutDoPainel({
     <div className="min-h-screen w-full bg-caixa-bg font-sans text-caixa-ink">
       <TopbarPainel />
       <FaixaDaPluggy />
+      <FaixaDeBoletos />
       <PortaoDaMensalidade>{children}</PortaoDaMensalidade>
     </div>
   );

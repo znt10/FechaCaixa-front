@@ -67,3 +67,16 @@ export const useBoletosAtivos = () => {
   const usuario = useUsuarioAtual();
   return usuario.data?.modulos?.boletos === true;
 };
+
+const semAcento = (texto?: string) =>
+  (texto ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Quem paga os boletos: gerente e admin da empresa que ligou. É quem o
+ *  servidor deixa ler o resumo — pedir para os outros só colheria 403. */
+export const useBoletosDaGerencia = () => {
+  const usuario = useUsuarioAtual();
+  const cargo = semAcento(usuario.data?.group);
+  return (
+    usuario.data?.modulos?.boletos === true && (cargo === "gerente" || cargo === "admin")
+  );
+};
