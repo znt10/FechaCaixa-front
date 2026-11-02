@@ -168,8 +168,12 @@ export const apiV1Publico = async (
 ): Promise<Response> => {
   const { headers, ...rest } = options;
   const requestHeaders = new Headers(headers);
+  // A foto do boleto vai como FormData: o Content-Type dela leva o boundary,
+  // e só o navegador sabe qual é. Mesmo cuidado do apiFetch.
+  const corpoEhFormData =
+    typeof FormData !== "undefined" && rest.body instanceof FormData;
 
-  if (!requestHeaders.has("Content-Type")) {
+  if (!requestHeaders.has("Content-Type") && !corpoEhFormData) {
     requestHeaders.set("Content-Type", "application/json");
   }
 

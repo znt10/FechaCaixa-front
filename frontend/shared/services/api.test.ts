@@ -118,3 +118,16 @@ describe("o erro da API carrega o status e o código", () => {
     expect(cabecalhos.get("X-Formulario")).toBe("1");
   });
 });
+
+describe("apiV1Publico com arquivo", () => {
+  it("nao forca JSON quando o corpo e FormData: o navegador poe o boundary", async () => {
+    const fetchFalso = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response("{}"));
+    vi.stubGlobal("fetch", fetchFalso);
+
+    await apiV1Publico("/formulario/boletos/", { method: "POST", body: new FormData() });
+
+    const cabecalhos = new Headers(fetchFalso.mock.calls[0][1]?.headers);
+    expect(cabecalhos.has("Content-Type")).toBe(false);
+    expect(cabecalhos.get("X-Formulario")).toBe("1");
+  });
+});
