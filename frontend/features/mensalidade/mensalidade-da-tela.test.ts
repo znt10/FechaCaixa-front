@@ -6,6 +6,7 @@ import {
   faixaDaMensalidade,
   jeitoDePagar,
   mostrarPlataforma,
+  portaoMudou,
   rotuloDoBotaoDaFaixa,
   umMesDepois,
 } from "./mensalidade-da-tela";
@@ -145,5 +146,14 @@ describe("o jeito de pagar", () => {
   it("o botão da faixa muda de nome", () => {
     expect(rotuloDoBotaoDaFaixa(automatico)).toBe("Pagar mensalidade");
     expect(rotuloDoBotaoDaFaixa(base)).toBe("Pagar com Pix");
+  });
+});
+
+describe("quando o portão muda", () => {
+  it("só conta a mudança entre duas respostas", () => {
+    expect(portaoMudou(undefined, "BLOQUEADA")).toBe(false);
+    expect(portaoMudou("BLOQUEADA", "BLOQUEADA")).toBe(false);
+    expect(portaoMudou("BLOQUEADA", "LIBERADO")).toBe(true);
+    expect(portaoMudou("LIBERADO", "BLOQUEADA")).toBe(true);
   });
 });

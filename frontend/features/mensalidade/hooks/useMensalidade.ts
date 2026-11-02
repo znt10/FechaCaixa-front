@@ -6,16 +6,26 @@ import {
   informarPagamento,
 } from "../services/mensalidade";
 
-export const useMinhaMensalidade = () =>
-  useQuery({
-    queryKey: ["mensalidade"],
-    queryFn: getMinhaMensalidade,
-    // Curto e ao voltar para a aba: quem pagou e teve o pagamento confirmado
-    // não pode ficar olhando a tela de bloqueio por meia hora de cache.
-    staleTime: 60 * 1000,
-    refetchOnWindowFocus: true,
-    retry: false,
-  });
+/** O mesmo ritmo na tela da loja e na Plataforma. */
+export const INTERVALO_DA_MENSALIDADE = 15 * 1000;
+
+/**
+ * A mensalidade muda fora desta tela: o dono marca a empresa na Plataforma,
+ * ou a InfinitePay confirma o pagamento numa aba ao lado. Por isso a cópia
+ * nunca vale como fresca, voltar para a aba relê, e a tela aberta se relê a
+ * cada 15 s (só com a aba visível: escondida, o foco de volta já relê).
+ */
+export const opcoesDaMinhaMensalidade = {
+  queryKey: ["mensalidade"],
+  queryFn: getMinhaMensalidade,
+  staleTime: 0,
+  refetchOnWindowFocus: true,
+  refetchInterval: INTERVALO_DA_MENSALIDADE,
+  refetchIntervalInBackground: false,
+  retry: false,
+} as const;
+
+export const useMinhaMensalidade = () => useQuery(opcoesDaMinhaMensalidade);
 
 export const useInformarPagamento = () => {
   const cliente = useQueryClient();

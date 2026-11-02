@@ -9,6 +9,7 @@ import {
   type MudancaDaEmpresa,
   type NovoPagamento,
 } from "../services/mensalidade";
+import { INTERVALO_DA_MENSALIDADE } from "./useMensalidade";
 
 const CHAVE = ["plataforma"];
 
@@ -19,7 +20,8 @@ const CHAVE = ["plataforma"];
  * leva a copia ate atraves do F5: a empresa apertava "Ja paguei" e o dono so
  * via depois de sair e entrar de novo. Aqui a copia nunca vale como fresca —
  * abrir a tela e voltar para a aba releem — e a lista se rele sozinha a cada
- * 10 minutos, para a tela esquecida aberta. O botao "Atualizar" e o resto.
+ * 15 s com a aba visivel, no mesmo ritmo da tela da loja: o pagamento que a
+ * InfinitePay confirma aparece aqui sem ninguem clicar em nada.
  */
 export const usePainelDaPlataforma = () =>
   useQuery({
@@ -27,7 +29,8 @@ export const usePainelDaPlataforma = () =>
     queryFn: getPainelDaPlataforma,
     staleTime: 0,
     refetchOnWindowFocus: true,
-    refetchInterval: 10 * 60 * 1000,
+    refetchInterval: INTERVALO_DA_MENSALIDADE,
+    refetchIntervalInBackground: false,
   });
 
 /** Toda ação da Plataforma muda a situação e os contadores: relê a lista. */

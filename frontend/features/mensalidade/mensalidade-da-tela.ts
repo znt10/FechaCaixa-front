@@ -128,6 +128,14 @@ export const estadoDoPortao = (mensalidade?: MinhaMensalidade): EstadoDoPortao =
   return "LIBERADO";
 };
 
+/**
+ * O portão abriu ou fechou entre duas respostas de verdade (não na primeira):
+ * as telas do painel que falharam com 402, ou que agora deviam falhar,
+ * precisam buscar de novo.
+ */
+export const portaoMudou = (anterior: EstadoDoPortao | undefined, atual: EstadoDoPortao) =>
+  anterior !== undefined && anterior !== atual;
+
 export const SELOS: Record<
   SituacaoDaMensalidade,
   { rotulo: string; tom: "ok" | "aviso" | "alerta" | "neutro" }
