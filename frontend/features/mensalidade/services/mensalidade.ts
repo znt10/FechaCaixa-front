@@ -24,6 +24,12 @@ export type MinhaMensalidade = {
   bloqueia_em?: string | null;
   aguardando?: { informado_em: string } | null;
   pode_informar?: boolean;
+  /** Gerente ou admin de empresa ativa e não isenta: pode abrir o pagamento. */
+  pode_pagar?: boolean;
+  /** Pela InfinitePay: paga por link e confirma sozinho, sem "Já paguei". */
+  pagamento_automatico?: boolean;
+  /** O link da InfinitePay já gerado, ou `null` até o primeiro clique. */
+  link?: string | null;
   /** `qr_svg` é um data URI, pronto para o `src` de um <img>. */
   pix?: { copia_e_cola: string; qr_svg: string } | null;
 };
@@ -68,6 +74,12 @@ export const getMinhaMensalidade = async (): Promise<MinhaMensalidade> => {
 
 export const informarPagamento = async (): Promise<MinhaMensalidade> => {
   const res = await apiV1("/minha-mensalidade/ja-paguei/", { method: "POST" });
+  return res.json();
+};
+
+/** Gera (ou devolve o que já existe) o link da InfinitePay. */
+export const gerarLinkDePagamento = async (): Promise<MinhaMensalidade> => {
+  const res = await apiV1("/minha-mensalidade/link/", { method: "POST" });
   return res.json();
 };
 

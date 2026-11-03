@@ -78,6 +78,41 @@ export const faixaDaMensalidade = (mensalidade?: MinhaMensalidade): Faixa | null
   }
 };
 
+export type JeitoDePagar =
+  | { tipo: "link"; link: string | null; frase: string }
+  | { tipo: "pix"; copiaECola: string; qrSvg: string }
+  | { tipo: "indisponivel"; texto: string };
+
+/**
+ * O bloco de pagamento, o mesmo na faixa e na tela de bloqueio. Pela
+ * InfinitePay é só o botão do link: o aviso dela confirma sozinho, e um
+ * "Já paguei" ali só seguraria o painel à toa.
+ */
+export const jeitoDePagar = (mensalidade: MinhaMensalidade): JeitoDePagar => {
+  if (mensalidade.pagamento_automatico) {
+    return {
+      tipo: "link",
+      link: mensalidade.link ?? null,
+      frase: "Pix ou cartão. Assim que o pagamento cair, o painel libera sozinho.",
+    };
+  }
+  if (mensalidade.pix) {
+    return {
+      tipo: "pix",
+      copiaECola: mensalidade.pix.copia_e_cola,
+      qrSvg: mensalidade.pix.qr_svg,
+    };
+  }
+  return {
+    tipo: "indisponivel",
+    texto: "O Pix de pagamento ainda não foi configurado. Fale com o responsável pelo FechaCaixa.",
+  };
+};
+
+/** O botão da faixa que abre o pagamento. */
+export const rotuloDoBotaoDaFaixa = (mensalidade: MinhaMensalidade) =>
+  mensalidade.pagamento_automatico ? "Pagar mensalidade" : "Pagar com Pix";
+
 export type EstadoDoPortao = "LIBERADO" | "BLOQUEADA" | "DESATIVADA";
 
 /**
@@ -92,6 +127,14 @@ export const estadoDoPortao = (mensalidade?: MinhaMensalidade): EstadoDoPortao =
   if (mensalidade?.situacao === "DESATIVADA") return "DESATIVADA";
   return "LIBERADO";
 };
+
+/**
+ * O portão abriu ou fechou entre duas respostas de verdade (não na primeira):
+ * as telas do painel que falharam com 402, ou que agora deviam falhar,
+ * precisam buscar de novo.
+ */
+export const portaoMudou = (anterior: EstadoDoPortao | undefined, atual: EstadoDoPortao) =>
+  anterior !== undefined && anterior !== atual;
 
 export const SELOS: Record<
   SituacaoDaMensalidade,
