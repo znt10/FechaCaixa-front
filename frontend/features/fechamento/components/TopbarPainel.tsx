@@ -7,6 +7,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useModuloDeNotas } from "@/features/admin/hooks/useModuloDeNotas";
 import { useAbasDoBanco } from "@/features/banco/hooks/useBanco";
+import {
+  useBoletosAtivos,
+  useBoletosDaGerencia,
+  useResumoDosBoletos,
+} from "@/features/boletos/hooks/useBoletos";
 import { useAreaDeComprovantes } from "@/features/comprovantes/hooks/useComprovantes";
 import { useCatalogoAtivo } from "@/features/fechamento/hooks/useCatalogoAtivo";
 import { BotaoDeExportar } from "@/features/fechamento/components/BotaoDeExportar";
@@ -58,6 +63,11 @@ export function TopbarPainel() {
   const plataforma = mostrarPlataforma(usuarioDaSessao.data);
   const areaDeComprovantes = useAreaDeComprovantes();
   const catalogoAtivo = useCatalogoAtivo();
+  const boletosAtivos = useBoletosAtivos();
+  const boletosDaGerencia = useBoletosDaGerencia();
+  // A mesma consulta da faixa do painel: as duas leem do mesmo cache.
+  const resumoDosBoletos = useResumoDosBoletos({ habilitado: boletosDaGerencia });
+  const boletosPedindoAtencao = resumoDosBoletos.data?.aviso ?? 0;
 
   // Derivada da rota aberta, e nao guardada: a URL nao tem como discordar de
   // si mesma. Estado velho sobrevivendo a uma troca ja fez este painel mostrar
@@ -135,6 +145,7 @@ export function TopbarPainel() {
               catalogo: catalogoAtivo,
               plataforma,
               comprovantes: areaDeComprovantes.ativo,
+              boletos: boletosAtivos,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;
               return (
@@ -149,6 +160,14 @@ export function TopbarPainel() {
                   }`}
                 >
                   {rotulo}
+                  {href === "/boletos" && boletosPedindoAtencao > 0 && (
+                    <span
+                      aria-label={`${boletosPedindoAtencao} ${boletosPedindoAtencao === 1 ? "boleto pede" : "boletos pedem"} atenção`}
+                      className="ml-[6px] inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-caixa-alerta px-[5px] text-[11px] font-semibold text-white"
+                    >
+                      {boletosPedindoAtencao}
+                    </span>
+                  )}
                 </Link>
               );
             })}

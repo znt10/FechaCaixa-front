@@ -8,7 +8,7 @@ import {
   type Area,
 } from "./areas-do-painel";
 
-const rotulos = (area: Area, opcoes: { gerente: boolean; notas: boolean }) =>
+const rotulos = (area: Area, opcoes: Parameters<typeof paginasDaArea>[1]) =>
   paginasDaArea(area, opcoes).map((pagina) => pagina.rotulo);
 
 describe("areaDaRota", () => {
@@ -245,4 +245,18 @@ describe("a área Plataforma", () => {
 
   it("a rota da Pluggy é da área Plataforma", () =>
     expect(areaDaRota("/plataforma/pluggy")).toBe("PLATAFORMA"));
+});
+
+describe("paginasDaArea com boletos", () => {
+  it("Boletos entra no fim do caixa, para o gerente da empresa que usa", () => {
+    const paginas = paginasDaArea("CAIXA", { gerente: true, notas: false, boletos: true });
+    expect(paginas.at(-1)).toEqual({ href: "/boletos", rotulo: "Boletos" });
+  });
+
+  it("sem boletos ligados, ou sem ser gerente, a aba não aparece", () => {
+    expect(rotulos("CAIXA", { gerente: true, notas: false })).not.toContain("Boletos");
+    expect(rotulos("CAIXA", { gerente: false, notas: false, boletos: true })).not.toContain(
+      "Boletos",
+    );
+  });
 });

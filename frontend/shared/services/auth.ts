@@ -28,6 +28,7 @@ export type UsuarioAtual = {
     catalogo?: boolean;
     banco?: boolean;
     comprovantes?: boolean;
+    boletos?: boolean;
   };
 };
 

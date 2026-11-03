@@ -189,6 +189,30 @@ describe("proxy: o que cada papel alcanca", () => {
     });
   });
 
+  // Boletos sao da gerencia, como os comprovantes: quem paga e ela.
+  describe("a tela de boletos", () => {
+    it.each(["Gerente", "Admin"])("%s entra", (papel) => {
+      const resposta = pedirComo(papel, "/boletos");
+
+      expect(resposta?.status).toBe(200);
+      expect(resposta?.headers.get("location")).toBeNull();
+    });
+
+    it("o funcionario volta para o painel", () => {
+      const resposta = pedirComo("Funcionario", "/boletos");
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/fechamentos");
+    });
+
+    it("sem login vai para o login", () => {
+      const resposta = pedir("/boletos");
+
+      expect(resposta?.status).toBe(307);
+      expect(resposta?.headers.get("location")).toContain("/login");
+    });
+  });
+
   // O dono da plataforma entra com o papel proprio "Plataforma" (o superusuario
   // no backend). O "Admin" das empresas nao chega na tela, e o dono nao chega
   // no caixa: ele administra as empresas, nao fecha caixa.

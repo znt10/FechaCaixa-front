@@ -36,6 +36,9 @@ const EMPRESA: Pagina = { href: "/empresa", rotulo: "Empresa" };
 // cadastro" — so que sobre o que a loja vende, e nao sobre quem trabalha nela.
 const CATALOGO: Pagina = { href: "/catalogo", rotulo: "Catálogo" };
 
+// Os boletos a pagar da empresa: so a gerencia paga, entao so ela ve.
+const BOLETOS: Pagina = { href: "/boletos", rotulo: "Boletos" };
+
 const NOTAS: Pagina[] = [{ href: "/notas-fiscais", rotulo: "Notas fiscais" }];
 
 // O extrato mora em Despesas, ao lado das notas: e a outra metade da mesma
@@ -135,6 +138,9 @@ export const paginasDaArea = (
     catalogo = true,
     comprovantes = false,
     plataforma = false,
+    // Ausente conta como desligado, como o banco: e coisa nova, e o backend
+    // de antes nao tem a tela para onde a aba levaria.
+    boletos = false,
   }: {
     gerente: boolean;
     notas: boolean;
@@ -142,6 +148,7 @@ export const paginasDaArea = (
     catalogo?: boolean;
     comprovantes?: boolean;
     plataforma?: boolean;
+    boletos?: boolean;
   },
 ): Pagina[] => {
   if (area === "COMPROVANTES") return comprovantes ? [...COMPROVANTES] : [];
@@ -151,5 +158,5 @@ export const paginasDaArea = (
   // Catálogo sai da fila quando a empresa não vende nada de catálogo: ali não
   // haveria o que cadastrar. Empresa fica — administrar quem trabalha na loja
   // não tem nada a ver com o que ela vende.
-  return catalogo ? [...CAIXA, EMPRESA, CATALOGO] : [...CAIXA, EMPRESA];
+  return [...CAIXA, EMPRESA, ...(catalogo ? [CATALOGO] : []), ...(boletos ? [BOLETOS] : [])];
 };
