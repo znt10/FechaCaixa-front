@@ -4,7 +4,10 @@ import {
   emDataEHora,
   estadoDoPortao,
   faixaDaMensalidade,
+  jeitoDePagar,
   mostrarPlataforma,
+  portaoMudou,
+  rotuloDoBotaoDaFaixa,
   umMesDepois,
 } from "./mensalidade-da-tela";
 import type { MinhaMensalidade } from "./services/mensalidade";
@@ -102,5 +105,55 @@ describe("quem vê a Plataforma", () => {
     expect(mostrarPlataforma({ id: 1, super: true })).toBe(true);
     expect(mostrarPlataforma({ id: 1, super: false, group: "Admin" })).toBe(false);
     expect(mostrarPlataforma(undefined)).toBe(false);
+  });
+});
+
+describe("o jeito de pagar", () => {
+  const automatico: MinhaMensalidade = {
+    ...base,
+    situacao: "ATRASADA",
+    pagamento_automatico: true,
+    pode_pagar: true,
+    link: null,
+  };
+
+  it("pela InfinitePay é o link, mesmo antes de existir", () => {
+    expect(jeitoDePagar(automatico)).toEqual({
+      tipo: "link",
+      link: null,
+      frase: "Pix ou cartão. Assim que o pagamento cair, o painel libera sozinho.",
+    });
+  });
+
+  it("pela InfinitePay devolve o link já gerado", () => {
+    const jeito = jeitoDePagar({ ...automatico, link: "https://checkout/1" });
+    expect(jeito.tipo === "link" && jeito.link).toBe("https://checkout/1");
+  });
+
+  it("sem a InfinitePay é o Pix", () => {
+    expect(
+      jeitoDePagar({ ...base, pix: { copia_e_cola: "000201", qr_svg: "data:x" } }),
+    ).toEqual({ tipo: "pix", copiaECola: "000201", qrSvg: "data:x" });
+  });
+
+  it("sem nada configurado avisa", () => {
+    expect(jeitoDePagar(base)).toEqual({
+      tipo: "indisponivel",
+      texto: "O Pix de pagamento ainda não foi configurado. Fale com o responsável pelo FechaCaixa.",
+    });
+  });
+
+  it("o botão da faixa muda de nome", () => {
+    expect(rotuloDoBotaoDaFaixa(automatico)).toBe("Pagar mensalidade");
+    expect(rotuloDoBotaoDaFaixa(base)).toBe("Pagar com Pix");
+  });
+});
+
+describe("quando o portão muda", () => {
+  it("só conta a mudança entre duas respostas", () => {
+    expect(portaoMudou(undefined, "BLOQUEADA")).toBe(false);
+    expect(portaoMudou("BLOQUEADA", "BLOQUEADA")).toBe(false);
+    expect(portaoMudou("BLOQUEADA", "LIBERADO")).toBe(true);
+    expect(portaoMudou("LIBERADO", "BLOQUEADA")).toBe(true);
   });
 });

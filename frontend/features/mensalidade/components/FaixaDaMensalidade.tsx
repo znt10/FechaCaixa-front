@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { faixaDaMensalidade } from "../mensalidade-da-tela";
+import { faixaDaMensalidade, rotuloDoBotaoDaFaixa } from "../mensalidade-da-tela";
 import type { MinhaMensalidade } from "../services/mensalidade";
 import { QuadroDoPix } from "./QuadroDoPix";
 
@@ -12,7 +12,7 @@ const CORES = {
   info: "border-caixa-border bg-caixa-faixa text-caixa-ink",
 } as const;
 
-/** A faixa logo abaixo da barra do topo. O Pix abre ali mesmo, sem trocar de tela. */
+/** A faixa logo abaixo da barra do topo. O pagamento abre ali mesmo, sem trocar de tela. */
 export function FaixaDaMensalidade({ mensalidade }: { mensalidade?: MinhaMensalidade }) {
   const [aberto, setAberto] = useState(false);
   const faixa = faixaDaMensalidade(mensalidade);
@@ -29,7 +29,7 @@ export function FaixaDaMensalidade({ mensalidade }: { mensalidade?: MinhaMensali
               onClick={() => setAberto((estava) => !estava)}
               className="rounded-[8px] border border-current px-[12px] py-[6px] text-[13px] font-semibold"
             >
-              {aberto ? "Fechar" : "Pagar com Pix"}
+              {aberto ? "Fechar" : rotuloDoBotaoDaFaixa(mensalidade)}
             </button>
           )}
         </div>
