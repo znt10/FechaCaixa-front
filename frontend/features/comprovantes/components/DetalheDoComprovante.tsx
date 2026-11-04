@@ -5,8 +5,9 @@ import { useState } from "react";
 import { useGruposDeDespesa } from "@/features/admin/hooks/useNotas";
 import { useLojasDoPainel } from "@/features/fechamento/hooks/usePainel";
 
-import { acoesDoDetalhe, paraDataLocal } from "../comprovantes-da-tela";
+import { acoesDoDetalhe, paraDataLocal, rotuloDoMover } from "../comprovantes-da-tela";
 import {
+  useAreaDeComprovantes,
   useConfirmarComprovante,
   useDescartarComprovante,
   useEditarComprovante,
@@ -34,6 +35,11 @@ export function DetalheDoComprovante({
   const descartar = useDescartarComprovante();
   const voltar = useVoltarParaConferir();
   const acoes = acoesDoDetalhe(comprovante.situacao);
+  const { pessoal } = comprovante;
+  // Para o CPF só com a tela CPF ligada (senão o comprovante sumiria); de
+  // volta para as lojas, sempre.
+  const area = useAreaDeComprovantes();
+  const podeMover = pessoal || area.pessoais;
 
   const [valor, setValor] = useState(comprovante.valor ?? "");
   const [dataHora, setDataHora] = useState(paraDataLocal(comprovante.data_hora));
@@ -53,9 +59,17 @@ export function DetalheDoComprovante({
         data_hora: dataHora ? `${dataHora}:00-03:00` : undefined,
         recebedor_nome: recebedor,
         loja: loja || null,
-        elemento: elemento || null,
+        // O gasto pessoal não tem categoria: a API recusa.
+        elemento: pessoal ? null : elemento || null,
       },
     });
+  };
+
+  // Mandou para o e-mail errado: o comprovante troca de tela. Ao ir para o
+  // CPF, a categoria some (o servidor limpa).
+  const mover = async () => {
+    await editar.mutateAsync({ id: comprovante.id, edicao: { pessoal: !pessoal } });
+    onFechar();
   };
 
   const salvarEConfirmar = async () => {
@@ -120,9 +134,9 @@ export function DetalheDoComprovante({
             <input className={CAMPO} value={recebedor} onChange={(e) => setRecebedor(e.target.value)} />
           </label>
           <label className="flex flex-col gap-[4px] text-[13px]">
-            Loja
+            {pessoal ? "Pago com a conta da" : "Loja"}
             <select className={CAMPO} value={loja} onChange={(e) => setLoja(e.target.value)}>
-              <option value="">Sem loja</option>
+              <option value="">{pessoal ? "Outra conta" : "Sem loja"}</option>
               {(lojas.data ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.nome_loja}
@@ -130,21 +144,23 @@ export function DetalheDoComprovante({
               ))}
             </select>
           </label>
-          <label className="flex flex-col gap-[4px] text-[13px]">
-            Categoria
-            <select className={CAMPO} value={elemento} onChange={(e) => setElemento(e.target.value)}>
-              <option value="">Sem categoria</option>
-              {(grupos.data ?? []).map((grupo) => (
-                <optgroup key={grupo.id} label={grupo.nome}>
-                  {grupo.elementos.filter((item) => item.ativo).map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.nome}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+          {!pessoal && (
+            <label className="flex flex-col gap-[4px] text-[13px]">
+              Categoria
+              <select className={CAMPO} value={elemento} onChange={(e) => setElemento(e.target.value)}>
+                <option value="">Sem categoria</option>
+                {(grupos.data ?? []).map((grupo) => (
+                  <optgroup key={grupo.id} label={grupo.nome}>
+                    {grupo.elementos.filter((item) => item.ativo).map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.nome}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+          )}
 
           {comprovante.pagador_nome && (
             <p className="text-[12px] text-caixa-muted">
@@ -169,6 +185,16 @@ export function DetalheDoComprovante({
             {acoes.principal === "voltar" && (
               <button type="button" disabled={ocupado} onClick={async () => { await voltar.mutateAsync(comprovante.id); onFechar(); }} className={`${BOTAO} bg-caixa-accent text-white`}>
                 Voltar para conferir
+              </button>
+            )}
+            {podeMover && (
+              <button
+                type="button"
+                disabled={ocupado}
+                onClick={mover}
+                className={`${BOTAO} border border-caixa-border text-caixa-ink`}
+              >
+                {rotuloDoMover(pessoal)}
               </button>
             )}
             {acoes.descartar && (

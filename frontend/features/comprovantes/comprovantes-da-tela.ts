@@ -69,8 +69,24 @@ export const avisoDeConferir = (quantos: number) =>
   quantos === 1 ? "1 comprovante para conferir" : `${quantos} comprovantes para conferir`;
 
 /** O rótulo do cartão do total, no mesmo tom do fechamento de caixa. */
-export const rotuloDoTotal = (granularidade: Granularidade) =>
-  ({ DIA: "TOTAL DO DIA", SEMANA: "TOTAL DA SEMANA", MES: "TOTAL DO MÊS" })[granularidade];
+export const rotuloDoTotal = (granularidade: Granularidade, pessoal = false) =>
+  (pessoal
+    ? { DIA: "GASTO PESSOAL DO DIA", SEMANA: "GASTO PESSOAL DA SEMANA", MES: "GASTO PESSOAL DO MÊS" }
+    : { DIA: "TOTAL DO DIA", SEMANA: "TOTAL DA SEMANA", MES: "TOTAL DO MÊS" })[granularidade];
+
+/** No gasto pessoal a loja não é dona do gasto: só diz de que conta saiu. */
+export const contaDoPagamento = ({ loja_nome }: { loja_nome: string | null }) =>
+  loja_nome ? `pago com a conta da ${loja_nome}` : "";
+
+/** O resumo da tela CPF: quanto saiu da conta de cada loja, e o resto. Sem
+ *  nada pago por loja, nenhuma linha (seria o total repetido). */
+export const linhasDoResumoPessoal = (totais: TotaisDeComprovantes) =>
+  linhasDoResumo(totais).map(({ nome, valor }, indice) => ({
+    nome: totais.por_loja[indice].loja === null ? "Outras contas" : `Pago com a conta da ${nome}`,
+    valor,
+  }));
+
+export const rotuloDoMover = (pessoal: boolean) => (pessoal ? "Mover para lojas" : "Mover para CPF");
 
 /** `pessoal`: a tela CPF. Lá a loja não filtra (ela só diz de que conta saiu). */
 export const montarFiltro = (

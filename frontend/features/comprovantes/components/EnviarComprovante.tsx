@@ -12,8 +12,11 @@ import type { Comprovante } from "../services/comprovantes";
  *  é o caminho de quem só tem as fotos, sem e-mail. */
 export function EnviarComprovante({
   loja,
+  pessoal = false,
   onLido,
 }: {
+  /** Tela CPF: tudo o que for enviado aqui entra como gasto pessoal. */
+  pessoal?: boolean;
   /** Para onde vão as fotos; null deixa a leitura achar pelo CNPJ ou conta. */
   loja: { id: string; nome: string } | null;
   onLido: (comprovante: Comprovante) => void;
@@ -33,7 +36,7 @@ export function EnviarComprovante({
 
     if (arquivos.length === 1) {
       try {
-        onLido(await enviar.mutateAsync({ arquivo: arquivos[0], loja: loja?.id }));
+        onLido(await enviar.mutateAsync({ arquivo: arquivos[0], loja: loja?.id, pessoal }));
       } catch (falha) {
         setErro((falha as Error).message);
       }
@@ -46,7 +49,7 @@ export function EnviarComprovante({
     for (const [indice, arquivo] of arquivos.entries()) {
       setProgresso({ atual: indice + 1, total: arquivos.length });
       try {
-        const comprovante = await enviar.mutateAsync({ arquivo, loja: loja?.id });
+        const comprovante = await enviar.mutateAsync({ arquivo, loja: loja?.id, pessoal });
         resultados.push({ nome: arquivo.name, situacao: comprovante.situacao });
       } catch (falha) {
         resultados.push({ nome: arquivo.name, erro: (falha as Error).message });

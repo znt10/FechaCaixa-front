@@ -40,6 +40,7 @@ export const patchMinhaEmpresa = async (
       | "vendas_ativas"
       | "nome_dos_itens"
       | "boletos_ativos"
+      | "comprovantes_pessoais_ativos"
     >
   >,
 ): Promise<MinhaEmpresa> => {

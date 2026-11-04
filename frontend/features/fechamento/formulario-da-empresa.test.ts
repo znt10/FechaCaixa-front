@@ -199,3 +199,14 @@ describe("resumoDoFormulario com boletos", () => {
     );
   });
 });
+
+describe("resumoDoFormulario com comprovantes pessoais", () => {
+  it("cita os comprovantes pessoais só quando a empresa ligou", () => {
+    expect(resumoDoFormulario({ comprovantes_pessoais_ativos: true })).toBe(
+      "todas as perguntas · catálogo de salgados · comprovantes pessoais",
+    );
+    expect(resumoDoFormulario({ comprovantes_pessoais_ativos: false })).toBe(
+      "todas as perguntas · catálogo de salgados",
+    );
+  });
+});

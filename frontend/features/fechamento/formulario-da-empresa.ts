@@ -26,6 +26,7 @@ export type ConfiguracaoDoFormulario = {
   /** Boletos a pagar: a pergunta no formulário e a aba Boletos. Ausente conta
    *  como DESLIGADO, como as vendas: é coisa nova. */
   boletos_ativos?: boolean;
+  comprovantes_pessoais_ativos?: boolean;
 };
 
 export type PerguntaOpcional = "retirada" | "despesa" | "devolucao" | "consumo" | "perda";
@@ -146,6 +147,7 @@ export const resumoDoFormulario = (config: ConfiguracaoDoFormulario): string => 
 
   const partes = [quantas, catalogo];
   if (config.boletos_ativos === true) partes.push("boletos a pagar");
+  if (config.comprovantes_pessoais_ativos === true) partes.push("comprovantes pessoais");
   return partes.join(" · ");
 };
 

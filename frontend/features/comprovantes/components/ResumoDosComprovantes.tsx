@@ -1,6 +1,5 @@
 import { emReais } from "@/features/fechamento/painel-dados";
 
-import { linhasDoResumo } from "../comprovantes-da-tela";
 import type { TotaisDeComprovantes } from "../services/comprovantes";
 
 /** O total no mesmo cartão do fechamento de caixa: rótulo pequeno, valor
@@ -8,11 +7,13 @@ import type { TotaisDeComprovantes } from "../services/comprovantes";
 export function ResumoDosComprovantes({
   rotulo,
   totais,
+  linhas,
 }: {
   rotulo: string;
   totais: TotaisDeComprovantes;
+  /** O que se divide do total: por loja, ou (tela CPF) por conta que pagou. */
+  linhas: { nome: string; valor: string }[];
 }) {
-  const linhas = linhasDoResumo(totais);
   return (
     <section className="cartao-caixa rounded-[12px] bg-caixa-total px-[18px] py-[20px] text-caixa-accent md:px-[28px] md:py-[24px]">
       <div className="grid gap-[20px] md:grid-cols-[1fr_auto] md:items-end">

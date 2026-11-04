@@ -33,6 +33,7 @@ import {
   useMinhaEmpresa,
   useResponsaveis,
 } from "@/features/admin/hooks/useEmpresa";
+import { useAreaDeComprovantes } from "@/features/comprovantes/hooks/useComprovantes";
 import {
   nomeDosItens,
   resumoDoFormulario,
@@ -814,6 +815,7 @@ const PERGUNTAS_DO_FORMULARIO = [
  */
 function OFormularioDaLoja() {
   const empresa = useMinhaEmpresa();
+  const areaDeComprovantes = useAreaDeComprovantes();
   const editar = useEditarEmpresa();
   const [nome, setNome] = useState<string | null>(null);
   const [recolhido, alternarRecolhido] = useRecolhido("formulario-da-loja");
@@ -953,6 +955,28 @@ function OFormularioDaLoja() {
             </span>
           </span>
         </label>
+
+        {/* So para quem tem a area de comprovantes: a tela CPF mora nela. */}
+        {areaDeComprovantes.ativo && (
+          <label className="flex items-start gap-[10px] border-t border-caixa-border pt-[14px]">
+            <input
+              type="checkbox"
+              checked={config.comprovantes_pessoais_ativos === true}
+              disabled={editar.isPending}
+              onChange={(evento) =>
+                editar.mutate({ comprovantes_pessoais_ativos: evento.target.checked })
+              }
+              className="mt-[3px] h-[16px] w-[16px] accent-caixa-accent"
+            />
+            <span className="flex flex-col gap-[1px]">
+              <span className="text-[15px] leading-[1.35]">Usa comprovantes pessoais (CPF)</span>
+              <span className="text-[13px] leading-[1.4] text-caixa-muted">
+                Gastos pessoais mandados para o e-mail próprio ficam numa tela
+                separada e não somam nas lojas.
+              </span>
+            </span>
+          </label>
+        )}
 
         {editar.error && (
           <p className="text-[14px] font-medium text-caixa-alerta">

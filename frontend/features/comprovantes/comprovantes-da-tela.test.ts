@@ -13,6 +13,9 @@ import {
   intervaloDasEscolhas,
   rotuloDaSituacao,
   rotuloDoTotal,
+  contaDoPagamento,
+  linhasDoResumoPessoal,
+  rotuloDoMover,
   type EscolhasDosComprovantes,
 } from "./comprovantes-da-tela";
 import { parametrosDoFiltro } from "./services/comprovantes";
@@ -236,5 +239,49 @@ describe("parâmetros da lista", () => {
 
   it("sem pessoal, nada de pessoal na URL", () => {
     expect(parametrosDoFiltro({ loja: "sem", pessoal: false })).toBe("loja=sem");
+  });
+});
+
+describe("tela CPF", () => {
+  it("o total diz que é gasto pessoal e acompanha o período", () => {
+    expect(rotuloDoTotal("DIA", true)).toBe("GASTO PESSOAL DO DIA");
+    expect(rotuloDoTotal("SEMANA", true)).toBe("GASTO PESSOAL DA SEMANA");
+    expect(rotuloDoTotal("MES", true)).toBe("GASTO PESSOAL DO MÊS");
+  });
+
+  it("diz de que conta saiu o dinheiro quando foi a de uma loja", () => {
+    expect(contaDoPagamento({ loja_nome: "Matriz" })).toBe("pago com a conta da Matriz");
+    expect(contaDoPagamento({ loja_nome: null })).toBe("");
+  });
+
+  it("o resumo separa o que saiu das contas das lojas", () => {
+    expect(
+      linhasDoResumoPessoal({
+        valor: "600.00",
+        conferir: 0,
+        por_loja: [
+          { loja: "a", nome: "Matriz", valor: "500.00" },
+          { loja: null, nome: "Sem loja", valor: "100.00" },
+        ],
+      }),
+    ).toEqual([
+      { nome: "Pago com a conta da Matriz", valor: "500.00" },
+      { nome: "Outras contas", valor: "100.00" },
+    ]);
+  });
+
+  it("sem nada pago por conta de loja, o resumo não repete o total", () => {
+    expect(
+      linhasDoResumoPessoal({
+        valor: "100.00",
+        conferir: 0,
+        por_loja: [{ loja: null, nome: "Sem loja", valor: "100.00" }],
+      }),
+    ).toEqual([]);
+  });
+
+  it("o botão de mover leva para o outro lado", () => {
+    expect(rotuloDoMover(false)).toBe("Mover para CPF");
+    expect(rotuloDoMover(true)).toBe("Mover para lojas");
   });
 });
