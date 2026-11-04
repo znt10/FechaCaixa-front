@@ -53,8 +53,10 @@ const BANCO: Pagina[] = [
 // Módulo próprio, e não mais uma aba de Despesas: quem usa só comprovante (a
 // empresa pequena, sem nota nem extrato) não deve ver o resto. O que é de
 // todo mundo — o plano de contas — fica editável aqui também.
+const CPF = "/comprovantes/pessoal";
 const COMPROVANTES: Pagina[] = [
-  { href: "/comprovantes", rotulo: "Comprovantes" },
+  { href: "/comprovantes", rotulo: "Comprovantes lojas" },
+  { href: "/comprovantes/pessoal", rotulo: "Comprovantes CPF" },
   { href: "/comprovantes/configurar", rotulo: "Configurar" },
 ];
 
@@ -141,6 +143,8 @@ export const paginasDaArea = (
     // Ausente conta como desligado, como o banco: e coisa nova, e o backend
     // de antes nao tem a tela para onde a aba levaria.
     boletos = false,
+    // Ausente conta como desligado: so a empresa que pediu ve a tela CPF.
+    comprovantesPessoais = false,
   }: {
     gerente: boolean;
     notas: boolean;
@@ -149,9 +153,13 @@ export const paginasDaArea = (
     comprovantes?: boolean;
     plataforma?: boolean;
     boletos?: boolean;
+    comprovantesPessoais?: boolean;
   },
 ): Pagina[] => {
-  if (area === "COMPROVANTES") return comprovantes ? [...COMPROVANTES] : [];
+  if (area === "COMPROVANTES")
+    return comprovantes
+      ? COMPROVANTES.filter((pagina) => comprovantesPessoais || pagina.href !== CPF)
+      : [];
   if (area === "PLATAFORMA") return plataforma ? [...PLATAFORMA] : [];
   if (area === "DESPESAS") return [...(notas ? NOTAS : []), ...(banco ? BANCO : [])];
   if (!gerente) return [...CAIXA];

@@ -29,6 +29,8 @@ export type UsuarioAtual = {
     banco?: boolean;
     comprovantes?: boolean;
     boletos?: boolean;
+    /** A tela "Comprovantes CPF": o módulo de comprovantes E a opção da empresa. */
+    comprovantes_pessoais?: boolean;
   };
 };
 

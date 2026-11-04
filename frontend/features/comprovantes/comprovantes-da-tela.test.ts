@@ -15,6 +15,7 @@ import {
   rotuloDoTotal,
   type EscolhasDosComprovantes,
 } from "./comprovantes-da-tela";
+import { parametrosDoFiltro } from "./services/comprovantes";
 
 const gerente = (comprovantes: boolean) => ({
   id: 1,
@@ -91,6 +92,18 @@ describe("escolhas e filtro", () => {
       loja: "sem",
       page: 2,
     });
+  });
+
+  it("na tela CPF o filtro pede só os pessoais, sem loja", () => {
+    expect(montarFiltro(escolhas({ loja: "sem" }), true)).toEqual({
+      de: "2026-10-01",
+      ate: "2026-10-31",
+      pessoal: true,
+    });
+  });
+
+  it("na tela das lojas o filtro não fala de pessoal", () => {
+    expect(montarFiltro(escolhas())).not.toHaveProperty("pessoal");
   });
 });
 
@@ -213,5 +226,15 @@ describe("lojaDoEnvio", () => {
 
   it("'Sem loja' escolhido: nenhuma", () => {
     expect(lojaDoEnvio([centro], "sem")).toBeNull();
+  });
+});
+
+describe("parâmetros da lista", () => {
+  it("pessoal vai como 1, que é o que a API entende", () => {
+    expect(parametrosDoFiltro({ de: "2026-10-01", pessoal: true })).toBe("de=2026-10-01&pessoal=1");
+  });
+
+  it("sem pessoal, nada de pessoal na URL", () => {
+    expect(parametrosDoFiltro({ loja: "sem", pessoal: false })).toBe("loja=sem");
   });
 });

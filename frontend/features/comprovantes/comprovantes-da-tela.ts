@@ -72,9 +72,14 @@ export const avisoDeConferir = (quantos: number) =>
 export const rotuloDoTotal = (granularidade: Granularidade) =>
   ({ DIA: "TOTAL DO DIA", SEMANA: "TOTAL DA SEMANA", MES: "TOTAL DO MÊS" })[granularidade];
 
-export const montarFiltro = (escolhas: EscolhasDosComprovantes): FiltroDeComprovantes => {
+/** `pessoal`: a tela CPF. Lá a loja não filtra (ela só diz de que conta saiu). */
+export const montarFiltro = (
+  escolhas: EscolhasDosComprovantes,
+  pessoal = false,
+): FiltroDeComprovantes => {
   const filtro: FiltroDeComprovantes = { ...intervaloDasEscolhas(escolhas) };
-  if (escolhas.loja) filtro.loja = escolhas.loja;
+  if (pessoal) filtro.pessoal = true;
+  else if (escolhas.loja) filtro.loja = escolhas.loja;
   if (escolhas.situacao) filtro.situacao = escolhas.situacao;
   if (escolhas.pagina > 1) filtro.page = escolhas.pagina;
   return filtro;

@@ -145,6 +145,7 @@ export function TopbarPainel() {
               catalogo: catalogoAtivo,
               plataforma,
               comprovantes: areaDeComprovantes.ativo,
+              comprovantesPessoais: areaDeComprovantes.pessoais,
               boletos: boletosAtivos,
             }).map(({ href, rotulo }) => {
               const atual = caminho === href;

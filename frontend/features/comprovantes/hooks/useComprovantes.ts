@@ -69,6 +69,7 @@ export const useAreaDeComprovantes = () => {
       carregando: usuario.isPending,
       falhou: usuario.isError,
     }),
+    pessoais: usuario.data?.modulos?.comprovantes_pessoais === true,
   };
 };
 

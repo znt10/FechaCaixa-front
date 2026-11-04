@@ -193,12 +193,31 @@ describe("área de comprovantes", () => {
     expect(areas.map((area) => area.id)).not.toContain("COMPROVANTES");
   });
 
-  it("as abas são Comprovantes e Configurar", () => {
+  it("sem os comprovantes pessoais, as abas são Comprovantes lojas e Configurar", () => {
     expect(
       paginasDaArea("COMPROVANTES", { gerente: true, notas: false, comprovantes: true }).map(
         (pagina) => pagina.rotulo,
       ),
-    ).toEqual(["Comprovantes", "Configurar"]);
+    ).toEqual(["Comprovantes lojas", "Configurar"]);
+  });
+
+  it("com os comprovantes pessoais, a aba Comprovantes CPF entra no meio", () => {
+    expect(
+      paginasDaArea("COMPROVANTES", {
+        gerente: true,
+        notas: false,
+        comprovantes: true,
+        comprovantesPessoais: true,
+      }).map((pagina) => [pagina.rotulo, pagina.href]),
+    ).toEqual([
+      ["Comprovantes lojas", "/comprovantes"],
+      ["Comprovantes CPF", "/comprovantes/pessoal"],
+      ["Configurar", "/comprovantes/configurar"],
+    ]);
+  });
+
+  it("a tela CPF é da área Comprovantes", () => {
+    expect(areaDaRota("/comprovantes/pessoal")).toBe("COMPROVANTES");
   });
 });
 

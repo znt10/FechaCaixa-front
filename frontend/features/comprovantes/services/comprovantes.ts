@@ -14,6 +14,8 @@ export type Comprovante = {
   situacao: Situacao;
   motivo: string;
   origem: "EMAIL" | "SITE";
+  /** Gasto pessoal (tela CPF): nunca soma em loja nem na empresa. */
+  pessoal: boolean;
   valor: string | null;
   data_hora: string | null;
   id_transacao: string | null;
@@ -55,6 +57,8 @@ export type FiltroDeComprovantes = {
   loja?: string;
   situacao?: Situacao;
   page?: number;
+  /** Só os pessoais (tela CPF). Ausente: só os das lojas. */
+  pessoal?: boolean;
 };
 
 export type EdicaoDeComprovante = Partial<{
@@ -63,22 +67,33 @@ export type EdicaoDeComprovante = Partial<{
   recebedor_nome: string;
   loja: string | null;
   elemento: string | null;
+  pessoal: boolean;
 }>;
 
 export type Remetente = { id: string; email: string };
 
-export type ConfiguracaoDosComprovantes = { endereco: string; leitura_ligada: boolean };
+export type ConfiguracaoDosComprovantes = {
+  endereco: string;
+  endereco_pessoal: string;
+  leitura_ligada: boolean;
+};
 
 const BASE = "/comprovantes/";
+
+/** A query string da lista. `pessoal` vai como `1`, que é o que a API entende. */
+export const parametrosDoFiltro = (filtro: FiltroDeComprovantes): string => {
+  const params = new URLSearchParams();
+  Object.entries(filtro).forEach(([chave, valor]) => {
+    if (valor === undefined || valor === "" || valor === false) return;
+    params.set(chave, valor === true ? "1" : String(valor));
+  });
+  return params.toString();
+};
 
 export const getComprovantes = async (
   filtro: FiltroDeComprovantes,
 ): Promise<PaginaDeComprovantes> => {
-  const params = new URLSearchParams();
-  Object.entries(filtro).forEach(([chave, valor]) => {
-    if (valor !== undefined && valor !== "") params.set(chave, String(valor));
-  });
-  const res = await apiV1(`${BASE}?${params.toString()}`);
+  const res = await apiV1(`${BASE}?${parametrosDoFiltro(filtro)}`);
   return res.json();
 };
 
@@ -111,13 +126,16 @@ export const voltarParaConferir = async (id: string): Promise<Comprovante> => {
 export const enviarComprovante = async ({
   arquivo,
   loja,
+  pessoal,
 }: {
   arquivo: File;
   loja?: string;
+  pessoal?: boolean;
 }): Promise<Comprovante> => {
   const corpo = new FormData();
   corpo.append("arquivo", arquivo);
   if (loja) corpo.append("loja", loja);
+  if (pessoal) corpo.append("pessoal", "true");
   const res = await apiV1(`${BASE}enviar/`, { method: "POST", body: corpo });
   return res.json();
 };
