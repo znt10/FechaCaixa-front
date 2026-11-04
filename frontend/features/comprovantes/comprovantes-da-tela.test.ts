@@ -14,6 +14,7 @@ import {
   rotuloDaSituacao,
   rotuloDoTotal,
   contaDoPagamento,
+  enderecosParaMandar,
   linhasDoResumoPessoal,
   rotuloDoMover,
   type EscolhasDosComprovantes,
@@ -283,5 +284,33 @@ describe("tela CPF", () => {
   it("o botão de mover leva para o outro lado", () => {
     expect(rotuloDoMover(false)).toBe("Mover para CPF");
     expect(rotuloDoMover(true)).toBe("Mover para lojas");
+  });
+});
+
+describe("enderecosParaMandar", () => {
+  const configuracao = {
+    endereco: "lojas@x.com",
+    endereco_pessoal: "pessoal@x.com",
+    leitura_ligada: true,
+  };
+
+  it("com a tela CPF ligada, mostra os dois destinos", () => {
+    expect(enderecosParaMandar(configuracao, true)).toEqual([
+      { rotulo: "Gasto das lojas", endereco: "lojas@x.com" },
+      { rotulo: "Gasto pessoal (CPF)", endereco: "pessoal@x.com" },
+    ]);
+  });
+
+  it("sem a tela CPF, só o das lojas", () => {
+    expect(enderecosParaMandar(configuracao, false)).toEqual([
+      { rotulo: "Gasto das lojas", endereco: "lojas@x.com" },
+    ]);
+  });
+
+  it("caixa sem endereço configurado vem vazia, para a tela avisar", () => {
+    expect(enderecosParaMandar({ ...configuracao, endereco_pessoal: "" }, true)[1]).toEqual({
+      rotulo: "Gasto pessoal (CPF)",
+      endereco: "",
+    });
   });
 });

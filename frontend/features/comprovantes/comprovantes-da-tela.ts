@@ -8,6 +8,7 @@ import {
 import type { UsuarioAtual } from "@/shared/services/auth";
 
 import type {
+  ConfiguracaoDosComprovantes,
   FiltroDeComprovantes,
   Situacao,
   TotaisDeComprovantes,
@@ -174,3 +175,13 @@ export const lojaDoEnvio = (
       : undefined;
   return loja ? { id: loja.id, nome: loja.nome_loja } : null;
 };
+
+/** Para onde mandar cada tipo de comprovante. O pessoal só existe com a tela
+ *  CPF ligada; endereço vazio é caixa ainda não configurada (a tela avisa). */
+export const enderecosParaMandar = (
+  configuracao: ConfiguracaoDosComprovantes,
+  pessoais: boolean,
+) => [
+  { rotulo: "Gasto das lojas", endereco: configuracao.endereco },
+  ...(pessoais ? [{ rotulo: "Gasto pessoal (CPF)", endereco: configuracao.endereco_pessoal }] : []),
+];
