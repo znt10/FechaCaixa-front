@@ -1,4 +1,4 @@
-import type { FiltroTurno } from "./painel-dados";
+import { somarDias, type FiltroTurno } from "./painel-dados";
 import type { FechamentoLido, LojaDoPainel } from "./services/painel";
 
 // O grafico responde "como entrou o dinheiro nesta loja": as fatias sao as
@@ -116,4 +116,59 @@ export const montarResumo = (
       percentual: emCaixa > 0 ? (v.valor / emCaixa) * 100 : 0,
     })),
   };
+};
+
+/**
+ * Marcas do eixo do grafico de colunas: o topo e o primeiro numero "redondo"
+ * (1, 2 ou 5 vezes uma potencia de dez, por marca) que cobre o maior valor.
+ * Quatro faixas no maximo — mais que isso e so linha cinza disputando atencao
+ * com as colunas.
+ */
+export function marcasDoEixo(maior: number, faixas = 4): number[] {
+  if (!(maior > 0)) return [0];
+
+  const bruto = maior / faixas;
+  const potencia = 10 ** Math.floor(Math.log10(bruto));
+  const passo =
+    [1, 2, 5, 10].map((m) => m * potencia).find((p) => p >= bruto) ??
+    10 * potencia;
+
+  const quantas = Math.ceil(maior / passo);
+  return Array.from({ length: quantas + 1 }, (_, i) => i * passo);
+}
+
+export type ColunaDoDia = {
+  /** YYYY-MM-DD */
+  dia: string;
+  /** O que a empresa tem daquele dia: a mesma conta do total do resumo. */
+  total: number;
+  /** As quatro formas do dia, na ordem e na cor da rosca — cada coluna e a
+   *  rosca daquele dia, empilhada. */
+  fatias: Fatia[];
+};
+
+/**
+ * Uma coluna por dia do intervalo, inclusive os dias sem lancamento: o buraco
+ * no grafico e informacao ("nao abriu", "esqueceram de lancar"). Cada dia e
+ * montado por montarResumo, para que a soma das colunas bata com o total da
+ * tela sem duas contas de retirada e despesa para manter.
+ */
+export const montarColunasPorDia = (
+  fechamentos: FechamentoLido[],
+  lojaId: string | null,
+  turno: FiltroTurno,
+  de: string,
+  ate: string,
+): ColunaDoDia[] => {
+  const colunas: ColunaDoDia[] = [];
+  for (let dia = de; dia <= ate; dia = somarDias(dia, 1)) {
+    const resumo = montarResumo(
+      [],
+      fechamentos.filter((f) => f.data === dia),
+      lojaId,
+      turno,
+    );
+    colunas.push({ dia, total: resumo.total, fatias: resumo.fatias });
+  }
+  return colunas;
 };
