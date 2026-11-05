@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   emReais,
@@ -20,15 +20,42 @@ import {
   type FiltroTurno,
 } from "@/features/fechamento/painel-dados";
 import { useUmFechamentoPorDia } from "@/features/admin/hooks/useEmpresa";
-import { montarResumo, type Fatia } from "@/features/fechamento/graficos-dados";
+import {
+  montarColunasPorDia,
+  montarResumo,
+  type Fatia,
+} from "@/features/fechamento/graficos-dados";
 import {
   useFechamentosDoIntervalo,
   useLojasDoPainel,
 } from "@/features/fechamento/hooks/usePainel";
 import { BarraDoPeriodo } from "@/features/fechamento/components/BarraDoPeriodo";
 import { ChipDeLoja } from "@/features/fechamento/components/ChipDeLoja";
+import { GraficoDeColunas } from "@/features/fechamento/components/GraficoDeColunas";
+import { GraficoPorDia } from "@/features/fechamento/components/GraficoPorDia";
 
 type Granularidade = "DIA" | "SEMANA" | "MES";
+type TipoDeGrafico = "ROSCA" | "COLUNAS";
+
+const TIPOS_DE_GRAFICO: { valor: TipoDeGrafico; rotulo: string }[] = [
+  { valor: "ROSCA", rotulo: "Rosca" },
+  { valor: "COLUNAS", rotulo: "Colunas" },
+];
+
+/** O tipo escolhido fica no navegador: quem prefere colunas nao quer voltar
+ *  para a rosca a cada F5. Como em useRecolhido, o inicializador le direto
+ *  porque o painel so renderiza no cliente (HydrationGuard). */
+const CHAVE_DO_TIPO = "fechacaixa:graficos-tipo";
+
+const tipoSalvo = (): TipoDeGrafico => {
+  try {
+    return window.localStorage.getItem(CHAVE_DO_TIPO) === "COLUNAS"
+      ? "COLUNAS"
+      : "ROSCA";
+  } catch {
+    return "ROSCA";
+  }
+};
 
 const GRANULARIDADES: { valor: Granularidade; rotulo: string }[] = [
   { valor: "DIA", rotulo: "Dia" },
@@ -42,6 +69,17 @@ export default function GraficosPage() {
   const [mes, setMes] = useState(() => mesDe(hojeISO()));
   const [lojaEscolhida, setLojaEscolhida] = useState<string | null>(null);
   const [turno, setTurno] = useState<FiltroTurno>("TODOS");
+  const [tipo, setTipo] = useState<TipoDeGrafico>(() =>
+    typeof window === "undefined" ? "ROSCA" : tipoSalvo(),
+  );
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CHAVE_DO_TIPO, tipo);
+    } catch {
+      // Storage desligado: o botao funciona, so nao lembra no proximo F5.
+    }
+  }, [tipo]);
 
   // Os tres periodos viram um intervalo so, que e o que a API entende.
   const { de, ate } =
@@ -75,6 +113,11 @@ export default function GraficosPage() {
   const resumo = useMemo(
     () => montarResumo(lojas.data ?? [], lancamentos, lojaEscolhida, turnoEfetivo),
     [lojas.data, lancamentos, lojaEscolhida, turnoEfetivo],
+  );
+
+  const colunasPorDia = useMemo(
+    () => montarColunasPorDia(lancamentos, lojaEscolhida, turnoEfetivo, de, ate),
+    [lancamentos, lojaEscolhida, turnoEfetivo, de, ate],
   );
 
   const hoje = hojeISO();
@@ -217,7 +260,28 @@ export default function GraficosPage() {
             <h2 className="text-[20px] font-bold leading-[1.2]">
               {resumo.lojaNome}
             </h2>
-            <span className="text-[13px] text-caixa-muted">
+            <div
+              role="group"
+              aria-label="Tipo de gráfico"
+              className="flex gap-[4px] rounded-[10px] bg-caixa-faixa p-[3px]"
+            >
+              {TIPOS_DE_GRAFICO.map(({ valor, rotulo }) => (
+                <button
+                  key={valor}
+                  type="button"
+                  aria-pressed={tipo === valor}
+                  onClick={() => setTipo(valor)}
+                  className={`rounded-[8px] px-[14px] py-[6px] text-[13px] font-medium transition ${
+                    tipo === valor
+                      ? "bg-caixa-surface text-caixa-accent shadow-sm"
+                      : "text-caixa-muted hover:text-caixa-ink"
+                  }`}
+                >
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+            <span className="w-full text-[13px] text-caixa-muted">
               {turnoEfetivo !== "TODOS" &&
                 `${rotuloDoPeriodo(turnoEfetivo, umFechamentoPorDia)} · `}
               {resumo.lancamentos === 1
@@ -234,7 +298,14 @@ export default function GraficosPage() {
             </p>
           ) : (
             <div className="flex flex-wrap items-center gap-[24px] md:gap-[48px]">
-              <Rosca fatias={resumo.fatias} total={resumo.emCaixa} />
+              {tipo === "ROSCA" ? (
+                <Rosca fatias={resumo.fatias} total={resumo.emCaixa} />
+              ) : granularidade === "DIA" ? (
+                // Um dia so daria uma coluna: ali as colunas sao as formas.
+                <GraficoDeColunas fatias={resumo.fatias} />
+              ) : (
+                <GraficoPorDia colunas={colunasPorDia} modo={granularidade} />
+              )}
 
               {/* Legenda com o valor de cada fatia: e ela que da identidade
                   sem depender so da cor, e cobre o aviso de contraste das

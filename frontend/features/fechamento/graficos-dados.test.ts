@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { montarResumo } from "./graficos-dados";
+import { marcasDoEixo, montarColunasPorDia, montarResumo } from "./graficos-dados";
 import type { FechamentoLido, LojaDoPainel } from "./services/painel";
 
 /**
@@ -164,5 +164,58 @@ describe("a pizza das formas de pagamento", () => {
     // Os 60 do gas nao existem mais: anotados, fora do total.
     expect(resumo.despesas).toBe(60);
     expect(resumo.total).toBe(400);
+  });
+});
+
+describe("marcasDoEixo", () => {
+  it("sem valor, o eixo e so o zero", () => {
+    expect(marcasDoEixo(0)).toEqual([0]);
+  });
+
+  it("arredonda o topo para cima num passo redondo", () => {
+    expect(marcasDoEixo(2300)).toEqual([0, 1000, 2000, 3000]);
+    expect(marcasDoEixo(18)).toEqual([0, 5, 10, 15, 20]);
+  });
+
+  it("o topo nunca fica abaixo do maior valor", () => {
+    for (const maior of [1, 7.5, 99, 101, 4999, 12345.67]) {
+      expect(marcasDoEixo(maior).at(-1)).toBeGreaterThanOrEqual(maior);
+    }
+  });
+});
+
+describe("montarColunasPorDia", () => {
+  it("uma coluna por dia, inclusive os vazios, com a retirada no dinheiro", () => {
+    const colunas = montarColunasPorDia(
+      [
+        fechamento({ data: "2026-08-21", pix: "100.00" }),
+        fechamento({ data: "2026-08-21", periodo: "TARDE", pix: "50.00" }),
+        fechamento({ data: "2026-08-23", dinheiro: "20.00", valor_retirado: "30.00" }),
+      ],
+      null,
+      "TODOS",
+      "2026-08-21",
+      "2026-08-23",
+    );
+
+    expect(colunas.map((c) => c.dia)).toEqual(["2026-08-21", "2026-08-22", "2026-08-23"]);
+    expect(colunas.map((c) => c.total)).toEqual([150, 0, 50]);
+    expect(colunas[2].fatias.find((f) => f.campo === "dinheiro")?.valor).toBe(50);
+  });
+
+  it("respeita a loja e o turno escolhidos", () => {
+    const colunas = montarColunasPorDia(
+      [
+        fechamento({ data: "2026-08-21", pix: "100.00" }),
+        fechamento({ data: "2026-08-21", periodo: "TARDE", pix: "50.00" }),
+        fechamento({ data: "2026-08-21", loja: "outra", pix: "999.00" }),
+      ],
+      CENTRO.id,
+      "TARDE",
+      "2026-08-21",
+      "2026-08-21",
+    );
+
+    expect(colunas[0].total).toBe(50);
   });
 });
