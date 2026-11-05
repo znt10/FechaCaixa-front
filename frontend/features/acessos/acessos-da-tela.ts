@@ -34,3 +34,18 @@ export const corpoDoGerente = ({
 /** A dica do campo de senha. */
 export const DICA_DA_SENHA =
   "Deixe em branco para mandar por e-mail um link para a pessoa criar a própria senha.";
+
+/** Envia e só limpa o formulário se deu certo. Com erro (e-mail em uso, por
+ *  exemplo) o que foi digitado fica, e a mensagem aparece pela mutação. */
+export const enviarGerente = async (
+  campos: { nome: string; email: string; senha: string },
+  onEnviar: (gerente: NovoGerente) => Promise<unknown>,
+  limpar: () => void,
+) => {
+  try {
+    await onEnviar(corpoDoGerente(campos));
+  } catch {
+    return;
+  }
+  limpar();
+};

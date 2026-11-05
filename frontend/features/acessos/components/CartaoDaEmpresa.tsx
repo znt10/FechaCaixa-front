@@ -93,7 +93,7 @@ export function CartaoDaEmpresa({ empresa }: { empresa: EmpresaComAcessos }) {
         <FormularioDeGerente
           rotulo="Adicionar gerente"
           ocupado={adicionar.isPending}
-          onEnviar={(gerente) => novoGerente(gerente).catch(() => {})}
+          onEnviar={novoGerente}
         />
       ) : (
         <div>

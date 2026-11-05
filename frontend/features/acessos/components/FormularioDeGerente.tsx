@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 
-import { corpoDoGerente, DICA_DA_SENHA } from "../acessos-da-tela";
+import { DICA_DA_SENHA, enviarGerente } from "../acessos-da-tela";
 import type { NovoGerente } from "../services/acessos";
 import { BOTAO_FORTE, CAMPO } from "./estilos";
 
@@ -23,8 +23,7 @@ export function FormularioDeGerente({
 
   const enviar = async (evento: FormEvent) => {
     evento.preventDefault();
-    await onEnviar(corpoDoGerente(campos));
-    setCampos({ nome: "", email: "", senha: "" });
+    await enviarGerente(campos, onEnviar, () => setCampos({ nome: "", email: "", senha: "" }));
   };
 
   return (
