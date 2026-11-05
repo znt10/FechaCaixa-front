@@ -65,6 +65,7 @@ const COMPROVANTES: Pagina[] = [
 const PLATAFORMA: Pagina[] = [
   { href: "/plataforma", rotulo: "Empresas" },
   { href: "/plataforma/pluggy", rotulo: "Pluggy" },
+  { href: "/plataforma/acessos", rotulo: "Acessos" },
 ];
 
 /** As áreas do seletor, na ordem em que aparecem, e por onde cada uma começa. */
