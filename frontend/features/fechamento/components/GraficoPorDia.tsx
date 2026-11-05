@@ -1,7 +1,10 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 
 import { emReais } from "@/features/fechamento/painel-dados";
 import { marcasDoEixo, type ColunaDoDia } from "@/features/fechamento/graficos-dados";
+import { DicaDaColuna, ladoDaDica } from "./DicaDaColuna";
 
 const ALTURA = "h-[240px]";
 
@@ -23,7 +26,8 @@ const diaDoMes = (dataISO: string) => String(Number(dataISO.slice(8, 10)));
  * da rosca — a legenda ao lado serve para os dois graficos.
  *
  * Na semana cabem o dia da semana e o total em cima da coluna; no mes sao ate
- * 31 colunas, e ali fica so o numero do dia (o valor vai no title).
+ * 31 colunas, e ali fica so o numero do dia — o valor aparece na dica, ao
+ * passar o mouse ou tocar na coluna.
  */
 export function GraficoPorDia({
   colunas,
@@ -35,6 +39,8 @@ export function GraficoPorDia({
   const marcas = marcasDoEixo(Math.max(...colunas.map((c) => c.total), 0));
   const topo = marcas.at(-1) || 1;
   const semana = modo === "SEMANA";
+  // Apontada pelo mouse ou tocada no celular (onde nao existe hover).
+  const [ativa, setAtiva] = useState<string | null>(null);
 
   return (
     <figure
@@ -74,15 +80,37 @@ export function GraficoPorDia({
               semana ? "gap-[10px]" : "gap-[2px] md:gap-[4px]"
             }`}
           >
-            {colunas.map((coluna) => (
+            {colunas.map((coluna, indice) => (
               <div
                 key={coluna.dia}
-                className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
-                title={`${coluna.dia.slice(8, 10)}/${coluna.dia.slice(5, 7)}: R$ ${emReais(coluna.total)}\n${coluna.fatias
-                  .filter((f) => f.valor > 0)
-                  .map((f) => `${f.rotulo}: R$ ${emReais(f.valor)}`)
-                  .join("\n")}`}
+                className={`relative flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end transition-opacity ${
+                  ativa && ativa !== coluna.dia ? "opacity-50" : ""
+                }`}
+                onMouseEnter={() => setAtiva(coluna.dia)}
+                onMouseLeave={() => setAtiva(null)}
+                onClick={() =>
+                  setAtiva((antes) => (antes === coluna.dia ? null : coluna.dia))
+                }
               >
+                {ativa === coluna.dia && (
+                  <DicaDaColuna
+                    titulo={`${diaDaSemana(coluna.dia)}, ${coluna.dia.slice(8, 10)}/${coluna.dia.slice(5, 7)}${
+                      coluna.total > 0 ? "" : " · sem lançamento"
+                    }`}
+                    linhas={
+                      coluna.total > 0
+                        ? [
+                            ...coluna.fatias
+                              .filter((f) => f.valor > 0)
+                              .map((f) => ({ rotulo: f.rotulo, valor: f.valor, cor: f.cor })),
+                            { rotulo: "Total", valor: coluna.total },
+                          ]
+                        : []
+                    }
+                    alturaDaColuna={(coluna.total / topo) * 100}
+                    lado={ladoDaDica(indice, colunas.length)}
+                  />
+                )}
                 {semana && coluna.total > 0 && (
                   <span className="mb-[4px] whitespace-nowrap text-[11px] font-medium tabular-nums">
                     {compacto(coluna.total)}
