@@ -10,13 +10,14 @@ import type { Periodo } from "@/features/fechamento/services/fechamentos";
  * campos e so descobrir no envio que o dia nao valia.
  */
 
-/** O mesmo numero do `DIAS_PARA_REPOR` do serializer. Repor dia esquecido e
- *  coisa de dias: passado isso o caixa daquele dia ja virou relatorio fechado.
+/** O mesmo numero do `DIAS_PARA_REPOR` do serializer: seis meses (180 dias)
+ *  para a empresa/gerente repor um dia esquecido. Passado isso o caixa daquele
+ *  dia ja virou relatorio fechado.
  *
  *  Se um dos dois lados mudar, este e o par a acertar junto — apertada demais,
  *  a tela esconde um dia que o servidor aceitaria; folgada demais, ela promete
  *  um dia que o servidor recusa. */
-export const DIAS_PARA_REPOR = 30;
+export const DIAS_PARA_REPOR = 180;
 
 /** O `min` e o `max` do seletor de data. */
 export const limitesDoSeletor = (hoje: string) => ({
