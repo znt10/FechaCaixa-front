@@ -226,6 +226,19 @@ describe("a área Plataforma", () => {
     expect(areaDaRota("/plataforma")).toBe("PLATAFORMA");
   });
 
+  it("a Plataforma tem Empresas, Pluggy e Acessos", () => {
+    expect(
+      paginasDaArea("PLATAFORMA", { gerente: true, notas: false, plataforma: true }).map(
+        (pagina) => [pagina.rotulo, pagina.href],
+      ),
+    ).toEqual([
+      ["Empresas", "/plataforma"],
+      ["Pluggy", "/plataforma/pluggy"],
+      ["Acessos", "/plataforma/acessos"],
+    ]);
+    expect(areaDaRota("/plataforma/acessos")).toBe("PLATAFORMA");
+  });
+
   it("só entra no seletor para o dono da plataforma", () => {
     const ids = (opcoes: { notas: boolean; banco: boolean; plataforma?: boolean }) =>
       areasDisponiveis(opcoes).map((area) => area.id);
@@ -252,7 +265,7 @@ describe("a área Plataforma", () => {
       paginasDaArea("PLATAFORMA", { gerente: false, notas: false, plataforma: true }).map(
         (p) => p.rotulo,
       ),
-    ).toEqual(["Empresas", "Pluggy"]);
+    ).toEqual(["Empresas", "Pluggy", "Acessos"]);
   });
 
   it("a área Plataforma tem a página Pluggy", () =>
