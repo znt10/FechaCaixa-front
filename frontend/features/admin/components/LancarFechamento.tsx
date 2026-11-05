@@ -422,7 +422,7 @@ function Formulario({ aoFechar }: { aoFechar: () => void }) {
             setData(dia);
             setPeriodo("");
           }}
-          // So a janela dos 30 dias tranca o dia. A loja NAO tranca: ela
+          // So a janela dos 180 dias tranca o dia. A loja NAO tranca: ela
           // decide as bolinhas, e nada mais — travar o calendario ate ela ser
           // escolhida fazia o dia parecer nao clicavel, que e diferente de
           // fora do prazo. Enviar continua exigindo as duas coisas.

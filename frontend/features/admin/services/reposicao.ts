@@ -10,7 +10,7 @@ import type {
 // ======================================================
 // Mesmo endpoint do formulario da loja, outra porta: la quem responde e o
 // cookie do aparelho, aqui e a sessao do gerente. O backend trata os dois como
-// donos do mesmo `create` — e so deste lado aplica o limite de 30 dias e a
+// donos do mesmo `create` — e so deste lado aplica o limite de 180 dias e a
 // recusa de turno repetido.
 //
 // Por isso as chamadas passam pelo `apiV1` e nao pelo `apiV1Publico`: um 401

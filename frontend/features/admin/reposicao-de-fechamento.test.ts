@@ -16,7 +16,7 @@ import type { FechamentoLido } from "@/features/fechamento/services/painel";
  * substituem nenhuma das duas. Elas existem para a tela nao deixar o gerente
  * preencher trinta campos e so descobrir no envio que o dia nao valia.
  *
- * Por isso a janela precisa ser exatamente a mesma dos 30 dias do serializer:
+ * Por isso a janela precisa ser exatamente a mesma dos 180 dias do serializer:
  * apertada demais, a tela esconde um dia que o servidor aceitaria; folgada
  * demais, ela promete um dia que o servidor recusa.
  */
@@ -37,18 +37,18 @@ describe("limitesDoSeletor", () => {
     expect(limitesDoSeletor(HOJE).max).toBe(HOJE);
   });
 
-  it("volta trinta dias", () => {
-    expect(limitesDoSeletor(HOJE).min).toBe("2026-08-09");
+  it("volta seis meses (180 dias)", () => {
+    expect(limitesDoSeletor(HOJE).min).toBe("2026-03-12");
   });
 });
 
 describe("dentroDaJanela", () => {
   it("aceita o trigesimo dia, que e o ultimo que o servidor aceita", () => {
-    expect(dentroDaJanela("2026-08-09", HOJE)).toBe(true);
+    expect(dentroDaJanela("2026-03-12", HOJE)).toBe(true);
   });
 
   it("recusa o trigesimo primeiro", () => {
-    expect(dentroDaJanela("2026-08-08", HOJE)).toBe(false);
+    expect(dentroDaJanela("2026-03-11", HOJE)).toBe(false);
   });
 
   it("recusa amanha", () => {
@@ -143,7 +143,7 @@ describe("marcarOsDias", () => {
   });
 
   it("dia fora da janela nao e escolhivel, tenha caixa ou nao", () => {
-    expect(marcar([])("2026-08-08")).toBe("fora-da-janela");
+    expect(marcar([])("2026-03-11")).toBe("fora-da-janela");
     expect(marcar([])("2026-09-09")).toBe("fora-da-janela");
   });
 
