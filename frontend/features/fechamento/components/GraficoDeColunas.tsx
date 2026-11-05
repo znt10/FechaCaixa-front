@@ -1,7 +1,10 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 
 import { emReais } from "@/features/fechamento/painel-dados";
 import { marcasDoEixo, type Fatia } from "@/features/fechamento/graficos-dados";
+import { DicaDaColuna, ladoDaDica } from "./DicaDaColuna";
 
 /** Rotulo curto do eixo: "R$ 12 mil" cabe na margem; "R$ 12.000,00" nao. */
 const rotuloDoEixo = (valor: number) =>
@@ -16,6 +19,7 @@ const rotuloDoEixo = (valor: number) =>
 export function GraficoDeColunas({ fatias }: { fatias: Fatia[] }) {
   const marcas = marcasDoEixo(Math.max(...fatias.map((f) => f.valor), 0));
   const topo = marcas.at(-1) || 1;
+  const [ativa, setAtiva] = useState<string | null>(null);
 
   return (
     <figure
@@ -52,11 +56,28 @@ export function GraficoDeColunas({ fatias }: { fatias: Fatia[] }) {
           ))}
 
           <div className="relative flex h-full items-end gap-[8px] px-[4px]">
-            {fatias.map((fatia) => (
+            {fatias.map((fatia, indice) => (
               <div
                 key={fatia.campo}
-                className="flex h-full min-w-0 flex-1 flex-col items-center justify-end"
+                className={`relative flex h-full min-w-0 flex-1 cursor-pointer flex-col items-center justify-end transition-opacity ${
+                  ativa && ativa !== fatia.campo ? "opacity-50" : ""
+                }`}
+                onMouseEnter={() => setAtiva(fatia.campo)}
+                onMouseLeave={() => setAtiva(null)}
+                onClick={() =>
+                  setAtiva((antes) => (antes === fatia.campo ? null : fatia.campo))
+                }
               >
+                {ativa === fatia.campo && (
+                  <DicaDaColuna
+                    titulo={fatia.rotulo}
+                    linhas={[
+                      { rotulo: `${fatia.percentual.toFixed(0)}% do recebido`, valor: fatia.valor, cor: fatia.cor },
+                    ]}
+                    alturaDaColuna={(fatia.valor / topo) * 100}
+                    lado={ladoDaDica(indice, fatias.length)}
+                  />
+                )}
                 <span className="mb-[4px] whitespace-nowrap text-[11px] font-medium tabular-nums">
                   {fatia.valor > 0 ? `${fatia.percentual.toFixed(0)}%` : ""}
                 </span>
@@ -66,7 +87,6 @@ export function GraficoDeColunas({ fatias }: { fatias: Fatia[] }) {
                     height: `${(fatia.valor / topo) * 100}%`,
                     backgroundColor: fatia.cor,
                   }}
-                  title={`${fatia.rotulo}: R$ ${emReais(fatia.valor)}`}
                 />
               </div>
             ))}
