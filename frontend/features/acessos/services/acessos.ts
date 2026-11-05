@@ -11,8 +11,14 @@ export type GerenteDaEmpresa = {
   situacao: SituacaoDoGerente;
 };
 
-/** Só o que a empresa contrata; o resto o gerente liga na tela Empresa. */
-export type Modulos = { notas: boolean; banco: boolean; comprovantes: boolean };
+/** O que a empresa contrata, mais a tela CPF (que o gerente também liga na
+ *  tela Empresa); o resto o gerente liga lá. */
+export type Modulos = {
+  notas: boolean;
+  banco: boolean;
+  comprovantes: boolean;
+  comprovantes_pessoais: boolean;
+};
 
 export type EmpresaComAcessos = {
   id: string;

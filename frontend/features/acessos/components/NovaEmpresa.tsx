@@ -10,7 +10,12 @@ import { BOTAO, BOTAO_FORTE, CAMPO } from "./estilos";
 import { CamposDoGerente } from "./FormularioDeGerente";
 
 const VAZIO = { nome: "", email: "", senha: "" };
-const SEM_MODULOS: Modulos = { notas: false, banco: false, comprovantes: false };
+const SEM_MODULOS: Modulos = {
+  notas: false,
+  banco: false,
+  comprovantes: false,
+  comprovantes_pessoais: false,
+};
 
 /** A empresa nasce com o primeiro gerente: os dois num envio só. */
 export function NovaEmpresa({ onAviso }: { onAviso: (aviso: string) => void }) {
